@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Практична робота №24 — LCD / OLED / Сенсори Arduino</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f0f4f8;--bg2:#e8eef5;--bg3:#dde6f0;
+  --surface:#ffffff;--surface2:#f7fafd;
+  --border:#c5d5e8;--border2:#a8c0d8;
+  --grid:rgba(100,160,220,.12);
+  --accent:#0a7fc4;--accent2:#00b4d8;--accent3:#0052a3;
+  --green:#0b9e5f;--orange:#e07b00;--red:#c0392b;--yellow:#c9960a;
+  --purple:#7c3aed;--teal:#0d9488;
+  --text:#1a2a3a;--text2:#3a5068;--text3:#6a8099;
+  --mono:'Share Tech Mono',monospace;
+  --sans:'Exo 2',sans-serif;
+  --display:'Russo One',sans-serif;
+  --glow:0 0 16px rgba(10,127,196,.18);
+  --card-shadow:0 2px 16px rgba(10,80,160,.10),0 1px 4px rgba(10,80,160,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);overflow-x:hidden;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:32px 32px;background-attachment:fixed}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#0a3d6b 0%,#0a6fa8 55%,#00b4d8 100%);
+  position:relative;overflow:hidden;box-shadow:0 4px 32px rgba(0,60,120,.25)}
+header::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+  background-size:24px 24px;pointer-events:none}
+.header-inner{max-width:1100px;margin:0 auto;padding:36px 32px 28px;position:relative;z-index:1}
+.header-chip{display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
+  color:#a8ddff;font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  padding:4px 12px;border-radius:2px;margin-bottom:16px;text-transform:uppercase}
+.header-chip::before{content:'◆';font-size:8px;color:#00e5ff}
+header h1{font-family:var(--display);font-size:clamp(26px,5vw,50px);color:#fff;
+  line-height:1.1;letter-spacing:.02em;text-shadow:0 2px 20px rgba(0,0,0,.3);margin-bottom:8px}
+header h1 span{color:#00e5ff}
+.header-sub{font-family:var(--mono);color:rgba(200,230,255,.8);font-size:13px;
+  letter-spacing:.05em;margin-bottom:24px}
+.header-nav{display:flex;flex-wrap:wrap;gap:8px}
+.nav-btn{font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+  color:rgba(200,235,255,.9);background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.18);padding:7px 16px;
+  cursor:pointer;border-radius:2px;transition:all .2s;text-transform:uppercase}
+.nav-btn:hover,.nav-btn.active{background:rgba(0,229,255,.15);border-color:#00e5ff;
+  color:#00e5ff;box-shadow:0 0 12px rgba(0,229,255,.2)}
+
+/* SCHEMATIC HEADER DECO */
+.sch-deco{position:absolute;right:32px;top:50%;transform:translateY(-50%);opacity:.18;pointer-events:none}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:32px 24px 64px}
+.section{display:none;animation:fadeIn .4s ease}
+.section.visible{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* SECTION TITLE */
+.sec-title{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.sec-badge{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+  background:var(--accent);color:#fff;padding:4px 10px;border-radius:2px}
+.sec-title h2{font-family:var(--display);font-size:22px;color:var(--accent3);letter-spacing:.03em}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  box-shadow:var(--card-shadow);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent2)}
+.card.green-accent::before{background:var(--green)}
+.card.purple-accent::before{background:var(--purple)}
+.card.red-accent::before{background:var(--red)}
+.card-title{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';display:inline-block;width:6px;height:6px;
+  background:var(--accent2);border-radius:50%;box-shadow:0 0 6px var(--accent2)}
+.card-title.green::before{background:var(--green);box-shadow:0 0 6px var(--green)}
+.card-title.purple::before{background:var(--purple);box-shadow:0 0 6px var(--purple)}
+.card-title.red::before{background:var(--red);box-shadow:0 0 6px var(--red)}
+.card p{font-size:15px;line-height:1.75;color:var(--text2)}
+.card h3{font-family:var(--sans);font-weight:700;font-size:16px;color:var(--text);margin:16px 0 8px}
+.card h3:first-child{margin-top:0}
+
+/* TASK CARDS */
+.task-card{background:var(--surface);border:1px solid var(--border);
+  border-radius:4px;box-shadow:var(--card-shadow);margin-bottom:28px;overflow:hidden}
+.task-header{padding:14px 20px;display:flex;align-items:center;gap:14px}
+.task-header.blue{background:linear-gradient(90deg,#0052a3,#0a7fc4)}
+.task-header.teal{background:linear-gradient(90deg,#0f766e,#0d9488)}
+.task-header.red{background:linear-gradient(90deg,#991b1b,#dc2626)}
+.task-num{font-family:var(--mono);font-size:22px;font-weight:700;color:rgba(255,255,255,.3)}
+.task-label{font-family:var(--mono);font-size:10px;letter-spacing:.15em;
+  color:rgba(200,230,255,.7);text-transform:uppercase;margin-bottom:2px}
+.task-title-text{font-family:var(--display);font-size:16px;color:#fff;letter-spacing:.03em}
+.task-body{padding:20px}
+
+/* MATERIALS */
+.task-materials{background:var(--bg2);border:1px dashed var(--border2);
+  border-radius:3px;padding:14px 18px;margin-bottom:16px}
+.task-materials-title{font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.materials-list{display:flex;flex-wrap:wrap;gap:6px}
+.material-chip{background:var(--surface);border:1px solid var(--border2);border-radius:2px;
+  padding:4px 10px;font-family:var(--mono);font-size:11px;color:var(--text2);
+  display:flex;align-items:center;gap:5px}
+.material-chip::before{content:'⬡';color:var(--accent2);font-size:9px}
+
+/* STEPS */
+.steps-list{list-style:none}
+.steps-list li{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--bg3);
+  font-size:14.5px;color:var(--text2);line-height:1.6;align-items:flex-start}
+.steps-list li:last-child{border-bottom:none}
+.step-num{font-family:var(--mono);font-size:11px;color:#fff;background:var(--accent);
+  min-width:24px;height:24px;border-radius:2px;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;margin-top:2px}
+.step-num.teal{background:var(--teal)}
+.step-num.red{background:var(--red)}
+
+/* CODE BLOCKS */
+.code-block{background:#0d1f33;border:1px solid #1a4a6a;border-radius:4px;margin:16px 0;overflow:hidden}
+.code-header{background:#0a1827;border-bottom:1px solid #1a4a6a;padding:8px 16px;
+  display:flex;align-items:center;justify-content:space-between}
+.code-header-label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#4a9aba;text-transform:uppercase}
+.code-dots{display:flex;gap:5px}
+.code-dot{width:8px;height:8px;border-radius:50%}
+.code-dot:nth-child(1){background:#c0392b}
+.code-dot:nth-child(2){background:#e07b00}
+.code-dot:nth-child(3){background:#0b9e5f}
+.code-pre{padding:18px 20px;font-family:var(--mono);font-size:12px;line-height:1.8;
+  color:#c8dff0;overflow-x:auto;white-space:pre}
+.c-comment{color:#6a8f5a}.c-keyword{color:#569cd6}.c-func{color:#dcdcaa}
+.c-number{color:#b5cea8}.c-string{color:#ce9178}.c-define{color:#c586c0}
+.c-type{color:#4ec9b0}.c-class{color:#4fc1ff}
+
+/* CIRCUIT DIAGRAMS */
+.circuit-wrap{background:#f7fbff;border:1px solid var(--border);border-radius:4px;
+  padding:20px;margin:16px 0;text-align:center;position:relative}
+.circuit-title{font-family:var(--mono);font-size:10px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--text3);margin-bottom:14px}
+
+/* SPEC TABLE */
+.spec-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:12px}
+.spec-table th{background:linear-gradient(90deg,var(--accent3),var(--accent));color:#fff;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  padding:9px 14px;text-align:left}
+.spec-table td{padding:8px 14px;border-bottom:1px solid var(--bg3);color:var(--text2);
+  font-family:var(--mono);font-size:12.5px}
+.spec-table tr:nth-child(even) td{background:var(--bg2)}
+.spec-table tr:hover td{background:#e0effa}
+.spec-table td:first-child{color:var(--accent3);font-weight:600}
+
+/* HIGHLIGHT BOXES */
+.highlight-box{background:linear-gradient(90deg,rgba(0,180,220,.06),rgba(0,180,220,.02));
+  border-left:3px solid var(--accent2);padding:12px 16px;margin:12px 0;
+  border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.tip-box{background:linear-gradient(90deg,rgba(11,158,95,.07),rgba(11,158,95,.02));
+  border-left:3px solid var(--green);padding:12px 16px;margin:12px 0;
+  border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.tip-box::before{content:'💡 '}
+.warn-box{background:linear-gradient(90deg,rgba(192,57,43,.07),rgba(192,57,43,.02));
+  border-left:3px solid var(--red);padding:12px 16px;margin:12px 0;
+  border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.warn-box::before{content:'⚠ ';color:var(--red)}
+.info-box{background:linear-gradient(90deg,rgba(124,58,237,.07),rgba(124,58,237,.02));
+  border-left:3px solid var(--purple);padding:12px 16px;margin:12px 0;
+  border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.info-box::before{content:'🔬 '}
+
+/* ACCORDION */
+.accordion{margin-bottom:10px}
+.acc-header{background:var(--surface2);border:1px solid var(--border);padding:12px 16px;
+  cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  border-radius:3px;transition:all .2s;font-size:14px;font-weight:600;color:var(--text)}
+.acc-header:hover{border-color:var(--accent2);background:#e8f4fb}
+.acc-header.open{background:#e0effa;border-color:var(--accent);border-radius:3px 3px 0 0}
+.acc-icon{font-family:var(--mono);font-size:16px;color:var(--accent);transition:transform .2s}
+.acc-header.open .acc-icon{transform:rotate(45deg)}
+.acc-body{display:none;background:var(--surface);border:1px solid var(--border);
+  border-top:none;border-radius:0 0 3px 3px;padding:16px;font-size:14px;
+  color:var(--text2);line-height:1.7}
+.acc-body.open{display:block}
+
+/* SIMULATION AREA */
+.sim-area{background:#0d1f33;border:1px solid #1a4a6a;border-radius:4px;padding:24px;margin:16px 0}
+.sim-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:#00b4d8;margin-bottom:16px}
+.sim-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.sim-btn{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  padding:8px 18px;border:1px solid;border-radius:2px;cursor:pointer;transition:all .2s}
+.sim-btn.run{background:rgba(11,158,95,.15);border-color:#0b9e5f;color:#4ade80}
+.sim-btn.run:hover{background:rgba(11,158,95,.3);box-shadow:0 0 12px rgba(11,158,95,.25)}
+.sim-btn.stop{background:rgba(192,57,43,.15);border-color:#c0392b;color:#fc8181}
+.sim-btn.stop:hover{background:rgba(192,57,43,.3)}
+.sim-btn.reset{background:rgba(10,127,196,.15);border-color:#0a7fc4;color:#90cdf4}
+.sim-btn.reset:hover{background:rgba(10,127,196,.3)}
+.sim-log{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:3px;
+  padding:12px;font-family:var(--mono);font-size:11px;color:#4ade80;height:150px;
+  overflow-y:auto;min-width:180px;flex:1}
+.log-line{margin-bottom:4px;color:#a8d8f0}
+.log-line.ok{color:#4ade80}
+.log-line.info{color:#63b3ed}
+.log-line.warn{color:#f6ad55}
+.sim-status{font-family:var(--mono);font-size:11px;color:#718096;margin-top:10px}
+.sim-status.running{color:#4ade80}
+
+/* OLED DISPLAY MOCKUP */
+.oled-screen{background:#000;border:3px solid #1a3a5a;border-radius:4px;
+  width:220px;height:110px;position:relative;overflow:hidden;flex-shrink:0;
+  box-shadow:0 0 20px rgba(0,0,0,.6),inset 0 0 20px rgba(0,0,0,.4)}
+.oled-screen canvas{display:block}
+.oled-label{font-family:var(--mono);font-size:9px;color:#4a9aba;text-align:center;margin-top:6px;letter-spacing:.08em}
+
+/* LASER SIM */
+.laser-arena{display:flex;gap:16px;align-items:stretch;flex-wrap:wrap}
+.laser-track{background:#0a1827;border:1px solid #1a4a6a;border-radius:4px;
+  padding:16px;flex:1;min-width:200px;position:relative;min-height:120px}
+.laser-beam{position:absolute;top:50%;height:2px;background:linear-gradient(90deg,transparent,#ff0000,transparent);
+  left:60px;right:60px;transform:translateY(-50%);box-shadow:0 0 8px rgba(255,0,0,.8);
+  transition:opacity .2s}
+.laser-emitter{position:absolute;left:20px;top:50%;transform:translateY(-50%);
+  width:32px;height:16px;background:#1a3a5a;border:1px solid #2a5a8a;border-radius:2px;
+  display:flex;align-items:center;justify-content:center}
+.laser-dot{width:8px;height:8px;background:#ff0000;border-radius:50%;
+  box-shadow:0 0 8px rgba(255,0,0,.9)}
+.laser-receiver{position:absolute;right:20px;top:50%;transform:translateY(-50%);
+  width:24px;height:24px;background:#1a3a5a;border:1px solid;border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
+.laser-receiver.active{border-color:#4ade80}
+.laser-receiver.alarm{border-color:#fc8181}
+.laser-recv-dot{width:10px;height:10px;border-radius:50%;background:#2c3e50;transition:all .2s}
+.laser-recv-dot.active{background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,.8)}
+.laser-recv-dot.alarm{background:#fc8181;box-shadow:0 0 8px rgba(252,129,129,.8)}
+
+/* ALARM LIGHTS */
+.alarm-panel{display:flex;flex-direction:column;gap:10px;min-width:120px}
+.alarm-light{width:48px;height:48px;border-radius:50%;background:#1a1a1a;
+  border:3px solid rgba(255,255,255,.1);transition:all .2s;margin:0 auto}
+.alarm-light.red-on{background:#dc2626;box-shadow:0 0 20px rgba(220,38,38,.8),0 0 40px rgba(220,38,38,.3)}
+.alarm-light.green-on{background:#16a34a;box-shadow:0 0 20px rgba(22,163,74,.8)}
+.alarm-sound{font-family:var(--mono);font-size:11px;color:#718096;text-align:center;margin-top:4px}
+.alarm-sound.beeping{color:#fc8181;animation:blink .5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.keypad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:90px;margin:0 auto;margin-top:8px}
+.kp-btn{background:#1a3a5a;border:1px solid #2a5a8a;border-radius:2px;padding:6px 0;
+  font-family:var(--mono);font-size:12px;color:#a8d8f0;cursor:pointer;text-align:center;
+  transition:all .1s;user-select:none}
+.kp-btn:active,.kp-btn.pressed{background:#0a7fc4;color:#fff;border-color:#00b4d8}
+
+/* PULSE / SpO2 SIM */
+.pulse-panel{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.pulse-gauge{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:100px}
+.pulse-num{font-family:var(--mono);font-size:36px;color:#4ade80;line-height:1}
+.pulse-unit{font-family:var(--mono);font-size:11px;color:#718096}
+.spo2-gauge{}
+.spo2-num{font-family:var(--mono);font-size:36px;color:#63b3ed;line-height:1}
+.heart-icon{font-size:24px;animation:heartbeat 1s infinite}
+@keyframes heartbeat{0%,100%{transform:scale(1)}25%{transform:scale(1.2)}50%{transform:scale(1)}}
+.pulse-wave-wrap{flex:1;min-width:160px}
+.pulse-wave-title{font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:6px}
+.finger-prompt{font-family:var(--mono);font-size:12px;color:#f6ad55;margin-top:8px;text-align:center}
+
+/* QUIZ */
+.quiz-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  box-shadow:var(--card-shadow);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.quiz-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--orange)}
+.quiz-q-num{font-family:var(--mono);font-size:10px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+.quiz-q-text{font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px;line-height:1.5}
+.quiz-options{display:flex;flex-direction:column;gap:8px}
+.quiz-option{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);
+  border-radius:3px;cursor:pointer;transition:all .2s;font-size:14px;color:var(--text2);
+  background:var(--surface2);user-select:none}
+.quiz-option:hover{border-color:var(--accent2);background:#e8f4fb}
+.quiz-option.correct{background:#e6f7ef;border-color:var(--green);color:var(--green)}
+.quiz-option.wrong{background:#fde8e8;border-color:var(--red);color:var(--red)}
+.quiz-option.disabled{pointer-events:none}
+.quiz-radio{width:14px;height:14px;border:2px solid var(--border2);border-radius:50%;flex-shrink:0}
+.quiz-option.correct .quiz-radio{background:var(--green);border-color:var(--green)}
+.quiz-option.wrong .quiz-radio{background:var(--red);border-color:var(--red)}
+.quiz-feedback{margin-top:10px;font-size:13px;padding:8px 12px;border-radius:3px;
+  display:none;font-family:var(--mono)}
+.quiz-feedback.show{display:block}
+.quiz-feedback.ok{background:#e6f7ef;color:var(--green)}
+.quiz-feedback.err{background:#fde8e8;color:var(--red)}
+.quiz-score-bar{background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  padding:20px 24px;margin-top:24px;display:flex;align-items:center;gap:20px;
+  box-shadow:var(--card-shadow)}
+.score-num{font-family:var(--display);font-size:40px;color:var(--accent);line-height:1}
+.score-label{font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.score-bar-wrap{flex:1}
+.score-bar{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:8px}
+.score-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--green));
+  border-radius:4px;transition:width .8s ease}
+.quiz-reset-btn{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:2px;
+  cursor:pointer;transition:background .2s}
+.quiz-reset-btn:hover{background:var(--accent3)}
+
+/* REFERENCE */
+.ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.ref-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  padding:18px;box-shadow:var(--card-shadow)}
+.ref-card-title{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ref-card-title::before{content:'#';color:var(--accent2);font-size:14px}
+.ref-item{display:flex;justify-content:space-between;align-items:baseline;
+  padding:5px 0;border-bottom:1px dashed var(--bg3);font-size:13px}
+.ref-item:last-child{border-bottom:none}
+.ref-key{color:var(--text2);font-family:var(--mono);font-size:12px}
+.ref-val{color:var(--accent3);font-family:var(--mono);font-size:12px;font-weight:600}
+
+/* MISC */
+ul.styled-list{padding-left:0;list-style:none}
+ul.styled-list li{padding:5px 0 5px 18px;position:relative;font-size:14px;color:var(--text2);line-height:1.6}
+ul.styled-list li::before{content:'▸';position:absolute;left:0;color:var(--accent2);font-size:11px;top:7px}
+.tag{display:inline-block;background:var(--bg3);border:1px solid var(--border2);border-radius:2px;
+  padding:1px 7px;font-family:var(--mono);font-size:11px;color:var(--accent3);margin:2px}
+.i2c-badge{display:inline-flex;align-items:center;gap:6px;background:#0a1f35;border:1px solid #1a4a6a;
+  border-radius:2px;padding:4px 10px;font-family:var(--mono);font-size:11px;color:#00b4d8;margin:2px}
+.i2c-badge::before{content:'I²C';font-size:9px;background:#00b4d8;color:#000;padding:1px 4px;border-radius:1px}
+.addr-badge{display:inline-block;background:#0a1f35;border:1px solid #2a5a8a;border-radius:2px;
+  padding:3px 8px;font-family:var(--mono);font-size:12px;color:#f6ad55;margin:2px}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent2)}
+@media(max-width:640px){.header-inner{padding:24px 16px 20px}main{padding:20px 12px 48px}.code-pre{font-size:11px}}
+
+/* I2C BUS DIAGRAM */
+.i2c-bus-wrap{background:#0a1827;border:1px solid #1a4a6a;border-radius:4px;padding:20px;margin:12px 0}
+.i2c-bus-title{font-family:var(--mono);font-size:10px;color:#4a9aba;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+
+/* STAR TASK */
+.star-box{background:linear-gradient(90deg,rgba(201,150,10,.07),rgba(201,150,10,.02));
+  border-left:3px solid var(--yellow);padding:12px 16px;margin:12px 0;
+  border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.star-box::before{content:'⭐ Завдання на «зірочку»: ';font-weight:700;color:var(--yellow)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-chip">PUET · STEAM-HUB · Практична робота №24</div>
+    <h1>LCD / OLED <span>& Сенсори</span></h1>
+    <p class="header-sub">// BMP180 · MAX3010x · Лазерна сигналізація · OLED 128×64 · I²C шина</p>
+    <nav class="header-nav">
+      <button class="nav-btn active" onclick="showSection('practice')">① Практика</button>
+      <button class="nav-btn" onclick="showSection('simulation')">② Симуляція</button>
+      <button class="nav-btn" onclick="showSection('quiz')">③ Контроль</button>
+      <button class="nav-btn" onclick="showSection('reference')">④ Довідник</button>
+    </nav>
+  </div>
+  <!-- schematic deco: I2C bus lines -->
+  <svg class="sch-deco" width="230" height="130" viewBox="0 0 230 130">
+    <!-- SDA line -->
+    <line x1="10" y1="45" x2="220" y2="45" stroke="#fff" stroke-width="1.5"/>
+    <!-- SCL line -->
+    <line x1="10" y1="75" x2="220" y2="75" stroke="#fff" stroke-width="1.5"/>
+    <!-- Labels -->
+    <text x="8" y="40" font-size="8" fill="#00e5ff" font-family="monospace">SDA</text>
+    <text x="8" y="70" font-size="8" fill="#00e5ff" font-family="monospace">SCL</text>
+    <!-- Device 1: Arduino -->
+    <rect x="40" y="30" width="36" height="56" rx="2" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>
+    <text x="58" y="62" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.6)" font-family="monospace">MCU</text>
+    <!-- Device 2: OLED -->
+    <rect x="110" y="30" width="36" height="30" rx="2" fill="none" stroke="rgba(0,229,255,0.5)" stroke-width="1.2"/>
+    <text x="128" y="48" text-anchor="middle" font-size="7" fill="rgba(0,229,255,0.7)" font-family="monospace">OLED</text>
+    <text x="128" y="57" text-anchor="middle" font-size="6" fill="rgba(0,229,255,0.5)" font-family="monospace">0x3C</text>
+    <!-- Device 3: Sensor -->
+    <rect x="170" y="56" width="36" height="30" rx="2" fill="none" stroke="rgba(74,222,128,0.5)" stroke-width="1.2"/>
+    <text x="188" y="72" text-anchor="middle" font-size="7" fill="rgba(74,222,128,0.7)" font-family="monospace">BMP</text>
+    <text x="188" y="81" text-anchor="middle" font-size="6" fill="rgba(74,222,128,0.5)" font-family="monospace">0x77</text>
+    <!-- Pull-up resistors -->
+    <line x1="90" y1="20" x2="90" y2="45" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+    <rect x="85" y="10" width="10" height="10" rx="1" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+    <text x="90" y="8" text-anchor="middle" font-size="6" fill="rgba(255,255,255,0.4)" font-family="monospace">4.7k</text>
+  </svg>
+</header>
+
+<main>
+
+<!-- ════════════ PRACTICE ════════════ -->
+<section class="section visible" id="section-practice">
+  <div class="sec-title">
+    <span class="sec-badge">01</span>
+    <h2>Практичні завдання</h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <!-- ── TASK 1: WEATHER STATION ── -->
+  <div class="task-card">
+    <div class="task-header blue">
+      <div class="task-num">01</div>
+      <div>
+        <div class="task-label">Project 24-1 · OLED + BMP180</div>
+        <div class="task-title-text">Домашня метеостанція</div>
+      </div>
+    </div>
+    <div class="task-body">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        Метеостанція на базі датчика тиску/температури <strong>BMP180</strong> та графічного <strong>OLED-дисплея 0.96" (128×64)</strong>.
+        Обидва пристрої з'єднуються через єдину шину <strong>I²C</strong> з різними адресами.
+      </p>
+
+      <div class="task-materials">
+        <div class="task-materials-title">Необхідне обладнання</div>
+        <div class="materials-list">
+          <div class="material-chip">Arduino UNO</div>
+          <div class="material-chip">OLED 0.96" I2C 128×64</div>
+          <div class="material-chip">Датчик BMP180</div>
+          <div class="material-chip">Макетна плата</div>
+          <div class="material-chip">З'єднувальні дроти</div>
+          <div class="material-chip">USB-кабель + ПК</div>
+        </div>
+      </div>
+
+      <!-- I2C wiring -->
+      <div class="highlight-box">
+        <strong>Ключовий принцип:</strong> обидва пристрої підключаються <strong>паралельно</strong> до одних і тих самих пінів I²C.
+        Шина I²C ідентифікує кожен пристрій за унікальною адресою.
+        <div style="margin-top:8px">
+          <span class="i2c-badge">OLED SSD1306</span> адреса: <span class="addr-badge">0x3C</span>
+          &nbsp;&nbsp;
+          <span class="i2c-badge">BMP180</span> адреса: <span class="addr-badge">0x77</span>
+        </div>
+      </div>
+
+      <!-- Wiring table -->
+      <h3>З'єднання компонентів</h3>
+      <table class="spec-table">
+        <tr><th>Компонент</th><th>Пін компонента</th><th>Пін Arduino</th><th>Примітка</th></tr>
+        <tr><td>OLED + BMP180</td><td>SDA</td><td>A4</td><td>I²C дані (спільна лінія)</td></tr>
+        <tr><td>OLED + BMP180</td><td>SCL</td><td>A5</td><td>I²C такт (спільна лінія)</td></tr>
+        <tr><td>OLED</td><td>VCC</td><td>5V або 3.3V</td><td>Перевірте специфікацію модуля</td></tr>
+        <tr><td>BMP180</td><td>VCC</td><td>3.3V ⚠</td><td>Більшість модулів — 3.3В!</td></tr>
+        <tr><td>OLED + BMP180</td><td>GND</td><td>GND</td><td>Спільна земля</td></tr>
+      </table>
+
+      <!-- Circuit diagram -->
+      <div class="circuit-wrap">
+        <div class="circuit-title">// Принципова схема · I²C паралельне підключення</div>
+        <svg viewBox="0 0 520 180" width="100%" style="max-width:520px">
+          <!-- Arduino block -->
+          <rect x="10" y="30" width="80" height="120" rx="3" fill="#e8f4fb" stroke="#0a7fc4" stroke-width="1.5"/>
+          <text x="50" y="55" text-anchor="middle" font-size="9" fill="#0a3d6b" font-weight="bold">Arduino</text>
+          <text x="50" y="67" text-anchor="middle" font-size="8" fill="#0a7fc4">Uno</text>
+          <!-- Pin labels -->
+          <text x="90" y="90" font-size="8" fill="#0a7fc4">A4 (SDA)</text>
+          <text x="90" y="107" font-size="8" fill="#0a7fc4">A5 (SCL)</text>
+          <text x="90" y="124" font-size="8" fill="#c0392b">5V</text>
+          <text x="90" y="139" font-size="8" fill="#e07b00">3.3V</text>
+          <text x="90" y="154" font-size="8" fill="#2c3e50">GND</text>
+          <!-- SDA bus line -->
+          <line x1="135" y1="88" x2="490" y2="88" stroke="#0a7fc4" stroke-width="2"/>
+          <!-- SCL bus line -->
+          <line x1="135" y1="105" x2="490" y2="105" stroke="#00b4d8" stroke-width="2"/>
+          <!-- GND bus -->
+          <line x1="135" y1="152" x2="490" y2="152" stroke="#2c3e50" stroke-width="2"/>
+          <!-- 5V / 3.3V rails -->
+          <line x1="135" y1="122" x2="260" y2="122" stroke="#c0392b" stroke-width="1.5"/>
+          <line x1="135" y1="137" x2="380" y2="137" stroke="#e07b00" stroke-width="1.5"/>
+          <!-- OLED block -->
+          <rect x="200" y="35" width="70" height="60" rx="3" fill="#0a1827" stroke="#00b4d8" stroke-width="1.5"/>
+          <text x="235" y="58" text-anchor="middle" font-size="9" fill="#00e5ff" font-weight="bold">OLED</text>
+          <text x="235" y="70" text-anchor="middle" font-size="8" fill="#4a9aba">0.96" 128×64</text>
+          <text x="235" y="82" text-anchor="middle" font-size="7" fill="#f6ad55">addr: 0x3C</text>
+          <!-- OLED wires down -->
+          <line x1="210" y1="95" x2="210" y2="88" stroke="#0a7fc4" stroke-width="1.5"/>
+          <line x1="225" y1="95" x2="225" y2="105" stroke="#00b4d8" stroke-width="1.5"/>
+          <line x1="240" y1="95" x2="240" y2="122" stroke="#c0392b" stroke-width="1.5"/>
+          <line x1="255" y1="95" x2="255" y2="152" stroke="#2c3e50" stroke-width="1.5"/>
+          <!-- BMP180 block -->
+          <rect x="330" y="35" width="70" height="60" rx="3" fill="#0a2515" stroke="#0b9e5f" stroke-width="1.5"/>
+          <text x="365" y="55" text-anchor="middle" font-size="9" fill="#4ade80" font-weight="bold">BMP180</text>
+          <text x="365" y="67" text-anchor="middle" font-size="8" fill="#22c55e">Temp+Press</text>
+          <text x="365" y="79" text-anchor="middle" font-size="7" fill="#f6ad55">addr: 0x77</text>
+          <!-- BMP wires -->
+          <line x1="340" y1="95" x2="340" y2="88" stroke="#0a7fc4" stroke-width="1.5"/>
+          <line x1="355" y1="95" x2="355" y2="105" stroke="#00b4d8" stroke-width="1.5"/>
+          <line x1="370" y1="95" x2="370" y2="137" stroke="#e07b00" stroke-width="1.5"/>
+          <line x1="385" y1="95" x2="385" y2="152" stroke="#2c3e50" stroke-width="1.5"/>
+          <!-- Pull-up resistors on bus -->
+          <rect x="455" y="65" width="14" height="24" rx="2" fill="#fff9e0" stroke="#c9960a" stroke-width="1"/>
+          <line x1="462" y1="89" x2="462" y2="105" stroke="#c9960a" stroke-width="1"/>
+          <line x1="462" y1="65" x2="462" y2="55" stroke="#c9960a" stroke-width="1"/>
+          <line x1="445" y1="55" x2="480" y2="55" stroke="#c9960a" stroke-width="1"/>
+          <text x="462" y="77" text-anchor="middle" font-size="7" fill="#c9960a">4.7k</text>
+          <!-- Bus labels -->
+          <text x="140" y="84" font-family="monospace" font-size="8" fill="#0a7fc4">SDA ─────────────────────────────────</text>
+          <text x="140" y="101" font-family="monospace" font-size="8" fill="#00b4d8">SCL ─────────────────────────────────</text>
+          <!-- GND symbol -->
+          <line x1="490" y1="152" x2="490" y2="160" stroke="#2c3e50" stroke-width="2"/>
+          <line x1="483" y1="163" x2="497" y2="163" stroke="#2c3e50" stroke-width="2"/>
+          <line x1="486" y1="167" x2="494" y2="167" stroke="#2c3e50" stroke-width="1.5"/>
+          <line x1="489" y1="171" x2="491" y2="171" stroke="#2c3e50" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="warn-box">BMP180 живиться від <strong>3.3В</strong> — підключення до 5В може пошкодити датчик! Перевіряйте специфікацію вашого модуля.</div>
+
+      <ul class="steps-list">
+        <li><div class="step-num">1</div><div>Зберіть схему на макетній платі. Підключіть SDA/SCL обох пристроїв паралельно до A4/A5 Arduino.</div></li>
+        <li><div class="step-num">2</div><div>У Fritzing відтворіть принципову схему проєкту та збережіть файл.</div></li>
+        <li><div class="step-num">3</div><div>Встановіть бібліотеки: <span class="tag">Adafruit_SSD1306</span> <span class="tag">Adafruit_GFX</span> <span class="tag">Adafruit_BMP085</span> через менеджер бібліотек IDE.</div></li>
+        <li><div class="step-num">4</div><div>Введіть або відкопіюйте Лістинг 24-1 у Arduino IDE. Скомпілюйте та завантажте.</div></li>
+        <li><div class="step-num">5</div><div>Перевірте що на OLED відображаються: температура (великим шрифтом), тиск у мм рт.ст., висота та іконка сонця.</div></li>
+      </ul>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-header-label">Лістинг 24-1 · Метеостанція BMP180 + OLED</span><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div></div>
+        <div class="code-pre"><span class="c-define">#include</span> <span class="c-string">&lt;Wire.h&gt;</span>
+<span class="c-define">#include</span> <span class="c-string">&lt;Adafruit_GFX.h&gt;</span>
+<span class="c-define">#include</span> <span class="c-string">&lt;Adafruit_SSD1306.h&gt;</span>
+<span class="c-define">#include</span> <span class="c-string">&lt;Adafruit_BMP085.h&gt;</span>   <span class="c-comment">// BMP085 сумісна з BMP180</span>
+
+<span class="c-define">#define</span> SCREEN_WIDTH  <span class="c-number">128</span>
+<span class="c-define">#define</span> SCREEN_HEIGHT <span class="c-number">64</span>
+
+<span class="c-class">Adafruit_SSD1306</span> display(SCREEN_WIDTH, SCREEN_HEIGHT, &amp;Wire, <span class="c-number">-1</span>);
+<span class="c-class">Adafruit_BMP085</span>  bmp;
+
+<span class="c-keyword">void</span> <span class="c-func">setup</span>() {
+  Serial.<span class="c-func">begin</span>(<span class="c-number">9600</span>);
+  <span class="c-keyword">if</span> (!display.<span class="c-func">begin</span>(SSD1306_SWITCHCAPVCC, <span class="c-number">0x3C</span>)) {
+    Serial.<span class="c-func">println</span>(F(<span class="c-string">"SSD1306 allocation failed"</span>));
+    <span class="c-keyword">for</span>(;;);                            <span class="c-comment">// зупиняємо, якщо екран не знайдено</span>
+  }
+  <span class="c-keyword">if</span> (!bmp.<span class="c-func">begin</span>()) {
+    Serial.<span class="c-func">println</span>(<span class="c-string">"BMP180 not found!"</span>);
+    <span class="c-keyword">while</span>(<span class="c-number">1</span>) {}
+  }
+  display.<span class="c-func">clearDisplay</span>();
+  display.<span class="c-func">setTextColor</span>(WHITE);
+}
+
+<span class="c-keyword">void</span> <span class="c-func">loop</span>() {
+  <span class="c-type">float</span>   temperature  = bmp.<span class="c-func">readTemperature</span>();
+  <span class="c-type">int32_t</span> pressurePa  = bmp.<span class="c-func">readPressure</span>();
+  <span class="c-type">float</span>   pressureMmHg = pressurePa * <span class="c-number">0.0075006</span>; <span class="c-comment">// Па → мм рт.ст.</span>
+  <span class="c-type">float</span>   altitude     = bmp.<span class="c-func">readAltitude</span>();
+
+  display.<span class="c-func">clearDisplay</span>();
+
+  <span class="c-comment">// ── Заголовок ────────────────────────────────</span>
+  display.<span class="c-func">setTextSize</span>(<span class="c-number">1</span>);
+  display.<span class="c-func">setCursor</span>(<span class="c-number">0</span>, <span class="c-number">0</span>);
+  display.<span class="c-func">print</span>(<span class="c-string">"WEATHER STATION v1.0"</span>);
+  display.<span class="c-func">drawFastHLine</span>(<span class="c-number">0</span>, <span class="c-number">10</span>, <span class="c-number">128</span>, WHITE);
+
+  <span class="c-comment">// ── Температура (великий шрифт) ───────────────</span>
+  display.<span class="c-func">setCursor</span>(<span class="c-number">0</span>, <span class="c-number">16</span>);
+  display.<span class="c-func">setTextSize</span>(<span class="c-number">2</span>);
+  display.<span class="c-func">print</span>(temperature, <span class="c-number">1</span>);
+  display.<span class="c-func">setTextSize</span>(<span class="c-number">1</span>);
+  display.<span class="c-func">print</span>(<span class="c-string">" C"</span>);
+
+  <span class="c-comment">// ── Тиск ─────────────────────────────────────</span>
+  display.<span class="c-func">setTextSize</span>(<span class="c-number">1</span>);
+  display.<span class="c-func">setCursor</span>(<span class="c-number">0</span>, <span class="c-number">36</span>);
+  display.<span class="c-func">print</span>(<span class="c-string">"Pressure: "</span>);
+  display.<span class="c-func">setCursor</span>(<span class="c-number">0</span>, <span class="c-number">46</span>);
+  display.<span class="c-func">print</span>((<span class="c-type">int</span>)pressureMmHg);
+  display.<span class="c-func">print</span>(<span class="c-string">" mmHg"</span>);
+
+  <span class="c-comment">// ── Висота ───────────────────────────────────</span>
+  display.<span class="c-func">setCursor</span>(<span class="c-number">0</span>, <span class="c-number">56</span>);
+  display.<span class="c-func">print</span>(<span class="c-string">"Alt: "</span>);
+  display.<span class="c-func">print</span>(altitude, <span class="c-number">0</span>);
+  display.<span class="c-func">print</span>(<span class="c-string">" m"</span>);
+
+  <span class="c-comment">// ── Іконка: сонце (коло + промінчики) ────────</span>
+  display.<span class="c-func">drawCircle</span>(<span class="c-number">105</span>, <span class="c-number">35</span>, <span class="c-number">12</span>, WHITE);
+  display.<span class="c-func">drawLine</span>(<span class="c-number">105</span>, <span class="c-number">18</span>, <span class="c-number">105</span>, <span class="c-number">14</span>, WHITE);
+  display.<span class="c-func">drawLine</span>(<span class="c-number">105</span>, <span class="c-number">52</span>, <span class="c-number">105</span>, <span class="c-number">56</span>, WHITE);
+  display.<span class="c-func">drawLine</span>(<span class="c-number">88</span>,  <span class="c-number">35</span>, <span class="c-number">84</span>,  <span class="c-number">35</span>, WHITE);
+  display.<span class="c-func">drawLine</span>(<span class="c-number">122</span>, <span class="c-number">35</span>, <span class="c-number">126</span>, <span class="c-number">35</span>, WHITE);
+
+  display.<span class="c-func">display</span>();   <span class="c-comment">// передаємо буфер на фізичний екран</span>
+  <span class="c-func">delay</span>(<span class="c-number">1000</span>);
+}</div>
+      </div>
+
+      <div class="info-box"><strong>Про OLED:</strong> команди <code>print()</code>, <code>drawCircle()</code> тощо записують у <em>відеобуфер у SRAM</em>. Лише <code>display.display()</code> фізично передає цей буфер через I²C на екран (128×64 = 1024 байти = 1 КБ SRAM!).</div>
+      <div class="star-box">Використовуючи <code>display.drawPixel()</code>, побудуйте на екрані графік зміни атмосферного тиску за останню хвилину. Оновлюйте кожні 5–10 секунд.</div>
+    </div>
+  </div>
+
+  <!-- ── TASK 2: LASER ALARM ── -->
+  <div class="task-card">
+    <div class="task-header red">
+      <div class="task-num">02</div>
+      <div>
+        <div class="task-label">Project 7-1 · KY-008 + Keypad</div>
+        <div class="task-title-text">Лазерна сигналізація «Місія нездійсненна»</div>
+      </div>
+    </div>
+    <div class="task-body">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        Прототип лазерної охоронної системи: лазерний промінь від модуля <strong>KY-008</strong> потрапляє на фоточутливий давач.
+        При розмиканні — пищалка подає сигнал тривоги. Для знімання сигналізації — введіть пароль на <strong>4×4 мембранній клавіатурі</strong>.
+      </p>
+
+      <div class="task-materials">
+        <div class="task-materials-title">Необхідне обладнання</div>
+        <div class="materials-list">
+          <div class="material-chip">Arduino UNO</div>
+          <div class="material-chip">Модуль лазера KY-008</div>
+          <div class="material-chip">Модуль давача лазера</div>
+          <div class="material-chip">4×4 мембранна клавіатура</div>
+          <div class="material-chip">Динамік-пищалка</div>
+          <div class="material-chip">2 макетні плати</div>
+          <div class="material-chip">Дроти «тато-тато» (16 шт.)</div>
+          <div class="material-chip">Світлодіод</div>
+        </div>
+      </div>
+
+      <div class="highlight-box">
+        <strong>Алгоритм роботи:</strong><br>
+        Лазер вмикається → промінь потрапляє на давач (A0 &gt; 500) → нормальний стан.<br>
+        Промінь розімкнуто (A0 &lt; 500) → <code>detection = true</code> → тривога → чекаємо «*» → вводимо пароль «1366» → вимкнення.
+      </div>
+
+      <!-- Pinout table -->
+      <h3>Підключення компонентів</h3>
+      <table class="spec-table">
+        <tr><th>Компонент</th><th>Сигнальний пін</th><th>Пін Arduino</th><th>Режим</th></tr>
+        <tr><td>Лазер KY-008</td><td>S (Signal)</td><td>D9</td><td>OUTPUT</td></tr>
+        <tr><td>Давач лазера</td><td>A (Analog)</td><td>A0</td><td>analogRead()</td></tr>
+        <tr><td>Пищалка ISD1820</td><td>Play</td><td>D12</td><td>OUTPUT (tone())</td></tr>
+        <tr><td>Keypad рядки</td><td>R1–R4</td><td>D8, D7, D6, D5</td><td>INPUT</td></tr>
+        <tr><td>Keypad стовпці</td><td>C1–C3</td><td>D4, D3, D2</td><td>OUTPUT</td></tr>
+      </table>
+
+      <!-- Circuit diagram laser -->
+      <div class="circuit-wrap">
+        <div class="circuit-title">// Принципова схема · Лазер + Давач + Keypad</div>
+        <svg viewBox="0 0 520 170" width="100%" style="max-width:520px">
+          <!-- Arduino -->
+          <rect x="10" y="20" width="80" height="130" rx="3" fill="#e8f4fb" stroke="#0a7fc4" stroke-width="1.5"/>
+          <text x="50" y="45" text-anchor="middle" font-size="9" fill="#0a3d6b" font-weight="bold">Arduino</text>
+          <text x="50" y="57" text-anchor="middle" font-size="8" fill="#0a7fc4">Uno</text>
+          <!-- Pin labels -->
+          <text x="90" y="75" font-size="8" fill="#c0392b">D9 (Laser)</text>
+          <text x="90" y="92" font-size="8" fill="#0b9e5f">A0 (Sensor)</text>
+          <text x="90" y="109" font-size="8" fill="#7c3aed">D12 (Buzzer)</text>
+          <text x="90" y="126" font-size="8" fill="#0a7fc4">D8–D2 KP</text>
+          <text x="90" y="143" font-size="8" fill="#2c3e50">GND</text>
+
+          <!-- Laser module -->
+          <rect x="200" y="35" width="55" height="40" rx="3" fill="#1a0000" stroke="#c0392b" stroke-width="1.5"/>
+          <text x="227" y="52" text-anchor="middle" font-size="8" fill="#fc8181" font-weight="bold">KY-008</text>
+          <text x="227" y="64" text-anchor="middle" font-size="7" fill="#e53e3e">LASER</text>
+          <circle cx="262" cy="55" r="5" fill="#ff0000" opacity="0.7"/>
+          <line x1="267" y1="55" x2="290" y2="55" stroke="#ff0000" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.8"/>
+          <!-- Laser wire from D9 -->
+          <line x1="135" y1="73" x2="200" y2="55" stroke="#c0392b" stroke-width="1.5"/>
+
+          <!-- Sensor module -->
+          <rect x="320" y="35" width="55" height="40" rx="3" fill="#0a2515" stroke="#0b9e5f" stroke-width="1.5"/>
+          <text x="347" y="52" text-anchor="middle" font-size="8" fill="#4ade80" font-weight="bold">SENSOR</text>
+          <text x="347" y="64" text-anchor="middle" font-size="7" fill="#22c55e">A0 &lt; 500</text>
+          <circle cx="323" cy="55" r="5" fill="#22c55e" opacity="0.5"/>
+          <!-- Laser beam to sensor -->
+          <line x1="290" y1="55" x2="323" y2="55" stroke="#ff0000" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.7"/>
+          <!-- Sensor wire to A0 -->
+          <line x1="135" y1="90" x2="375" y2="57" stroke="#0b9e5f" stroke-width="1.5"/>
+
+          <!-- Buzzer -->
+          <circle cx="227" cy="130" r="20" fill="#1a0a35" stroke="#7c3aed" stroke-width="1.5"/>
+          <text x="227" y="128" text-anchor="middle" font-size="8" fill="#c4b5fd" font-weight="bold">BUZZER</text>
+          <text x="227" y="139" text-anchor="middle" font-size="7" fill="#a78bfa">tone()</text>
+          <line x1="135" y1="107" x2="207" y2="114" stroke="#7c3aed" stroke-width="1.5"/>
+
+          <!-- Keypad -->
+          <rect x="370" y="90" width="60" height="70" rx="3" fill="#1a1a2a" stroke="#0a7fc4" stroke-width="1.5"/>
+          <text x="400" y="110" text-anchor="middle" font-size="8" fill="#90cdf4" font-weight="bold">4×4</text>
+          <text x="400" y="122" text-anchor="middle" font-size="8" fill="#90cdf4">KEYPAD</text>
+          <text x="400" y="134" text-anchor="middle" font-size="7" fill="#63b3ed">7 пінів</text>
+          <text x="400" y="144" text-anchor="middle" font-size="7" fill="#4a9aba">D2–D8</text>
+          <line x1="135" y1="124" x2="370" y2="120" stroke="#0a7fc4" stroke-width="1.5"/>
+
+          <!-- GND -->
+          <line x1="135" y1="141" x2="490" y2="141" stroke="#2c3e50" stroke-width="1.5"/>
+          <line x1="497" y1="145" x2="510" y2="145" stroke="#2c3e50" stroke-width="1.5"/>
+          <line x1="500" y1="149" x2="507" y2="149" stroke="#2c3e50" stroke-width="1.2"/>
+          <line x1="503" y1="153" x2="504" y2="153" stroke="#2c3e50" stroke-width="1"/>
+        </svg>
+      </div>
+
+      <ul class="steps-list">
+        <li><div class="step-num red">1</div><div>Розмістіть модуль лазера і давача <strong>точно навпроти одне одного</strong>. Ретельно вирівняйте їх на двох макетних платах — інакше система починатиме пищати одразу після завантаження.</div></li>
+        <li><div class="step-num red">2</div><div>Підключіть сигнальний пін лазера до D9, давача — до A0, пищалки — до D12. Keypad: рядки до D5–D8, стовпці до D2–D4.</div></li>
+        <li><div class="step-num red">3</div><div>Встановіть бібліотеку <span class="tag">Keypad</span> через менеджер бібліотек IDE. Введіть Лістинг 7-1.</div></li>
+        <li><div class="step-num red">4</div><div>Завантажте скетч. Перевірте: при перекритті лазерного проміня пальцем — пищалка сигналізує. Після натискання «*» — вводьте пароль <strong>1366</strong>.</div></li>
+        <li><div class="step-num red">5</div><div>Перевірте поведінку при неправильному паролі та при повторному перериванні лазера.</div></li>
+      </ul>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-header-label">Лістинг 7-1 · Лазерна сигналізація з паролем</span><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div></div>
+        <div class="code-pre"><span class="c-define">#include</span> <span class="c-string">&lt;Keypad.h&gt;</span>
+
+<span class="c-define">#define</span> Rec   <span class="c-number">0</span>    <span class="c-comment">// A0 — давач лазера</span>
+<span class="c-define">#define</span> Play  <span class="c-number">12</span>   <span class="c-comment">// D12 — пищалка</span>
+<span class="c-define">#define</span> Laser <span class="c-number">9</span>    <span class="c-comment">// D9 — лазер</span>
+
+<span class="c-type">bool</span>  detection = <span class="c-keyword">false</span>;
+<span class="c-type">short</span> a = <span class="c-number">0</span>;
+<span class="c-type">short</span> code[<span class="c-number">4</span>] = {<span class="c-string">'1'</span>, <span class="c-string">'3'</span>, <span class="c-string">'6'</span>, <span class="c-string">'6'</span>}; <span class="c-comment">// пароль '1366'</span>
+
+<span class="c-keyword">const</span> <span class="c-type">byte</span> numRows = <span class="c-number">4</span>, numCols = <span class="c-number">3</span>;
+<span class="c-type">char</span> keymap[numRows][numCols] = {
+  {<span class="c-string">'1'</span>,<span class="c-string">'2'</span>,<span class="c-string">'3'</span>}, {<span class="c-string">'4'</span>,<span class="c-string">'5'</span>,<span class="c-string">'6'</span>},
+  {<span class="c-string">'7'</span>,<span class="c-string">'8'</span>,<span class="c-string">'9'</span>}, {<span class="c-string">'*'</span>,<span class="c-string">'0'</span>,<span class="c-string">'#'</span>}
+};
+<span class="c-type">byte</span> rowPins[numRows] = {<span class="c-number">8</span>,<span class="c-number">7</span>,<span class="c-number">6</span>,<span class="c-number">5</span>};
+<span class="c-type">byte</span> colPins[numCols] = {<span class="c-number">4</span>,<span class="c-number">3</span>,<span class="c-number">2</span>};
+<span class="c-class">Keypad</span> myKeypad = <span class="c-func">Keypad</span>(<span class="c-func">makeKeymap</span>(keymap), rowPins, colPins, numRows, numCols);
+
+<span class="c-keyword">void</span> <span class="c-func">setup</span>() {
+  <span class="c-func">pinMode</span>(Laser, OUTPUT);
+  <span class="c-func">digitalWrite</span>(Laser, HIGH);  <span class="c-comment">// вмикаємо лазер відразу</span>
+  <span class="c-func">pinMode</span>(Play, OUTPUT);
+  <span class="c-func">delay</span>(<span class="c-number">2000</span>);                 <span class="c-comment">// час вирівняти промінь</span>
+}
+
+<span class="c-keyword">void</span> <span class="c-func">loop</span>() {
+  <span class="c-type">short</span> Detect = <span class="c-func">analogRead</span>(Rec);
+  <span class="c-keyword">if</span> (Detect &lt; <span class="c-number">500</span>) detection = <span class="c-keyword">true</span>; <span class="c-comment">// промінь розімкнуто</span>
+
+  <span class="c-keyword">if</span> (detection) {
+    <span class="c-func">tone</span>(Play, <span class="c-number">1000</span>); <span class="c-func">delay</span>(<span class="c-number">50</span>);
+    <span class="c-func">tone</span>(Play,  <span class="c-number">200</span>); <span class="c-func">delay</span>(<span class="c-number">50</span>);
+    <span class="c-type">char</span> keypressed = myKeypad.<span class="c-func">getKey</span>();
+    <span class="c-keyword">if</span> (keypressed == <span class="c-string">'*'</span>) <span class="c-func">Getpass</span>();
+  }
+  <span class="c-keyword">if</span> (a == <span class="c-number">4</span>) {            <span class="c-comment">// пароль правильний</span>
+    <span class="c-func">noTone</span>(Play);
+    a = <span class="c-number">0</span>; detection = <span class="c-keyword">false</span>;
+  }
+}
+
+<span class="c-keyword">void</span> <span class="c-func">Getpass</span>() {           <span class="c-comment">// функція введення пароля</span>
+  <span class="c-func">tone</span>(Play, <span class="c-number">2000</span>);
+  <span class="c-keyword">for</span> (<span class="c-type">short</span> i = <span class="c-number">0</span>; i &lt; <span class="c-number">4</span>; i++) {
+    <span class="c-type">char</span> keypressed = myKeypad.<span class="c-func">waitForKey</span>();
+    <span class="c-keyword">if</span> (keypressed == code[i]) a++;
+  }
+}</div>
+      </div>
+      <div class="warn-box">Якщо лазер і давач не вирівняні — сигналізація спрацює одразу при завантаженні. Надайте 2 секунди <code>delay(2000)</code> у <code>setup()</code> для вирівнювання.</div>
+    </div>
+  </div>
+
+  <!-- ── TASK 3: PULSE OX ── -->
+  <div class="task-card">
+    <div class="task-header teal">
+      <div class="task-num">03</div>
+      <div>
+        <div class="task-label">Project 24-3 · MAX3010x + OLED</div>
+        <div class="task-title-text">Персональний пульсоксиметр</div>
+      </div>
+    </div>
+    <div class="task-body">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        Медичний прилад-монітор: датчик <strong>GY-MAX3010x</strong> вимірює пульс (BPM) та насичення крові киснем (SpO₂) методом фотоплетизмографії.
+        Дані відображаються на <strong>OLED 128×64</strong> з анімованою іконкою серця.
+      </p>
+
+      <div class="task-materials">
+        <div class="task-materials-title">Необхідне обладнання</div>
+        <div class="materials-list">
+          <div class="material-chip">Arduino UNO</div>
+          <div class="material-chip">OLED 0.96" I2C 128×64</div>
+          <div class="material-chip">Датчик GY-MAX3010x</div>
+          <div class="material-chip">Макетна плата</div>
+          <div class="material-chip">З'єднувальні дроти</div>
+        </div>
+      </div>
+
+      <div class="highlight-box">
+        <strong>I²C топологія така ж як у проєкті 24-1</strong> — обидва пристрої паралельно на A4/A5.<br>
+        GY-MAX3010x підключається від <strong>5В</strong> (має вбудований стабілізатор 3.3В для власної логіки).
+        <div style="margin-top:8px">
+          <span class="i2c-badge">OLED SSD1306</span> <span class="addr-badge">0x3C</span>
+          &nbsp;&nbsp;
+          <span class="i2c-badge">MAX3010x</span> <span class="addr-badge">0x57</span>
+        </div>
+      </div>
+
+      <h3>З'єднання</h3>
+      <table class="spec-table">
+        <tr><th>Компонент</th><th>Пін</th><th>Arduino</th><th>Примітка</th></tr>
+        <tr><td>OLED + MAX3010x</td><td>SDA</td><td>A4</td><td>I²C шина</td></tr>
+        <tr><td>OLED + MAX3010x</td><td>SCL</td><td>A5</td><td>I²C шина</td></tr>
+        <tr><td>OLED</td><td>VCC</td><td>5V або 3.3V</td><td>—</td></tr>
+        <tr><td>GY-MAX3010x</td><td>VCC</td><td>5V ✓</td><td>Вбудований стабілізатор!</td></tr>
+        <tr><td>MAX3010x</td><td>INT</td><td>D2 (opt.)</td><td>Переривання серцевого удару</td></tr>
+        <tr><td>Обидва</td><td>GND</td><td>GND</td><td>—</td></tr>
+      </table>
+
+      <ul class="steps-list">
+        <li><div class="step-num teal">1</div><div>Зберіть схему: SDA/SCL обох пристроїв до A4/A5. MAX3010x живите від 5В, OLED — за специфікацією модуля.</div></li>
+        <li><div class="step-num teal">2</div><div>Встановіть бібліотеки: <span class="tag">Adafruit_SSD1306</span> <span class="tag">Adafruit_GFX</span> <span class="tag">SparkFun MAX3010x</span> (або <span class="tag">MAX30105</span>) через менеджер.</div></li>
+        <li><div class="step-num teal">3</div><div>Введіть Лістинг 24-3. Скомпілюйте — при помилках перевірте правильність назв бібліотек.</div></li>
+        <li><div class="step-num teal">4</div><div>Завантажте. Прикладіть палець до датчика. На OLED мають з'явитися значення BPM та SpO₂. При відсутності пальця — напис «PLACE FINGER».</div></li>
+      </ul>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-header-label">Лістинг 24-3 · Пульсоксиметр MAX3010x + OLED</span><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div></div>
+        <div class="code-pre"><span class="c-define">#include</span> <span class="c-string">&lt;Wire.h&gt;</span>
+<span class="c-define">#include</span> <span class="c-string">&lt;Adafruit_GFX.h&gt;</span>
+<span class="c-define">#include</span> <span class="c-string">&lt;Adafruit_SSD1306.h&gt;</span>
+<span class="c-define">#include</span> <span class="c-string">"MAX30105.h"</span>
+<span class="c-define">#include</span> <span class="c-string">"heartRate.h"</span>
+
+<span class="c-define">#define</span> SCREEN_WIDTH  <span class="c-number">128</span>
+<span class="c-define">#define</span> SCREEN_HEIGHT <span class="c-number">64</span>
+
+<span class="c-class">Adafruit_SSD1306</span> display(SCREEN_WIDTH, SCREEN_HEIGHT, &amp;Wire, <span class="c-number">-1</span>);
+<span class="c-class">MAX30105</span>         particleSensor;
+
+<span class="c-keyword">const</span> <span class="c-type">byte</span> RATE_SIZE = <span class="c-number">4</span>;   <span class="c-comment">// середнє за 4-ма ударами</span>
+<span class="c-type">byte</span>  rates[RATE_SIZE];
+<span class="c-type">byte</span>  rateSpot = <span class="c-number">0</span>;
+<span class="c-type">long</span>  lastBeat = <span class="c-number">0</span>;
+<span class="c-type">float</span> beatsPerMinute;
+<span class="c-type">int</span>   beatAvg;
+
+<span class="c-keyword">void</span> <span class="c-func">setup</span>() {
+  Serial.<span class="c-func">begin</span>(<span class="c-number">9600</span>);
+  display.<span class="c-func">begin</span>(SSD1306_SWITCHCAPVCC, <span class="c-number">0x3C</span>);
+  display.<span class="c-func">clearDisplay</span>();
+  display.<span class="c-func">setTextColor</span>(WHITE);
+
+  particleSensor.<span class="c-func">begin</span>(Wire, I2C_SPEED_FAST);
+  particleSensor.<span class="c-func">setup</span>();
+  particleSensor.<span class="c-func">setPulseAmplitudeRed</span>(<span class="c-number">0x0A</span>);  <span class="c-comment">// менша яскравість LED</span>
+  particleSensor.<span class="c-func">setPulseAmplitudeIR</span>(<span class="c-number">0x0A</span>);
+}
+
+<span class="c-keyword">void</span> <span class="c-func">loop</span>() {
+  <span class="c-type">long</span> irValue = particleSensor.<span class="c-func">getIR</span>();
+
+  <span class="c-keyword">if</span> (irValue &gt; <span class="c-number">50000</span>) {         <span class="c-comment">// палець прикладено</span>
+    display.<span class="c-func">clearDisplay</span>();
+    display.<span class="c-func">setTextSize</span>(<span class="c-number">1</span>);
+    display.<span class="c-func">setCursor</span>(<span class="c-number">0</span>, <span class="c-number">0</span>);
+    display.<span class="c-func">print</span>(<span class="c-string">"  PULSE OXIMETER  "</span>);
+    display.<span class="c-func">drawFastHLine</span>(<span class="c-number">0</span>, <span class="c-number">10</span>, <span class="c-number">128</span>, WHITE);
+
+    <span class="c-keyword">if</span> (<span class="c-func">checkForBeat</span>(irValue)) {   <span class="c-comment">// виявлено удар</span>
+      <span class="c-type">long</span> delta = <span class="c-func">millis</span>() - lastBeat;
+      lastBeat = <span class="c-func">millis</span>();
+      beatsPerMinute = <span class="c-number">60</span> / (delta / <span class="c-number">1000.0</span>);
+      <span class="c-keyword">if</span> (beatsPerMinute &lt; <span class="c-number">255</span> &amp;&amp; beatsPerMinute &gt; <span class="c-number">20</span>) {
+        rates[rateSpot++] = (<span class="c-type">byte</span>)beatsPerMinute;
+        rateSpot %= RATE_SIZE;
+        beatAvg = <span class="c-number">0</span>;
+        <span class="c-keyword">for</span> (<span class="c-type">byte</span> x = <span class="c-number">0</span>; x &lt; RATE_SIZE; x++) beatAvg += rates[x];
+        beatAvg /= RATE_SIZE;
+      }
+    }
+    <span class="c-comment">// ── Вивід BPM ────────────────────────────────</span>
+    display.<span class="c-func">setTextSize</span>(<span class="c-number">2</span>); display.<span class="c-func">setCursor</span>(<span class="c-number">0</span>, <span class="c-number">16</span>);
+    display.<span class="c-func">print</span>(beatAvg);
+    display.<span class="c-func">setTextSize</span>(<span class="c-number">1</span>); display.<span class="c-func">print</span>(<span class="c-string">" bpm"</span>);
+
+    <span class="c-comment">// ── Вивід SpO₂ ───────────────────────────────</span>
+    display.<span class="c-func">setCursor</span>(<span class="c-number">0</span>, <span class="c-number">42</span>); display.<span class="c-func">print</span>(<span class="c-string">"SpO2: "</span>);
+    display.<span class="c-func">setTextSize</span>(<span class="c-number">2</span>);
+    display.<span class="c-func">print</span>(particleSensor.<span class="c-func">getOxygen</span>(), <span class="c-number">1</span>);
+    display.<span class="c-func">print</span>(<span class="c-string">" %"</span>);
+
+    <span class="c-comment">// ── Анімована іконка серця ───────────────────</span>
+    <span class="c-type">int</span> pulseLinePos = (<span class="c-type">int</span>)(irValue - <span class="c-number">50000</span>) / <span class="c-number">200</span>;
+    display.<span class="c-func">drawFastVLine</span>(<span class="c-number">115</span>, <span class="c-number">63</span>-pulseLinePos, pulseLinePos, WHITE);
+    <span class="c-keyword">if</span> (pulseLinePos &gt; <span class="c-number">10</span>) display.<span class="c-func">drawCircle</span>(<span class="c-number">115</span>, <span class="c-number">16</span>, <span class="c-number">8</span>, WHITE);
+
+    display.<span class="c-func">display</span>();
+  } <span class="c-keyword">else</span> {
+    <span class="c-comment">// ── Палець не виявлено ────────────────────────</span>
+    display.<span class="c-func">clearDisplay</span>();
+    display.<span class="c-func">setTextSize</span>(<span class="c-number">2</span>);
+    display.<span class="c-func">setCursor</span>(<span class="c-number">0</span>, <span class="c-number">16</span>); display.<span class="c-func">print</span>(<span class="c-string">" PLACE "</span>);
+    display.<span class="c-func">setCursor</span>(<span class="c-number">0</span>, <span class="c-number">36</span>); display.<span class="c-func">print</span>(<span class="c-string">"FINGER"</span>);
+    display.<span class="c-func">display</span>();
+  }
+}</div>
+      </div>
+      <div class="info-box"><strong>Принцип PPG:</strong> датчик світить червоним (660 нм) та ІЧ (880 нм) через шкіру. Оксигемоглобін поглинає ІЧ більше, ніж дезоксигемоглобін — різниця у відображеному світлі дає SpO₂. Пульсуючий компонент сигналу відповідає ударам серця.</div>
+      <div class="star-box">Реалізуйте власний алгоритм розрахунку SpO₂ через різницю поглинання червоного та ІЧ каналів. Додайте buzzer для звукового «бік» на кожен удар серця.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ SIMULATION ════════════ -->
+<section class="section" id="section-simulation">
+  <div class="sec-title">
+    <span class="sec-badge">02</span>
+    <h2>Симуляція роботи пристроїв</h2>
+    <div class="sec-line"></div>
+  </div>
+
+  <!-- SIM 1: OLED Weather -->
+  <div class="card">
+    <div class="card-title">Симуляція 1 — OLED Метеостанція (BMP180)</div>
+    <div class="sim-area">
+      <div class="sim-title">// СИМУЛЯТОР · OLED 128×64 · Дані BMP180</div>
+      <div class="sim-controls">
+        <button class="sim-btn run" onclick="startWeather()">▶ Запустити</button>
+        <button class="sim-btn stop" onclick="stopWeather()">■ Зупинити</button>
+        <button class="sim-btn reset" onclick="resetWeather()">↺ Скинути</button>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <canvas id="oledCanvas" width="256" height="128"
+            style="background:#000;border:3px solid #1a3a5a;border-radius:4px;
+            box-shadow:0 0 20px rgba(0,0,0,.6);image-rendering:pixelated;display:block"></canvas>
+          <div style="font-family:var(--mono);font-size:9px;color:#4a9aba;text-align:center;margin-top:6px">OLED 0.96" · 128×64 px · I²C 0x3C</div>
+        </div>
+        <div style="flex:1;min-width:160px">
+          <div class="sim-log" id="weatherLog">
+            <div class="log-line info">&gt; Симулятор OLED готовий</div>
+            <div class="log-line">&gt; Натисніть ▶ Запустити</div>
+          </div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-family:var(--mono);font-size:10px;color:#4a9aba">ДАНІ BMP180 (симуляція):</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-family:var(--mono);font-size:11px;color:#a8d8f0;width:80px">Темп. (°C):</span>
+              <input type="range" id="simTemp" min="15" max="40" value="22" style="flex:1" oninput="updateSimData()">
+              <span id="simTempVal" style="font-family:var(--mono);font-size:12px;color:#00e5ff;width:30px">22</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-family:var(--mono);font-size:11px;color:#a8d8f0;width:80px">Тиск (мм):</span>
+              <input type="range" id="simPress" min="700" max="780" value="752" style="flex:1" oninput="updateSimData()">
+              <span id="simPressVal" style="font-family:var(--mono);font-size:12px;color:#00e5ff;width:35px">752</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-family:var(--mono);font-size:11px;color:#a8d8f0;width:80px">Висота (м):</span>
+              <input type="range" id="simAlt" min="0" max="1000" value="143" style="flex:1" oninput="updateSimData()">
+              <span id="simAltVal" style="font-family:var(--mono);font-size:12px;color:#00e5ff;width:35px">143</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sim-status" id="weatherStatus">● Зупинено</div>
+    </div>
+  </div>
+
+  <!-- SIM 2: LASER ALARM -->
+  <div class="card">
+    <div class="card-title red">Симуляція 2 — Лазерна сигналізація</div>
+    <div class="sim-area">
+      <div class="sim-title">// СИМУЛЯТОР · LASER ALARM · Keypad пароль</div>
+      <div class="laser-arena">
+        <div class="laser-track">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:6px">ЛАЗЕРНИЙ ПРОМІНЬ</div>
+          <div class="laser-emitter"><div class="laser-dot" id="laserDot"></div></div>
+          <div class="laser-beam" id="laserBeam"></div>
+          <div class="laser-receiver active" id="laserReceiver">
+            <div class="laser-recv-dot active" id="laserRecvDot"></div>
+          </div>
+          <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+            font-family:var(--mono);font-size:9px;color:#718096;text-align:center">
+            <span id="analogVal" style="color:#00e5ff">A0: 812</span>
+          </div>
+        </div>
+        <div class="alarm-panel">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;text-align:center">ТРИВОГА</div>
+          <div class="alarm-light" id="alarmLight"></div>
+          <div class="alarm-sound" id="alarmSound">SILENCE</div>
+          <button class="sim-btn run" style="margin-top:4px;font-size:10px;padding:5px 10px"
+            onclick="breakLaser()">✂ Перерваті промінь</button>
+          <button class="sim-btn reset" style="margin-top:4px;font-size:10px;padding:5px 10px"
+            onclick="restoreLaser()">↺ Відновити</button>
+        </div>
+        <div style="flex:1;min-width:140px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:8px">KEYPAD · Пароль: <span style="color:#f6ad55">1366</span></div>
+          <div id="keypadDisplay" style="font-family:var(--mono);font-size:13px;color:#4ade80;
+            background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);
+            padding:6px 10px;border-radius:2px;min-height:28px;margin-bottom:8px">
+            <span id="keypadInput">─</span>
+          </div>
+          <div class="keypad-grid" id="keypadGrid"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:#718096;margin-top:8px;text-align:center">
+            <span id="laserStatus">Система активна ✓</span>
+          </div>
+        </div>
+        <div class="sim-log" id="laserLog" style="flex:1;min-width:140px">
+          <div class="log-line info">&gt; Лазер активний</div>
+          <div class="log-line ok">&gt; Промінь захоплено</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIM 3: PULSE OX -->
+  <div class="card">
+    <div class="card-title green">Симуляція 3 — Пульсоксиметр (MAX3010x)</div>
+    <div class="sim-area">
+      <div class="sim-title">// СИМУЛЯТОР · PULSE OXIMETER · BPM + SpO₂</div>
+      <div class="sim-controls">
+        <button class="sim-btn run" onclick="startPulse()">▶ Прикласти палець</button>
+        <button class="sim-btn stop" onclick="stopPulse()">■ Прибрати палець</button>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <canvas id="pulseOledCanvas" width="256" height="128"
+            style="background:#000;border:3px solid #1a3a5a;border-radius:4px;
+            box-shadow:0 0 20px rgba(0,0,0,.6);image-rendering:pixelated;display:block"></canvas>
+          <div style="font-family:var(--mono);font-size:9px;color:#4a9aba;text-align:center;margin-top:6px">OLED 0.96" · 128×64 px · I²C 0x3C</div>
+        </div>
+        <div style="flex:1;min-width:160px">
+          <div class="sim-log" id="pulseLog">
+            <div class="log-line info">&gt; Очікую палець...</div>
+            <div class="log-line">&gt; IR: 0 (нижче 50000)</div>
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:6px">ПОТОЧНІ ЗНАЧЕННЯ:</div>
+            <div style="font-family:var(--mono);font-size:14px;color:#4ade80">BPM: <span id="liveBpm">--</span></div>
+            <div style="font-family:var(--mono);font-size:14px;color:#63b3ed;margin-top:4px">SpO₂: <span id="liveSpo2">--%</span></div>
+            <div style="font-family:var(--mono);font-size:11px;color:#718096;margin-top:8px">IR: <span id="liveIR">0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ QUIZ ════════════ -->
+<section class="section" id="section-quiz">
+  <div class="sec-title">
+    <span class="sec-badge">03</span>
+    <h2>Контрольні питання</h2>
+    <div class="sec-line"></div>
+  </div>
+  <div id="quizContainer"></div>
+  <div class="quiz-score-bar" id="scoreBar" style="display:none">
+    <div>
+      <div class="score-num" id="scoreNum">0</div>
+      <div class="score-label">/ <span id="scoreTotal">0</span> балів</div>
+    </div>
+    <div class="score-bar-wrap">
+      <div class="score-label" id="scoreMsg"></div>
+      <div class="score-bar"><div class="score-bar-fill" id="scoreBarFill" style="width:0%"></div></div>
+    </div>
+    <button class="quiz-reset-btn" onclick="resetQuiz()">Пройти знову</button>
+  </div>
+</section>
+
+<!-- ════════════ REFERENCE ════════════ -->
+<section class="section" id="section-reference">
+  <div class="sec-title">
+    <span class="sec-badge">04</span>
+    <h2>Довідкові матеріали</h2>
+    <div class="sec-line"></div>
+  </div>
+  <div class="ref-grid">
+    <div class="ref-card">
+      <div class="ref-card-title">BMP180 · Характеристики</div>
+      <div class="ref-item"><span class="ref-key">Інтерфейс</span><span class="ref-val">I²C</span></div>
+      <div class="ref-item"><span class="ref-key">I²C адреса</span><span class="ref-val">0x77</span></div>
+      <div class="ref-item"><span class="ref-key">Живлення</span><span class="ref-val">1.8–3.6 В ⚠</span></div>
+      <div class="ref-item"><span class="ref-key">Температура</span><span class="ref-val">0.1°C роздільність</span></div>
+      <div class="ref-item"><span class="ref-key">Тиск</span><span class="ref-val">300–1100 гПа</span></div>
+      <div class="ref-item"><span class="ref-key">Висота</span><span class="ref-val">±1 м точність</span></div>
+      <div class="ref-item"><span class="ref-key">Бібліотека</span><span class="ref-val">Adafruit_BMP085</span></div>
+    </div>
+    <div class="ref-card">
+      <div class="ref-card-title">OLED SSD1306 · Функції</div>
+      <div class="ref-item"><span class="ref-key">begin()</span><span class="ref-val">ініціалізація</span></div>
+      <div class="ref-item"><span class="ref-key">clearDisplay()</span><span class="ref-val">очистка буфера</span></div>
+      <div class="ref-item"><span class="ref-key">display()</span><span class="ref-val">передача на екран</span></div>
+      <div class="ref-item"><span class="ref-key">setCursor(x,y)</span><span class="ref-val">позиція курсора</span></div>
+      <div class="ref-item"><span class="ref-key">setTextSize(n)</span><span class="ref-val">розмір (1,2,3...)</span></div>
+      <div class="ref-item"><span class="ref-key">drawCircle()</span><span class="ref-val">коло (x,y,r)</span></div>
+      <div class="ref-item"><span class="ref-key">drawFastHLine()</span><span class="ref-val">горизонт. лінія</span></div>
+      <div class="ref-item"><span class="ref-key">drawPixel(x,y,c)</span><span class="ref-val">один піксель</span></div>
+    </div>
+    <div class="ref-card">
+      <div class="ref-card-title">MAX3010x · Характеристики</div>
+      <div class="ref-item"><span class="ref-key">Інтерфейс</span><span class="ref-val">I²C (Fast Mode)</span></div>
+      <div class="ref-item"><span class="ref-key">I²C адреса</span><span class="ref-val">0x57</span></div>
+      <div class="ref-item"><span class="ref-key">Живлення</span><span class="ref-val">5В (стаб. на 3.3В)</span></div>
+      <div class="ref-item"><span class="ref-key">Метод</span><span class="ref-val">PPG (фотоплетизм.)</span></div>
+      <div class="ref-item"><span class="ref-key">Світлодіоди</span><span class="ref-val">660 нм + 880 нм</span></div>
+      <div class="ref-item"><span class="ref-key">Вимірює</span><span class="ref-val">BPM + SpO₂</span></div>
+      <div class="ref-item"><span class="ref-key">Бібліотека</span><span class="ref-val">SparkFun MAX3010x</span></div>
+    </div>
+    <div class="ref-card">
+      <div class="ref-card-title">I²C шина · Довідник</div>
+      <div class="ref-item"><span class="ref-key">Піни Uno</span><span class="ref-val">A4=SDA, A5=SCL</span></div>
+      <div class="ref-item"><span class="ref-key">Підтяжка</span><span class="ref-val">4.7 кОм до VCC</span></div>
+      <div class="ref-item"><span class="ref-key">Швидкість</span><span class="ref-val">100 / 400 кГц</span></div>
+      <div class="ref-item"><span class="ref-key">Адрес. пристроїв</span><span class="ref-val">до 127 на шині</span></div>
+      <div class="ref-item"><span class="ref-key">Пошук адрес</span><span class="ref-val">I2C Scanner sketch</span></div>
+    </div>
+    <div class="ref-card">
+      <div class="ref-card-title">Конверсія одиниць</div>
+      <div class="ref-item"><span class="ref-key">Па → мм рт.ст.</span><span class="ref-val">× 0.0075006</span></div>
+      <div class="ref-item"><span class="ref-key">Па → гПа</span><span class="ref-val">÷ 100</span></div>
+      <div class="ref-item"><span class="ref-key">мм рт.ст. → гПа</span><span class="ref-val">× 1.33322</span></div>
+      <div class="ref-item"><span class="ref-key">Норм. тиск</span><span class="ref-val">760 мм / 1013 гПа</span></div>
+      <div class="ref-item"><span class="ref-key">Норм. SpO₂</span><span class="ref-val">95–100%</span></div>
+      <div class="ref-item"><span class="ref-key">Норм. пульс</span><span class="ref-val">60–100 BPM</span></div>
+    </div>
+    <div class="ref-card">
+      <div class="ref-card-title">Лазерна сигн. · Піни</div>
+      <div class="ref-item"><span class="ref-key">Лазер KY-008</span><span class="ref-val">D9 (OUTPUT)</span></div>
+      <div class="ref-item"><span class="ref-key">Давач</span><span class="ref-val">A0 (analogRead)</span></div>
+      <div class="ref-item"><span class="ref-key">Пищалка</span><span class="ref-val">D12 (tone())</span></div>
+      <div class="ref-item"><span class="ref-key">Keypad рядки</span><span class="ref-val">D8,D7,D6,D5</span></div>
+      <div class="ref-item"><span class="ref-key">Keypad стовпці</span><span class="ref-val">D4,D3,D2</span></div>
+      <div class="ref-item"><span class="ref-key">Поріг давача</span><span class="ref-val">&lt; 500 = тривога</span></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <div class="card-title">Бібліотеки проєктів — встановлення</div>
+    <table class="spec-table">
+      <tr><th>Бібліотека</th><th>Проєкт</th><th>Де знайти</th></tr>
+      <tr><td>Adafruit_SSD1306</td><td>24-1, 24-3</td><td>Менеджер бібліотек IDE</td></tr>
+      <tr><td>Adafruit_GFX</td><td>24-1, 24-3</td><td>Менеджер бібліотек IDE</td></tr>
+      <tr><td>Adafruit_BMP085</td><td>24-1</td><td>Менеджер бібліотек IDE</td></tr>
+      <tr><td>MAX30105 / heartRate</td><td>24-3</td><td>SparkFun MAX30105 у менеджері</td></tr>
+      <tr><td>Keypad</td><td>7-1</td><td>Mark Stanley, Alexander Brevig</td></tr>
+    </table>
+    <div class="tip-box" style="margin-top:12px">Для пошуку адреси I²C пристрою використовуйте скетч «I2C Scanner» з прикладів Arduino: <span class="tag">File → Examples → Wire → i2c_scanner</span></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ──────────────────── NAV ────────────────────
+function showSection(n) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('visible'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('section-'+n).classList.add('visible');
+  const m={practice:0,simulation:1,quiz:2,reference:3};
+  document.querySelectorAll('.nav-btn')[m[n]]?.classList.add('active');
+}
+function toggleAcc(h){const b=h.nextElementSibling;const o=h.classList.contains('open');
+  h.classList.toggle('open',!o);b.classList.toggle('open',!o)}
+
+// ──────────────────── OLED CANVAS RENDERER ────────────────────
+function drawOLED(canvas, data) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const scaleX = W/128, scaleY = H/64;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#b0e0ff'; // OLED pixel color
+  ctx.font = `${8*scaleY}px 'Share Tech Mono', monospace`;
+
+  // Title
+  ctx.fillText('WEATHER STATION v1.0', 1*scaleX, 8*scaleY);
+  // Separator line
+  ctx.fillRect(0, 10*scaleY, 128*scaleX, scaleY);
+  // Temperature (big)
+  ctx.font = `${14*scaleY}px 'Share Tech Mono', monospace`;
+  ctx.fillText(data.temp.toFixed(1), 1*scaleX, 26*scaleY);
+  ctx.font = `${8*scaleY}px 'Share Tech Mono', monospace`;
+  ctx.fillText(' C', 52*scaleX, 24*scaleY);
+  // Pressure
+  ctx.fillText('Pressure:', 1*scaleX, 37*scaleY);
+  ctx.fillText(Math.round(data.press)+' mmHg', 1*scaleX, 47*scaleY);
+  // Altitude
+  ctx.fillText('Alt: '+Math.round(data.alt)+' m', 1*scaleX, 57*scaleY);
+  // Sun icon
+  const cx=105*scaleX, cy=35*scaleY, r=12*scaleY;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle='#b0e0ff'; ctx.lineWidth=scaleY; ctx.stroke();
+  // Rays
+  [[105,18,105,14],[105,52,105,56],[88,35,84,35],[122,35,126,35]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath();ctx.moveTo(x1*scaleX,y1*scaleY);ctx.lineTo(x2*scaleX,y2*scaleY);ctx.stroke();
+  });
+}
+
+function drawOLEDPlaceFinger(canvas){
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height,sX=W/128,sY=H/64;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#b0e0ff';
+  ctx.font=`${14*sY}px 'Share Tech Mono',monospace`;
+  ctx.fillText(' PLACE ',0*sX,26*sY);
+  ctx.fillText('FINGER',0*sX,46*sY);
+}
+
+function drawPulseOLED(canvas, bpm, spo2, beat){
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height,sX=W/128,sY=H/64;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#b0e0ff';
+  ctx.font=`${8*sY}px 'Share Tech Mono',monospace`;
+  ctx.fillText('  PULSE OXIMETER  ',0,8*sY);
+  ctx.fillRect(0,10*sY,128*sX,sY);
+  ctx.font=`${14*sY}px 'Share Tech Mono',monospace`;
+  ctx.fillText(bpm,1*sX,26*sY);
+  ctx.font=`${8*sY}px 'Share Tech Mono',monospace`;
+  ctx.fillText(' bpm',32*sX,22*sY);
+  ctx.fillText('SpO2:',1*sX,43*sY);
+  ctx.font=`${14*sY}px 'Share Tech Mono',monospace`;
+  ctx.fillText(spo2.toFixed(1)+' %',1*sX,58*sY);
+  // Heart beat indicator
+  if(beat){
+    ctx.beginPath();ctx.arc(115*sX,16*sY,8*sY,0,Math.PI*2);
+    ctx.strokeStyle='#b0e0ff';ctx.lineWidth=sY;ctx.stroke();
+  }
+  const h=beat?18:4;
+  ctx.fillRect(115*sX,(64-h)*sY,2*sX,h*sY);
+}
+
+// ──────────────────── SIM 1: WEATHER STATION ────────────────────
+let weatherTimer=null;
+let simData={temp:22,press:752,alt:143};
+
+function updateSimData(){
+  simData.temp=+document.getElementById('simTemp').value;
+  simData.press=+document.getElementById('simPress').value;
+  simData.alt=+document.getElementById('simAlt').value;
+  document.getElementById('simTempVal').textContent=simData.temp;
+  document.getElementById('simPressVal').textContent=simData.press;
+  document.getElementById('simAltVal').textContent=simData.alt;
+  if(weatherTimer) drawOLED(document.getElementById('oledCanvas'),simData);
+}
+
+function weatherLog(msg,cls=''){
+  const log=document.getElementById('weatherLog');
+  const d=document.createElement('div');d.className='log-line'+(cls?' '+cls:'');
+  d.textContent='> '+msg;log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+
+function weatherStep(){
+  simData.temp+=(Math.random()-.5)*0.3;
+  simData.press+=(Math.random()-.5)*0.5;
+  simData.alt+=(Math.random()-.5)*0.5;
+  simData.temp=Math.max(15,Math.min(40,simData.temp));
+  drawOLED(document.getElementById('oledCanvas'),simData);
+  weatherLog('display.display() → T:'+simData.temp.toFixed(1)+'°C P:'+Math.round(simData.press)+'mm','ok');
+  document.getElementById('simTemp').value=simData.temp;
+  document.getElementById('simPress').value=simData.press;
+  document.getElementById('simAlt').value=simData.alt;
+  updateSimData();
+  weatherTimer=setTimeout(weatherStep,1500);
+}
+
+function startWeather(){
+  if(weatherTimer)return;
+  document.getElementById('weatherStatus').textContent='● Виконується...';
+  document.getElementById('weatherStatus').className='sim-status running';
+  weatherLog('setup() → display.begin(0x3C)','info');
+  weatherLog('bmp.begin() → OK','ok');
+  weatherLog('loop() запущено','info');
+  weatherStep();
+}
+function stopWeather(){clearTimeout(weatherTimer);weatherTimer=null;
+  document.getElementById('weatherStatus').textContent='● Зупинено';
+  document.getElementById('weatherStatus').className='sim-status';}
+function resetWeather(){stopWeather();
+  const c=document.getElementById('oledCanvas');const ctx=c.getContext('2d');
+  ctx.fillStyle='#000';ctx.fillRect(0,0,c.width,c.height);
+  document.getElementById('weatherLog').innerHTML='<div class="log-line info">> Скинуто</div>';}
+
+// ──────────────────── SIM 2: LASER ALARM ────────────────────
+let laserActive=true, alarmOn=false, alarmInterval=null;
+let kpInput='', kpAwaitPass=false;
+const correctPass='1366';
+const kpLayout=['1','2','3','4','5','6','7','8','9','*','0','#'];
+
+// Build keypad
+const kpGrid=document.getElementById('keypadGrid');
+kpLayout.forEach(k=>{
+  const btn=document.createElement('div');btn.className='kp-btn';btn.textContent=k;
+  btn.onclick=()=>kpPress(k);kpGrid.appendChild(btn);
+});
+
+function laserLog(msg,cls=''){
+  const log=document.getElementById('laserLog');
+  const d=document.createElement('div');d.className='log-line'+(cls?' '+cls:'');
+  d.textContent='> '+msg;log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+
+function breakLaser(){
+  if(!laserActive)return;
+  laserActive=false;
+  document.getElementById('laserBeam').style.opacity='0.15';
+  document.getElementById('laserRecvDot').className='laser-recv-dot alarm';
+  document.getElementById('laserReceiver').className='laser-receiver alarm';
+  document.getElementById('analogVal').textContent='A0: 124';
+  alarmOn=true;
+  document.getElementById('alarmLight').className='alarm-light red-on';
+  document.getElementById('alarmSound').className='alarm-sound beeping';
+  document.getElementById('alarmSound').textContent='TРИВОГА!';
+  document.getElementById('laserStatus').textContent='detection = true → сигнал тривоги!';
+  laserLog('analogRead(A0) = 124 < 500 → alarm!','warn');
+  laserLog('tone(12,1000) + tone(12,200)','warn');
+  laserLog('Натисніть * для введення пароля','info');
+  document.getElementById('keypadInput').textContent='─';
+  kpInput=''; kpAwaitPass=false;
+}
+
+function restoreLaser(){
+  laserActive=true; alarmOn=false; kpInput=''; kpAwaitPass=false;
+  document.getElementById('laserBeam').style.opacity='1';
+  document.getElementById('laserRecvDot').className='laser-recv-dot active';
+  document.getElementById('laserReceiver').className='laser-receiver active';
+  document.getElementById('analogVal').textContent='A0: 812';
+  document.getElementById('alarmLight').className='alarm-light green-on';
+  setTimeout(()=>{document.getElementById('alarmLight').className='alarm-light';},800);
+  document.getElementById('alarmSound').className='alarm-sound';
+  document.getElementById('alarmSound').textContent='SILENCE';
+  document.getElementById('laserStatus').textContent='Система активна ✓';
+  document.getElementById('keypadInput').textContent='─';
+  laserLog('noTone() → сигналізацію знято','ok');
+  laserLog('detection = false','ok');
+}
+
+function kpPress(k){
+  if(!alarmOn) return;
+  if(!kpAwaitPass){
+    if(k==='*'){ kpAwaitPass=true; kpInput=''; laserLog('Keypad: * → Getpass()','info'); }
+    return;
+  }
+  kpInput+=k;
+  document.getElementById('keypadInput').textContent=kpInput.replace(/./g,'●');
+  laserLog('Keypad: '+k);
+  if(kpInput.length===4){
+    if(kpInput===correctPass){ laserLog('Пароль вірний! a==4','ok'); setTimeout(restoreLaser,400); }
+    else { laserLog('Пароль невірний!','warn'); kpInput=''; kpAwaitPass=false;
+      document.getElementById('keypadInput').textContent='─'; }
+  }
+}
+
+// Init laser beam visible
+document.getElementById('alarmLight').className='alarm-light';
+
+// ──────────────────── SIM 3: PULSE OX ────────────────────
+let pulseTimer=null, pulseOn=false, pulseBpm=72, pulseSpo2=98.2, pulsePhase=0, beatFlag=false;
+
+function pulseLog(msg,cls=''){
+  const log=document.getElementById('pulseLog');
+  const d=document.createElement('div');d.className='log-line'+(cls?' '+cls:'');
+  d.textContent='> '+msg;log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+
+function pulseStep(){
+  pulsePhase++;
+  // Simulate BPM variation
+  pulseBpm=72+Math.round(Math.sin(pulsePhase*0.1)*4+Math.random()*2-1);
+  pulseSpo2=98+Math.random()*1.5-0.5;
+  beatFlag=(pulsePhase%8===0);
+  if(beatFlag){ pulseLog('checkForBeat() → TRUE → BPM: '+pulseBpm,'ok'); }
+  const irVal=55000+Math.round(Math.sin(pulsePhase*0.8)*3000);
+  document.getElementById('liveBpm').textContent=pulseBpm;
+  document.getElementById('liveSpo2').textContent=pulseSpo2.toFixed(1)+'%';
+  document.getElementById('liveIR').textContent=irVal;
+  drawPulseOLED(document.getElementById('pulseOledCanvas'),pulseBpm,pulseSpo2,beatFlag);
+  pulseTimer=setTimeout(pulseStep,300);
+}
+
+function startPulse(){
+  if(pulseOn)return; pulseOn=true;
+  pulseLog('irValue > 50000 → палець виявлено','ok');
+  pulseLog('Розпочинаю вимірювання...','info');
+  drawPulseOLED(document.getElementById('pulseOledCanvas'),72,98.2,false);
+  pulseStep();
+}
+
+function stopPulse(){
+  pulseOn=false; clearTimeout(pulseTimer);
+  document.getElementById('liveBpm').textContent='--';
+  document.getElementById('liveSpo2').textContent='--%';
+  document.getElementById('liveIR').textContent='0';
+  drawOLEDPlaceFinger(document.getElementById('pulseOledCanvas'));
+  pulseLog('irValue < 50000 → PLACE FINGER','warn');
+}
+
+// Init canvases
+(()=>{
+  const c=document.getElementById('oledCanvas');const ctx=c.getContext('2d');
+  ctx.fillStyle='#000';ctx.fillRect(0,0,c.width,c.height);
+  drawOLEDPlaceFinger(document.getElementById('pulseOledCanvas'));
+})();
+
+// ──────────────────── QUIZ ────────────────────
+const quizData=[
+  {q:'Яка I²C адреса OLED-дисплея SSD1306 найчастіше використовується?',
+   opts:['0x3A','0x3C','0x40','0x77'],ans:1,
+   expl:'0x3C — стандартна адреса SSD1306. 0x77 — адреса BMP180. Обидва можуть співіснувати на одній шині.'},
+  {q:'Яку команду потрібно викликати, щоб відобразити намальований кадр на фізичному OLED-екрані?',
+   opts:['display.print()','display.show()','display.display()','display.flush()'],ans:2,
+   expl:'display.display() — передає вміст відеобуфера (1 КБ SRAM) через I²C на OLED. Без неї екран не оновиться.'},
+  {q:'Від якої напруги живиться датчик BMP180 на більшості модулів?',
+   opts:['5В','3.3В','12В','1.8В'],ans:1,
+   expl:'BMP180 — 3.3В живлення! Підключення до 5В може його пошкодити. OLED зазвичай приймає і 3.3В, і 5В.'},
+  {q:'Які піни Arduino Uno використовуються для шини I²C?',
+   opts:['D2 і D3','D10 і D11','A4 (SDA) і A5 (SCL)','D0 (RX) і D1 (TX)'],ans:2,
+   expl:'A4=SDA (Serial Data), A5=SCL (Serial Clock) — фізичні піни I²C на Arduino Uno (ATmega328).'},
+  {q:'На якому піні підключений лазерний модуль KY-008 у проєкті 7-1?',
+   opts:['D13','D9','A0','D12'],ans:1,
+   expl:'Лазер KY-008 → D9 (OUTPUT). Давач лазера → A0 (analogRead). Пищалка → D12 (tone()).'},
+  {q:'Яке значення analogRead(A0) вказує, що лазерний промінь перерваний (сигналізація спрацьовує)?',
+   opts:['A0 > 500','A0 == 0','A0 < 500','A0 == 1023'],ans:2,
+   expl:'if(Detect < 500) detection = true — промінь розімкнуто, давач не отримує світла → мале значення АЦП.'},
+  {q:'Яка технологія вимірювання використовується у датчику GY-MAX3010x?',
+   opts:['Ультразвукова','Фотоплетизмографія (PPG)','Гальванометрія','Рентгенографія'],ans:1,
+   expl:'PPG (фотоплетизмографія): LED-сигнал крізь шкіру → фотодіод вимірює відображене світло, що пульсує з ударами серця.'},
+  {q:'Скільки пінів Arduino займає 4×4 мембранна клавіатура?',
+   opts:['4','6','7','8'],ans:2,
+   expl:'4 рядки + 3 стовпці = 7 пінів (D8,D7,D6,D5 — рядки; D4,D3,D2 — стовпці). Для 4×4 = 8 пінів.'},
+  {q:'Яку функцію потрібно виконати ПЕРШОЮ після кожного виклику display.clearDisplay()?',
+   opts:['display.display()','display.setCursor()','draw-функції потім display.display()','display.begin()'],ans:2,
+   expl:'Правильний порядок: clearDisplay() → setCursor/print/draw* (заповнення буфера) → display.display() (передача на екран).'},
+  {q:'Яка бібліотека використовується для роботи з BMP180 в Arduino?',
+   opts:['BMP180.h','Adafruit_BMP085.h','BMP_sensor.h','I2CSensor.h'],ans:1,
+   expl:'Adafruit_BMP085 — повністю сумісна з BMP180 (BMP085 — попередня версія того ж сімейства сенсорів).'},
+];
+
+let quizAnswered=0, quizCorrect=0;
+function buildQuiz(){
+  const c=document.getElementById('quizContainer');c.innerHTML='';
+  quizAnswered=0;quizCorrect=0;
+  document.getElementById('scoreBar').style.display='none';
+  quizData.forEach((q,qi)=>{
+    const card=document.createElement('div');card.className='quiz-card';card.id='qcard'+qi;
+    let opts=q.opts.map((o,oi)=>
+      `<div class="quiz-option" onclick="answerQ(${qi},${oi})">
+        <div class="quiz-radio"></div><span>${o}</span></div>`).join('');
+    card.innerHTML=`<div class="quiz-q-num">Питання ${qi+1} / ${quizData.length}</div>
+      <div class="quiz-q-text">${q.q}</div>
+      <div class="quiz-options" id="qopts${qi}">${opts}</div>
+      <div class="quiz-feedback" id="qfb${qi}"></div>`;
+    c.appendChild(card);
+  });
+}
+function answerQ(qi,oi){
+  const opts=document.querySelectorAll('#qopts'+qi+' .quiz-option');
+  opts.forEach(o=>o.classList.add('disabled'));
+  const fb=document.getElementById('qfb'+qi);
+  const correct=quizData[qi].ans;
+  opts[correct].classList.add('correct');
+  if(oi===correct){quizCorrect++;fb.textContent='✓ Правильно! '+quizData[qi].expl;fb.className='quiz-feedback show ok';}
+  else{opts[oi].classList.add('wrong');fb.textContent='✗ Неправильно. '+quizData[qi].expl;fb.className='quiz-feedback show err';}
+  quizAnswered++;
+  if(quizAnswered===quizData.length)showScore();
+}
+function showScore(){
+  const bar=document.getElementById('scoreBar');bar.style.display='flex';
+  const pct=Math.round(quizCorrect/quizData.length*100);
+  document.getElementById('scoreNum').textContent=quizCorrect;
+  document.getElementById('scoreTotal').textContent=quizData.length;
+  document.getElementById('scoreBarFill').style.width=pct+'%';
+  const msg=pct>=90?'🏆 Відмінно! Ви — майстер сенсорів!':
+            pct>=70?'👍 Добре! Ще трохи практики!':
+            pct>=50?'📚 Непогано, повторіть матеріал.':'🔄 Варто ще раз вивчити тему.';
+  document.getElementById('scoreMsg').textContent=msg;
+  bar.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function resetQuiz(){buildQuiz();}
+buildQuiz();
+</script>
+</body>
+</html>
