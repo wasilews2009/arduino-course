@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arduino Тема 7 — map(), random(), PIR, DHT11, Геркон</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f4f8;--bg2:#e8eef5;--bg3:#dde6f0;
+  --surface:#fff;--surface2:#f7fafd;
+  --border:#c5d5e8;--border2:#a8c0d8;
+  --grid:rgba(100,160,220,.12);
+  --accent:#0a7fc4;--accent2:#00b4d8;--accent3:#0052a3;
+  --green:#0b9e5f;--orange:#e07b00;--red:#c0392b;--yellow:#c9960a;
+  --purple:#7c3aed;--teal:#0d9488;--pink:#db2777;
+  --text:#1a2a3a;--text2:#3a5068;--text3:#6a8099;
+  --mono:'Share Tech Mono',monospace;--sans:'Exo 2',sans-serif;--display:'Russo One',sans-serif;
+  --shadow:0 2px 16px rgba(10,80,160,.10),0 1px 4px rgba(10,80,160,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);overflow-x:hidden;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:32px 32px;background-attachment:fixed}
+header{background:linear-gradient(135deg,#0a3d6b 0%,#0a6fa8 55%,#00b4d8 100%);
+  position:relative;overflow:hidden;box-shadow:0 4px 32px rgba(0,60,120,.25)}
+header::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+  background-size:24px 24px;pointer-events:none}
+.hi{max-width:1100px;margin:0 auto;padding:36px 32px 28px;position:relative;z-index:1}
+.hchip{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.22);color:#a8ddff;font-family:var(--mono);
+  font-size:11px;letter-spacing:.12em;padding:4px 12px;border-radius:2px;margin-bottom:16px;text-transform:uppercase}
+.hchip::before{content:'◆';font-size:8px;color:#00e5ff}
+header h1{font-family:var(--display);font-size:clamp(24px,5vw,48px);color:#fff;
+  line-height:1.1;text-shadow:0 2px 20px rgba(0,0,0,.3);margin-bottom:8px}
+header h1 span{color:#00e5ff}
+.hsub{font-family:var(--mono);color:rgba(200,230,255,.8);font-size:13px;letter-spacing:.05em;margin-bottom:24px}
+.hnav{display:flex;flex-wrap:wrap;gap:8px}
+.nb{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:rgba(200,235,255,.9);
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+  padding:7px 16px;cursor:pointer;border-radius:2px;transition:all .2s;text-transform:uppercase}
+.nb:hover,.nb.active{background:rgba(0,229,255,.15);border-color:#00e5ff;color:#00e5ff;box-shadow:0 0 12px rgba(0,229,255,.2)}
+.sch-deco{position:absolute;right:28px;top:50%;transform:translateY(-50%);opacity:.18;pointer-events:none}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 64px}
+.sec{display:none;animation:fi .4s ease}.sec.visible{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.stitle{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.sbadge{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+  background:var(--accent);color:#fff;padding:4px 10px;border-radius:2px}
+.stitle h2{font-family:var(--display);font-size:22px;color:var(--accent3);letter-spacing:.03em}
+.sline{flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  box-shadow:var(--shadow);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent2)}
+.card.green::before{background:var(--green)}.card.purple::before{background:var(--purple)}
+.card.orange::before{background:var(--orange)}.card.teal::before{background:var(--teal)}
+.card.red::before{background:var(--red)}.card.pink::before{background:var(--pink)}
+.ctitle{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ctitle::before{content:'';display:inline-block;width:6px;height:6px;background:var(--accent2);
+  border-radius:50%;box-shadow:0 0 6px var(--accent2)}
+.ctitle.g::before{background:var(--green);box-shadow:0 0 6px var(--green)}
+.ctitle.o::before{background:var(--orange);box-shadow:0 0 6px var(--orange)}
+.ctitle.p::before{background:var(--purple);box-shadow:0 0 6px var(--purple)}
+.ctitle.t::before{background:var(--teal);box-shadow:0 0 6px var(--teal)}
+.ctitle.r::before{background:var(--red);box-shadow:0 0 6px var(--red)}
+.card p{font-size:15px;line-height:1.75;color:var(--text2)}
+.card h3{font-family:var(--sans);font-weight:700;font-size:16px;color:var(--text);margin:16px 0 8px}
+.card h3:first-child{margin-top:0}
+/* TASK */
+.tc{background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  box-shadow:var(--shadow);margin-bottom:28px;overflow:hidden}
+.th{padding:14px 20px;display:flex;align-items:center;gap:14px}
+.th.blue{background:linear-gradient(90deg,#0052a3,#0a7fc4)}
+.th.green{background:linear-gradient(90deg,#065f46,#059669)}
+.th.purple{background:linear-gradient(90deg,#5b21b6,#7c3aed)}
+.tnum{font-family:var(--mono);font-size:22px;font-weight:700;color:rgba(255,255,255,.3)}
+.tlabel{font-family:var(--mono);font-size:10px;letter-spacing:.15em;color:rgba(200,230,255,.7);text-transform:uppercase;margin-bottom:2px}
+.ttitle{font-family:var(--display);font-size:16px;color:#fff;letter-spacing:.03em}
+.tbody{padding:20px}
+.mats{background:var(--bg2);border:1px dashed var(--border2);border-radius:3px;padding:14px 18px;margin-bottom:16px}
+.mats-t{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.ml{display:flex;flex-wrap:wrap;gap:6px}
+.mc{background:var(--surface);border:1px solid var(--border2);border-radius:2px;
+  padding:4px 10px;font-family:var(--mono);font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.mc::before{content:'⬡';color:var(--accent2);font-size:9px}
+.sl{list-style:none}
+.sl li{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--bg3);
+  font-size:14.5px;color:var(--text2);line-height:1.6;align-items:flex-start}
+.sl li:last-child{border-bottom:none}
+.sn{font-family:var(--mono);font-size:11px;color:#fff;background:var(--accent);
+  min-width:24px;height:24px;border-radius:2px;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;margin-top:2px}
+.sn.g{background:var(--green)}.sn.p{background:var(--purple)}
+/* CODE */
+.cb{background:#0d1f33;border:1px solid #1a4a6a;border-radius:4px;margin:16px 0;overflow:hidden}
+.ch{background:#0a1827;border-bottom:1px solid #1a4a6a;padding:8px 16px;
+  display:flex;align-items:center;justify-content:space-between}
+.chl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#4a9aba;text-transform:uppercase}
+.dots{display:flex;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot:nth-child(1){background:#c0392b}.dot:nth-child(2){background:#e07b00}.dot:nth-child(3){background:#0b9e5f}
+.cp{padding:18px 20px;font-family:var(--mono);font-size:12px;line-height:1.8;
+  color:#c8dff0;overflow-x:auto;white-space:pre}
+.cm{color:#6a8f5a}.ck{color:#569cd6}.cf{color:#dcdcaa}.cn{color:#b5cea8}
+.cs{color:#ce9178}.cd{color:#c586c0}.ct{color:#4ec9b0}
+/* CIRCUIT */
+.circ{background:#f7fbff;border:1px solid var(--border);border-radius:4px;padding:20px;margin:16px 0;text-align:center}
+.circt{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);margin-bottom:14px}
+/* TABLES */
+.st{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:12px}
+.st th{background:linear-gradient(90deg,var(--accent3),var(--accent));color:#fff;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:9px 14px;text-align:left}
+.st td{padding:8px 14px;border-bottom:1px solid var(--bg3);color:var(--text2);font-family:var(--mono);font-size:12.5px}
+.st tr:nth-child(even) td{background:var(--bg2)}.st tr:hover td{background:#e0effa}
+.st td:first-child{color:var(--accent3);font-weight:600}
+/* BOXES */
+.hbox{background:linear-gradient(90deg,rgba(0,180,220,.06),rgba(0,180,220,.02));border-left:3px solid var(--accent2);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.tip{background:linear-gradient(90deg,rgba(11,158,95,.07),rgba(11,158,95,.02));border-left:3px solid var(--green);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.tip::before{content:'💡 '}
+.warn{background:linear-gradient(90deg,rgba(192,57,43,.07),rgba(192,57,43,.02));border-left:3px solid var(--red);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.warn::before{content:'⚠ ';color:var(--red)}
+.info{background:linear-gradient(90deg,rgba(124,58,237,.07),rgba(124,58,237,.02));border-left:3px solid var(--purple);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.info::before{content:'🔬 '}
+.star{background:linear-gradient(90deg,rgba(201,150,10,.07),rgba(201,150,10,.02));border-left:3px solid var(--yellow);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.star::before{content:'⭐ Завдання на «зірочку»: ';font-weight:700;color:var(--yellow)}
+/* ACCORDION */
+.acc{margin-bottom:10px}
+.ah{background:var(--surface2);border:1px solid var(--border);padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-radius:3px;transition:all .2s;font-size:14px;font-weight:600;color:var(--text)}
+.ah:hover{border-color:var(--accent2);background:#e8f4fb}
+.ah.open{background:#e0effa;border-color:var(--accent);border-radius:3px 3px 0 0}
+.ai{font-family:var(--mono);font-size:16px;color:var(--accent);transition:transform .2s}
+.ah.open .ai{transform:rotate(45deg)}
+.ab{display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 3px 3px;padding:16px;font-size:14px;color:var(--text2);line-height:1.7}
+.ab.open{display:block}
+/* SIM */
+.sim{background:#0d1f33;border:1px solid #1a4a6a;border-radius:4px;padding:24px;margin:16px 0}
+.simt{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#00b4d8;margin-bottom:16px}
+.simctrl{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.sbtn{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 18px;border:1px solid;border-radius:2px;cursor:pointer;transition:all .2s}
+.sbtn.run{background:rgba(11,158,95,.15);border-color:#0b9e5f;color:#4ade80}
+.sbtn.run:hover{background:rgba(11,158,95,.3)}
+.sbtn.stop{background:rgba(192,57,43,.15);border-color:#c0392b;color:#fc8181}
+.sbtn.stop:hover{background:rgba(192,57,43,.3)}
+.sbtn.reset{background:rgba(10,127,196,.15);border-color:#0a7fc4;color:#90cdf4}
+.slog{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:3px;padding:12px;font-family:var(--mono);font-size:11px;color:#4ade80;height:140px;overflow-y:auto;min-width:180px;flex:1}
+.ll{margin-bottom:3px;color:#a8d8f0}.ll.ok{color:#4ade80}.ll.warn{color:#f6ad55}.ll.info{color:#63b3ed}
+.sstat{font-family:var(--mono);font-size:11px;color:#718096;margin-top:10px}
+.sstat.run{color:#4ade80}
+/* LED SIM */
+.led-sim{width:28px;height:28px;border-radius:50%;background:#1a1a1a;border:2px solid rgba(255,255,255,.1);transition:all .2s;flex-shrink:0}
+.led-sim.on-y{background:#fbbf24;border-color:#f59e0b;box-shadow:0 0 16px rgba(251,191,36,.8),0 0 32px rgba(251,191,36,.3)}
+.led-sim.on-r{background:#f87171;border-color:#ef4444;box-shadow:0 0 16px rgba(248,113,113,.8)}
+.led-sim.on-g{background:#4ade80;border-color:#22c55e;box-shadow:0 0 16px rgba(74,222,128,.8)}
+/* BUZZER */
+.bz{font-size:28px;transition:all .2s;filter:grayscale(1);opacity:.4}
+.bz.active{filter:none;opacity:1;animation:bzz .2s infinite}
+@keyframes bzz{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+/* PIR */
+.pir-eye{width:60px;height:60px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#e0effa,#c5d5e8);border:3px solid var(--border2);display:flex;align-items:center;justify-content:center;position:relative;transition:all .3s}
+.pir-eye.detect{background:radial-gradient(circle at 40% 40%,#fef9c3,#fde047);border-color:#f59e0b;box-shadow:0 0 24px rgba(251,191,36,.6)}
+.pir-inner{width:24px;height:24px;border-radius:50%;background:#1a2a3a;transition:all .3s}
+.pir-eye.detect .pir-inner{background:#dc2626;box-shadow:0 0 12px rgba(220,38,38,.8)}
+.detect-ring{position:absolute;border-radius:50%;border:2px solid rgba(251,191,36,.4);animation:pulsing 1s infinite}
+@keyframes pulsing{0%{width:60px;height:60px;opacity:1}100%{width:110px;height:110px;opacity:0}}
+/* REED SWITCH */
+.reed-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.reed-tube{width:16px;height:60px;background:#e8f4fb;border:2px solid #a8c0d8;border-radius:8px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:4px 3px}
+.reed-contact{width:100%;height:2px;background:#c9960a;border-radius:1px;transition:all .3s}
+.reed-contact.gap{margin-top:8px}
+.magnet-block{background:#c0392b;color:#fff;border-radius:4px;padding:6px 14px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .2s;text-align:center;user-select:none;border:2px solid #991b1b}
+.magnet-block:hover{background:#dc2626;box-shadow:0 0 12px rgba(220,38,38,.4)}
+.magnet-block.near{background:#dc2626;box-shadow:0 0 20px rgba(220,38,38,.6);transform:scale(1.05)}
+/* MAP VIZ */
+.map-range{display:flex;flex-direction:column;gap:8px}
+.range-bar{height:14px;background:#0a1827;border-radius:2px;position:relative;overflow:hidden;border:1px solid #1a4a6a}
+.range-fill{height:100%;border-radius:2px;transition:width .2s}
+/* RANDOM VIZ */
+.rnd-grid{display:flex;flex-wrap:wrap;gap:4px;max-width:280px}
+.rnd-cell{width:28px;height:28px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff;transition:all .3s}
+/* DHT display */
+.dht-display{background:#0a1827;border:1px solid #1a4a6a;border-radius:4px;padding:16px;min-width:160px}
+.dht-val{font-family:var(--mono);font-size:28px;line-height:1.1;margin-bottom:4px}
+.dht-label{font-family:var(--mono);font-size:10px;color:#4a9aba;text-transform:uppercase;letter-spacing:.1em}
+/* SERIAL MON */
+.smon{background:#0a0f1a;border:1px solid #1a4a6a;border-radius:3px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:#4ade80;height:130px;overflow-y:auto;flex:1;min-width:200px}
+.sl2{margin-bottom:2px;color:#a8d8f0}.sl2.val{color:#4ade80}.sl2.warn{color:#f6ad55}
+/* QUIZ */
+.qcard{background:var(--surface);border:1px solid var(--border);border-radius:4px;box-shadow:var(--shadow);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.qcard::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--orange)}
+.qqn{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+.qqt{font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px;line-height:1.5}
+.qopts{display:flex;flex-direction:column;gap:8px}
+.qopt{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:3px;cursor:pointer;transition:all .2s;font-size:14px;color:var(--text2);background:var(--surface2);user-select:none}
+.qopt:hover{border-color:var(--accent2);background:#e8f4fb}
+.qopt.correct{background:#e6f7ef;border-color:var(--green);color:var(--green)}
+.qopt.wrong{background:#fde8e8;border-color:var(--red);color:var(--red)}
+.qopt.disabled{pointer-events:none}
+.qr{width:14px;height:14px;border:2px solid var(--border2);border-radius:50%;flex-shrink:0}
+.qopt.correct .qr{background:var(--green);border-color:var(--green)}
+.qopt.wrong .qr{background:var(--red);border-color:var(--red)}
+.qfb{margin-top:10px;font-size:13px;padding:8px 12px;border-radius:3px;display:none;font-family:var(--mono)}
+.qfb.show{display:block}.qfb.ok{background:#e6f7ef;color:var(--green)}.qfb.err{background:#fde8e8;color:var(--red)}
+.qscore{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 24px;margin-top:24px;display:flex;align-items:center;gap:20px;box-shadow:var(--shadow)}
+.scn{font-family:var(--display);font-size:40px;color:var(--accent);line-height:1}
+.scl{font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.scbw{flex:1}.scb{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:8px}
+.scbf{height:100%;background:linear-gradient(90deg,var(--accent2),var(--green));border-radius:4px;transition:width .8s}
+.qreset{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:2px;cursor:pointer}
+.qreset:hover{background:var(--accent3)}
+/* REF */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:16px}
+.rc{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:18px;box-shadow:var(--shadow)}
+.rct{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.rct::before{content:'#';color:var(--accent2);font-size:14px}
+.ri{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px dashed var(--bg3);font-size:13px}
+.ri:last-child{border-bottom:none}
+.rk{color:var(--text2);font-family:var(--mono);font-size:12px}
+.rv{color:var(--accent3);font-family:var(--mono);font-size:12px;font-weight:600}
+/* MISC */
+ul.ul{padding-left:0;list-style:none}
+ul.ul li{padding:5px 0 5px 18px;position:relative;font-size:14px;color:var(--text2);line-height:1.6}
+ul.ul li::before{content:'▸';position:absolute;left:0;color:var(--accent2);font-size:11px;top:7px}
+.tag{display:inline-block;background:var(--bg3);border:1px solid var(--border2);border-radius:2px;padding:1px 7px;font-family:var(--mono);font-size:11px;color:var(--accent3);margin:2px}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--accent2)}
+@media(max-width:640px){.hi{padding:24px 16px 20px}main{padding:20px 12px 48px}.cp{font-size:11px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hi">
+    <div class="hchip">PUET · STEAM-HUB · Тема 7 + Практична робота №7</div>
+    <h1>map() · random() · <span>Цифрові давачі</span></h1>
+    <p class="hsub">// map() · randomSeed() · PIR HC-SR501 · DHT11 · Геркон (Reed Switch) · INPUT_PULLUP</p>
+    <nav class="hnav">
+      <button class="nb active" onclick="showSec('theory')">① Теорія</button>
+      <button class="nb" onclick="showSec('practice')">② Практика</button>
+      <button class="nb" onclick="showSec('simulation')">③ Симуляція</button>
+      <button class="nb" onclick="showSec('quiz')">④ Контроль</button>
+      <button class="nb" onclick="showSec('reference')">⑤ Довідник</button>
+    </nav>
+  </div>
+  <svg class="sch-deco" width="220" height="130" viewBox="0 0 220 130">
+    <!-- map() block diagram -->
+    <rect x="20" y="45" width="50" height="35" rx="3" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+    <text x="45" y="60" text-anchor="middle" font-size="7" fill="rgba(255,255,255,.6)" font-family="monospace">0..1023</text>
+    <text x="45" y="72" text-anchor="middle" font-size="7" fill="#00e5ff" font-family="monospace">analogRead</text>
+    <line x1="70" y1="62" x2="95" y2="62" stroke="#fff" stroke-width="1.3"/>
+    <polygon points="90,58 100,62 90,66" fill="#00e5ff"/>
+    <rect x="100" y="45" width="50" height="35" rx="3" fill="none" stroke="#00e5ff" stroke-width="1.5"/>
+    <text x="125" y="60" text-anchor="middle" font-size="7" fill="#00e5ff" font-family="monospace">map()</text>
+    <text x="125" y="72" text-anchor="middle" font-size="7" fill="#4ade80" font-family="monospace">0..255</text>
+    <line x1="150" y1="62" x2="175" y2="62" stroke="#fff" stroke-width="1.3"/>
+    <polygon points="170,58 180,62 170,66" fill="#4ade80"/>
+    <rect x="180" y="45" width="30" height="35" rx="3" fill="none" stroke="#4ade80" stroke-width="1.2"/>
+    <text x="195" y="60" text-anchor="middle" font-size="7" fill="#4ade80" font-family="monospace">PWM</text>
+    <text x="195" y="72" text-anchor="middle" font-size="7" fill="#4ade80" font-family="monospace">LED</text>
+    <!-- random -->
+    <text x="30" y="110" font-size="8" fill="rgba(255,255,255,.5)" font-family="monospace">random(min,max)</text>
+    <text x="30" y="123" font-size="8" fill="#f6ad55" font-family="monospace">→ псевдовипадк.</text>
+  </svg>
+</header>
+
+<main>
+<!-- ═══════════════ THEORY ═══════════════ -->
+<section class="sec visible" id="sec-theory">
+  <div class="stitle"><span class="sbadge">01</span><h2>Теоретичний матеріал</h2><div class="sline"></div></div>
+
+  <!-- MAP() -->
+  <div class="card">
+    <div class="ctitle">Функція map() — масштабування діапазонів</div>
+    <p>Функція <strong>map()</strong> переносить значення з одного діапазону в інший пропорційно. Оперує лише цілими числами — дробова частина при пропорційному переносі <strong>відкидається</strong> (не округлюється).</p>
+    <h3>Синтаксис та параметри</h3>
+    <div style="background:#0d1f33;border:1px solid #1a4a6a;border-radius:3px;padding:16px 20px;font-family:var(--mono);font-size:14px;color:#c8dff0;line-height:2.2;margin:12px 0">
+      <span style="color:#dcdcaa">map</span>(<span style="color:#9cdcfe">value</span>, <span style="color:#4ec9b0">fromLow</span>, <span style="color:#4ec9b0">fromHigh</span>, <span style="color:#ce9178">toLow</span>, <span style="color:#ce9178">toHigh</span>)
+      <div style="font-size:11px;color:#6a8f5a;margin-top:8px">
+        // value — значення для перетворення<br>
+        // fromLow/fromHigh — поточний діапазон (вхід)<br>
+        // toLow/toHigh — новий діапазон (вихід)<br>
+        // повертає long (ціле!)
+      </div>
+    </div>
+    <div class="acc">
+      <div class="ah" onclick="toggleAcc(this)"><span>📐 Приклад 1: analogRead → analogWrite (ШІМ)</span><span class="ai">+</span></div>
+      <div class="ab">
+        <p style="margin-bottom:10px">АЦП дає 0–1023, ШІМ приймає 0–255. Пряме масштабування:</p>
+        <div class="cb"><div class="ch"><span class="chl">analogRead → map → analogWrite</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="cf">pinMode</span>(A1, INPUT);
+  <span class="cf">pinMode</span>(<span class="cn">10</span>, OUTPUT);
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ct">int</span> value = <span class="cf">analogRead</span>(A1);               <span class="cm">// 0–1023</span>
+  value = <span class="cf">map</span>(value, <span class="cn">0</span>, <span class="cn">1023</span>, <span class="cn">0</span>, <span class="cn">255</span>);   <span class="cm">// → 0–255</span>
+  <span class="cf">analogWrite</span>(<span class="cn">10</span>, value);                  <span class="cm">// ШІМ на LED</span>
+}</div></div>
+      </div>
+    </div>
+    <div class="acc">
+      <div class="ah" onclick="toggleAcc(this)"><span>🔄 Приклад 2: Інверсія діапазону</span><span class="ai">+</span></div>
+      <div class="ab">
+        <p style="margin-bottom:10px">map() може <strong>інвертувати</strong> діапазон, якщо toLow > toHigh:</p>
+        <div class="cb"><div class="ch"><span class="chl">Інвертований map()</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="cm">// Чим більше value → тим менший результат</span>
+value = <span class="cf">map</span>(val, <span class="cn">0</span>, <span class="cn">1023</span>, <span class="cn">255</span>, <span class="cn">0</span>);
+<span class="cm">// val=0   → 255 (максимум)</span>
+<span class="cm">// val=512 → 127</span>
+<span class="cm">// val=1023→ 0   (мінімум)</span></div></div>
+        <div class="tip">Інверсія корисна для: «чим далі рука від датчика — тим яскравіший LED», або «чим вологіше — тим тихіше сигнал».</div>
+      </div>
+    </div>
+    <div class="acc">
+      <div class="ah" onclick="toggleAcc(this)"><span>⚠ Особливості та обмеження map()</span><span class="ai">+</span></div>
+      <div class="ab">
+        <ul class="ul">
+          <li><strong>Тільки цілі числа</strong> — дробова частина відкидається. map(2, 0, 4, 0, 1) поверне 0, а не 0.5!</li>
+          <li><strong>Не затискає до меж</strong> — якщо value виходить за fromLow..fromHigh, результат теж вийде за межі toLow..toHigh. Використовуйте <span class="tag">constrain()</span> для захисту.</li>
+          <li><strong>Зворотній зв'язок:</strong> map(map(x,a,b,c,d),c,d,a,b) = x (симетрія)</li>
+        </ul>
+        <div class="cb"><div class="ch"><span class="chl">map() + constrain()</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp">value = <span class="cf">map</span>(sensorVal, <span class="cn">0</span>, <span class="cn">1023</span>, <span class="cn">0</span>, <span class="cn">255</span>);
+value = <span class="cf">constrain</span>(value, <span class="cn">0</span>, <span class="cn">255</span>); <span class="cm">// гарантований діапазон</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RANDOM -->
+  <div class="card teal">
+    <div class="ctitle t">Псевдовипадкові числа — random() та randomSeed()</div>
+    <p>Комп'ютер не може генерувати справді випадкові числа — лише <strong>псевдовипадкові</strong>: детерміновані послідовності з виглядом хаотичних. Генератор стартує з «зерна» (seed) і відтворює ту саму послідовність при кожному запуску.</p>
+    <h3>Ключові функції</h3>
+    <table class="st">
+      <tr><th>Функція</th><th>Опис</th><th>Приклад</th></tr>
+      <tr><td>random(max)</td><td>Число від 0 до max-1</td><td>random(10) → 0..9</td></tr>
+      <tr><td>random(min,max)</td><td>Число від min до max-1</td><td>random(100,200) → 100..199</td></tr>
+      <tr><td>randomSeed(seed)</td><td>Ініціалізація генератора</td><td>randomSeed(analogRead(A1))</td></tr>
+    </table>
+    <div class="acc" style="margin-top:14px">
+      <div class="ah" onclick="toggleAcc(this)"><span>🎲 Тип byte: random для цілих чисел</span><span class="ai">+</span></div>
+      <div class="ab">
+        <div class="cb"><div class="ch"><span class="chl">random() · тип byte</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ct">byte</span> data;
+<span class="ck">void</span> <span class="cf">setup</span>() { Serial.<span class="cf">begin</span>(<span class="cn">9600</span>); }
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  data = <span class="cf">random</span>(<span class="cn">100</span>, <span class="cn">200</span>); <span class="cm">// 100..199</span>
+  Serial.<span class="cf">println</span>(data);
+  <span class="cf">delay</span>(<span class="cn">250</span>);
+}</div></div>
+      </div>
+    </div>
+    <div class="acc">
+      <div class="ah" onclick="toggleAcc(this)"><span>🎲 Float з випадковими знаками після коми</span><span class="ai">+</span></div>
+      <div class="ab">
+        <p style="margin-bottom:8px">МК генерує лише цілі. Для float генеруємо окремо цілу та дробову частини:</p>
+        <div class="cb"><div class="ch"><span class="chl">random() · float з комою</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ct">float</span> data, data1, data2;
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  data1 = <span class="cf">random</span>(<span class="cn">0</span>, <span class="cn">10</span>);          <span class="cm">// цілі: 0..9</span>
+  data2 = <span class="cf">random</span>(<span class="cn">0</span>, <span class="cn">100</span>);         <span class="cm">// після коми: 0..99</span>
+  data  = data1 + data2 / <span class="cn">100.0</span>;  <span class="cm">// напр.: 5.73</span>
+  Serial.<span class="cf">println</span>(data);
+  <span class="cf">delay</span>(<span class="cn">250</span>);
+}</div></div>
+      </div>
+    </div>
+    <div class="acc">
+      <div class="ah" onclick="toggleAcc(this)"><span>🎲 randomSeed() — щоразу різна послідовність</span><span class="ai">+</span></div>
+      <div class="ab">
+        <p style="margin-bottom:8px">Без randomSeed() — кожен перезапуск дає <em>однакову</em> послідовність. З analogRead незаземленого піна — шум дає щоразу різне зерно:</p>
+        <div class="cb"><div class="ch"><span class="chl">randomSeed(analogRead(A1))</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">void</span> <span class="cf">setup</span>() {
+  Serial.<span class="cf">begin</span>(<span class="cn">9600</span>);
+  <span class="cm">// A1 нічого не підключено — «шум» як зерно</span>
+  <span class="cf">randomSeed</span>(<span class="cf">analogRead</span>(A1));
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  Serial.<span class="cf">println</span>(<span class="cf">random</span>(<span class="cn">100</span>, <span class="cn">200</span>));
+  <span class="cf">delay</span>(<span class="cn">250</span>);
+}</div></div>
+        <div class="tip">Вільний аналоговий пін «ловить» електромагнітний шум від Wi-Fi, стільникових телефонів, мережі 50 Гц — це забезпечує різне зерно при кожному старті.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIR Theory -->
+  <div class="card purple">
+    <div class="ctitle p">PIR Датчик руху HC-SR501</div>
+    <p>PIR (Passive Infrared) — пасивний інфрачервоний датчик руху. Реєструє зміну теплового ІЧ-поля у зоні огляду — рух теплих тіл (людини, тварини). <strong>«Пасивний»</strong> — тому що не випромінює, лише приймає.</p>
+    <table class="st">
+      <tr><th>Параметр</th><th>Значення</th></tr>
+      <tr><td>Живлення</td><td>5В – 20В</td></tr>
+      <tr><td>Вихідний сигнал</td><td>Digital HIGH (3.3В) при русі</td></tr>
+      <tr><td>Кут огляду</td><td>120°</td></tr>
+      <tr><td>Дальність</td><td>до 7 м (регулюється)</td></tr>
+      <tr><td>Затримка спрацювання</td><td>0.3 – 18 с (підстроювач)</td></tr>
+      <tr><td>Час блокування</td><td>2.5 с після спрацювання</td></tr>
+      <tr><td>Режими</td><td>Single/Repeatable trigger</td></tr>
+    </table>
+    <div class="tip" style="margin-top:12px">Після подачі живлення PIR потребує <strong>30–60 секунд</strong> прогріву для стабілізації. У цей час можливі хибні спрацювання — це нормально.</div>
+  </div>
+
+  <!-- Геркон Theory -->
+  <div class="card orange">
+    <div class="ctitle o">Геркон (Reed Switch) — магнітокерований контакт</div>
+    <p>Геркон — <strong>герметизований магнітокерований контакт</strong>. Скляна колба з двома феромагнітними контактами, запаяна в захисному газі. При піднесенні магніту контакти замикаються (NO-тип) або розмикаються (NC-тип).</p>
+    <h3>Два варіанти підключення</h3>
+    <table class="st">
+      <tr><th>Варіант</th><th>Схема</th><th>pinMode</th><th>Активний стан</th><th>Переваги</th></tr>
+      <tr><td>Варіант 1 (зовн. R)</td><td>5V→Геркон→D2 + 10кОм до GND</td><td>INPUT</td><td>HIGH (магніт є)</td><td>Наочний</td></tr>
+      <tr><td>Варіант 2 (PULLUP)</td><td>Геркон→D2→GND</td><td>INPUT_PULLUP</td><td>LOW (магніт є)</td><td>Без зовн. R, надійний</td></tr>
+    </table>
+    <div class="acc" style="margin-top:12px">
+      <div class="ah" onclick="toggleAcc(this)"><span>⚡ Чому INPUT_PULLUP кращий за INPUT + 10кОм?</span><span class="ai">+</span></div>
+      <div class="ab">
+        <ul class="ul">
+          <li><strong>Менше деталей</strong> — резистор 10 кОм вбудований у МК (≈20 кОм). Схема спрощується.</li>
+          <li><strong>Стабільність</strong> — пін не «плаває» у невизначеному стані між HIGH і LOW.</li>
+          <li><strong>Безпека</strong> — якщо дріт геркона торкнеться заземленого корпусу — не буде КЗ живлення.</li>
+          <li><strong>Логіка інвертована</strong> — активний стан LOW (магніт є). Умова: <code>if(reedState == LOW)</code></li>
+        </ul>
+      </div>
+    </div>
+    <div class="hbox" style="margin-top:12px"><strong>Застосування:</strong> охорона дверей/вікон (магніт на рамі, геркон на дверях), лічильники обертів, кнопки у герметичних пристроях, електронні замки, сигналізації.</div>
+  </div>
+</section>
+
+<!-- ═══════════════ PRACTICE ═══════════════ -->
+<section class="sec" id="sec-practice">
+  <div class="stitle"><span class="sbadge">02</span><h2>Практичні завдання</h2><div class="sline"></div></div>
+
+  <!-- TASK 1: PIR -->
+  <div class="tc">
+    <div class="th blue">
+      <div class="tnum">01</div>
+      <div><div class="tlabel">Project 5-2 · PIR HC-SR501 · digitalRead()</div>
+        <div class="ttitle">Реагування освітлення на рух</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">Система автоматичного освітлення: PIR-датчик реєструє рух і вмикає LED на <strong>2 секунди</strong>. Стан виводиться в Serial Monitor. Основа охоронних систем та систем розумного будинку.</p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">PIR Sensor HC-SR501</div>
+          <div class="mc">Світлодіод</div><div class="mc">Резистор 220 Ом</div>
+          <div class="mc">Макетна плата</div><div class="mc">6 дротів «тато-тато»</div>
+        </div>
+      </div>
+      <div class="circ">
+        <div class="circt">// Принципова схема · PIR HC-SR501 + LED</div>
+        <svg viewBox="0 0 500 175" width="100%" style="max-width:500px">
+          <rect x="10" y="30" width="80" height="110" rx="3" fill="#e8f4fb" stroke="#0a7fc4" stroke-width="1.5"/>
+          <text x="50" y="55" text-anchor="middle" font-size="9" fill="#0a3d6b" font-weight="bold">Arduino</text>
+          <text x="50" y="67" text-anchor="middle" font-size="8" fill="#0a7fc4">Uno</text>
+          <text x="90" y="80" font-size="8" fill="#7c3aed">D2(PIR)</text>
+          <text x="90" y="97" font-size="8" fill="#0b9e5f">D13(LED)</text>
+          <text x="90" y="114" font-size="8" fill="#c0392b">5V</text>
+          <text x="90" y="131" font-size="8" fill="#2c3e50">GND</text>
+          <!-- PIR block -->
+          <circle cx="290" cy="68" r="40" fill="#e8f0e8" stroke="#7c3aed" stroke-width="2"/>
+          <text x="290" y="62" text-anchor="middle" font-size="9" fill="#5b21b6" font-weight="bold">HC-SR501</text>
+          <text x="290" y="75" text-anchor="middle" font-size="8" fill="#7c3aed">PIR SENSOR</text>
+          <!-- Fresnel lens hint -->
+          <ellipse cx="290" cy="50" rx="28" ry="8" fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3,2"/>
+          <!-- PIR pins -->
+          <line x1="258" y1="100" x2="258" y2="120" stroke="#c0392b" stroke-width="2"/>
+          <line x1="275" y1="100" x2="275" y2="120" stroke="#7c3aed" stroke-width="2" stroke-dasharray="3,2"/>
+          <line x1="292" y1="100" x2="292" y2="120" stroke="#2c3e50" stroke-width="2"/>
+          <text x="250" y="130" font-size="7" fill="#c0392b">VCC</text><text x="268" y="130" font-size="7" fill="#7c3aed">OUT</text><text x="285" y="130" font-size="7" fill="#2c3e50">GND</text>
+          <!-- Wires -->
+          <line x1="130" y1="78" x2="275" y2="78" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,2"/>
+          <line x1="275" y1="78" x2="275" y2="100" stroke="#7c3aed" stroke-width="1.5"/>
+          <line x1="130" y1="112" x2="258" y2="112" stroke="#c0392b" stroke-width="1.5"/>
+          <line x1="258" y1="112" x2="258" y2="100" stroke="#c0392b" stroke-width="1.5"/>
+          <line x1="130" y1="129" x2="380" y2="129" stroke="#2c3e50" stroke-width="1.5"/>
+          <line x1="292" y1="120" x2="292" y2="129" stroke="#2c3e50" stroke-width="1.5"/>
+          <!-- LED branch -->
+          <line x1="130" y1="95" x2="360" y2="95" stroke="#0b9e5f" stroke-width="1.5"/>
+          <rect x="360" y="86" width="28" height="18" rx="2" fill="#fff9e0" stroke="#c9960a" stroke-width="1.3"/>
+          <text x="374" y="99" text-anchor="middle" font-size="8" fill="#c9960a">220Ω</text>
+          <line x1="388" y1="95" x2="405" y2="95" stroke="#0b9e5f" stroke-width="1.5"/>
+          <polygon points="405,87 405,103 422,95" fill="#e8f4fb" stroke="#0b9e5f" stroke-width="1.5"/>
+          <line x1="422" y1="87" x2="422" y2="103" stroke="#0b9e5f" stroke-width="2"/>
+          <line x1="422" y1="95" x2="440" y2="95" stroke="#0b9e5f" stroke-width="1.5"/>
+          <line x1="440" y1="95" x2="440" y2="129" stroke="#2c3e50" stroke-width="1.5"/>
+          <line x1="425" y1="86" x2="432" y2="78" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="3,2"/>
+          <line x1="428" y1="90" x2="436" y2="84" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="3,2"/>
+          <text x="10" y="165" font-size="8" fill="#718096">PIR: VCC→5V, OUT→D2(INPUT), GND · LED: 220Ом→D13(OUTPUT) · Прогрів PIR: 30–60 сек!</text>
+        </svg>
+      </div>
+      <ul class="sl">
+        <li><div class="sn">1</div><div>Підключіть PIR: VCC→5V, OUT→D2, GND→GND. LED із резистором 220 Ом: анод→D13, катод→GND. Зверніть увагу: PIR працює від 5В–20В.</div></li>
+        <li><div class="sn">2</div><div>Після подачі живлення <strong>зачекайте 30–60 секунд</strong> прогріву PIR. Протягом цього часу можуть бути хибні спрацювання — не лякайтесь.</div></li>
+        <li><div class="sn">3</div><div>Введіть Лістинг 5-2. Зверніть увагу: <code>if(pirVal)</code> — скорочення замість <code>if(pirVal == HIGH)</code>. Обидва еквівалентні.</div></li>
+        <li><div class="sn">4</div><div>Завантажте. Відкрийте Serial Monitor (9600 бод). Пройдіть перед датчиком — LED має засвітитися на 2 секунди.</div></li>
+      </ul>
+      <div class="cb">
+        <div class="ch"><span class="chl">Лістинг 5-2 · PIR → LED автоматика</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="cd">#define</span> PIN_PIR <span class="cn">2</span>   <span class="cm">// PIR OUT → D2</span>
+<span class="cd">#define</span> PIN_LED <span class="cn">13</span>  <span class="cm">// LED → D13</span>
+
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  Serial.<span class="cf">begin</span>(<span class="cn">9600</span>);
+  <span class="cf">pinMode</span>(PIN_PIR, INPUT);   <span class="cm">// читаємо з PIR</span>
+  <span class="cf">pinMode</span>(PIN_LED, OUTPUT);  <span class="cm">// керуємо LED</span>
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ct">int</span> pirVal = <span class="cf">digitalRead</span>(PIN_PIR);
+  Serial.<span class="cf">println</span>(pirVal);
+
+  <span class="ck">if</span> (pirVal) {             <span class="cm">// HIGH = рух виявлено</span>
+    <span class="cf">digitalWrite</span>(PIN_LED, HIGH);
+    Serial.<span class="cf">println</span>(<span class="cs">"Виявлено рух"</span>);
+    <span class="cf">delay</span>(<span class="cn">2000</span>);             <span class="cm">// тримаємо LED 2 сек</span>
+  } <span class="ck">else</span> {
+    <span class="cf">digitalWrite</span>(PIN_LED, LOW);
+  }
+}</div>
+      </div>
+      <div class="star">Додайте лічильник спрацювань у глобальну змінну та виводьте в Serial Monitor повідомлення «Спрацювань: N».</div>
+    </div>
+  </div>
+
+  <!-- TASK 2: DHT11 -->
+  <div class="tc">
+    <div class="th green">
+      <div class="tnum">02</div>
+      <div><div class="tlabel">Project 5-4 · DHT11 · 1-wire · Serial Monitor</div>
+        <div class="ttitle">Вимірювання температури та вологості</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">Цифровий давач <strong>DHT11</strong> вимірює температуру і вологість через <strong>1-wire протокол</strong> з одним сигнальним дротом. Використовуємо бібліотеку DHT від Adafruit. Дані виводяться в Serial Monitor.</p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">Давач DHT11</div>
+          <div class="mc">Резистор 10 кОм (pull-up)</div>
+          <div class="mc">Макетна плата</div><div class="mc">З'єднувальні дроти</div>
+        </div>
+      </div>
+      <div class="hbox"><strong>Чому pull-up резистор 10 кОм?</strong> Лінія Data використовує протокол 1-wire з «відкритим стоком». Без підтяжки до VCC сигнал «плаває» між HIGH і LOW → NaN у зчитуванні. Вбудований pullup Arduino (~100 кОм) занадто слабкий для DHT11.</div>
+      <div class="circ">
+        <div class="circt">// Принципова схема · DHT11 з pull-up 10кОм</div>
+        <svg viewBox="0 0 450 160" width="100%" style="max-width:450px">
+          <rect x="10" y="30" width="80" height="100" rx="3" fill="#e8f4fb" stroke="#0a7fc4" stroke-width="1.5"/>
+          <text x="50" y="55" text-anchor="middle" font-size="9" fill="#0a3d6b" font-weight="bold">Arduino</text>
+          <text x="50" y="67" text-anchor="middle" font-size="8" fill="#0a7fc4">Uno</text>
+          <text x="90" y="75" font-size="8" fill="#0b9e5f">D2(DATA)</text>
+          <text x="90" y="92" font-size="8" fill="#c0392b">5V</text>
+          <text x="90" y="109" font-size="8" fill="#2c3e50">GND</text>
+          <!-- DHT11 body -->
+          <rect x="270" y="35" width="70" height="80" rx="4" fill="#e8f0e8" stroke="#059669" stroke-width="2"/>
+          <text x="305" y="58" text-anchor="middle" font-size="9" fill="#065f46" font-weight="bold">DHT11</text>
+          <text x="305" y="71" text-anchor="middle" font-size="8" fill="#059669">Temp+Hum</text>
+          <text x="305" y="84" text-anchor="middle" font-size="7" fill="#3a5068">1-wire</text>
+          <text x="305" y="96" text-anchor="middle" font-size="7" fill="#3a5068">D2 + 10кОм</text>
+          <!-- 3 pins -->
+          <line x1="280" y1="115" x2="280" y2="135" stroke="#c0392b" stroke-width="2"/>
+          <line x1="305" y1="115" x2="305" y2="135" stroke="#0b9e5f" stroke-width="2" stroke-dasharray="3,2"/>
+          <line x1="330" y1="115" x2="330" y2="135" stroke="#2c3e50" stroke-width="2"/>
+          <text x="272" y="145" font-size="8" fill="#c0392b">VCC</text>
+          <text x="296" y="145" font-size="8" fill="#0b9e5f">DATA</text>
+          <text x="321" y="145" font-size="8" fill="#2c3e50">GND</text>
+          <!-- Pull-up resistor -->
+          <line x1="220" y1="90" x2="220" y2="115" stroke="#c9960a" stroke-width="1.5"/>
+          <rect x="212" y="68" width="16" height="22" rx="2" fill="#fff9e0" stroke="#c9960a" stroke-width="1.3"/>
+          <text x="220" y="82" text-anchor="middle" font-size="7" fill="#c9960a">10k</text>
+          <line x1="220" y1="68" x2="220" y2="58" stroke="#c9960a" stroke-width="1.5"/>
+          <line x1="210" y1="58" x2="280" y2="58" stroke="#c0392b" stroke-width="1.5"/>
+          <!-- Wires -->
+          <line x1="130" y1="73" x2="220" y2="73" stroke="#0b9e5f" stroke-width="1.5"/>
+          <line x1="220" y1="73" x2="220" y2="90" stroke="#0b9e5f" stroke-width="1.5"/>
+          <line x1="220" y1="115" x2="305" y2="115" stroke="#0b9e5f" stroke-width="1.5"/>
+          <line x1="130" y1="90" x2="280" y2="90" stroke="#c0392b" stroke-width="1.5"/>
+          <line x1="280" y1="90" x2="280" y2="115" stroke="#c0392b" stroke-width="1.5"/>
+          <line x1="130" y1="107" x2="330" y2="107" stroke="#2c3e50" stroke-width="1.5"/>
+          <line x1="330" y1="107" x2="330" y2="115" stroke="#2c3e50" stroke-width="1.5"/>
+          <text x="10" y="156" font-size="8" fill="#718096">DATA→D2 + 10кОм підтяжка до VCC · VCC→5V · GND · Бібліотека: DHT.h (Adafruit)</text>
+        </svg>
+      </div>
+      <ul class="sl">
+        <li><div class="sn g">1</div><div>Підключіть DHT11: VCC→5V, DATA→D2, GND→GND. Між DATA та VCC підключіть резистор 10 кОм (pull-up).</div></li>
+        <li><div class="sn g">2</div><div>Встановіть бібліотеку <span class="tag">DHT sensor library</span> (Adafruit) через менеджер бібліотек IDE. Разом із нею встановиться <span class="tag">Adafruit Unified Sensor</span>.</div></li>
+        <li><div class="sn g">3</div><div>Введіть Лістинг 5-4. Зверніть увагу: <code>isnan(t) || isnan(h)</code> — перевірка на «Not a Number», якщо датчик не відповів.</div></li>
+        <li><div class="sn g">4</div><div>Завантажте. Відкрийте Serial Monitor (9600 бод). Ви маєте побачити: <code>Humidity: 55.00 % Temperature: 23.00 *C</code></div></li>
+      </ul>
+      <div class="cb">
+        <div class="ch"><span class="chl">Лістинг 5-4 · DHT11 → Serial Monitor</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="cd">#include</span> <span class="cs">"DHT.h"</span>
+<span class="cd">#define</span> DHTPIN  <span class="cn">2</span>
+<span class="cd">#define</span> DHTTYPE DHT11    <span class="cm">// DHT11 або DHT22</span>
+<span class="ct">DHT</span> dht(DHTPIN, DHTTYPE);
+
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  Serial.<span class="cf">begin</span>(<span class="cn">9600</span>);
+  dht.<span class="cf">begin</span>();
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ct">float</span> h = dht.<span class="cf">readHumidity</span>();
+  <span class="ct">float</span> t = dht.<span class="cf">readTemperature</span>();
+  <span class="ck">if</span> (<span class="cf">isnan</span>(t) || <span class="cf">isnan</span>(h)) {
+    Serial.<span class="cf">println</span>(<span class="cs">"Error reading from DHT"</span>);
+  } <span class="ck">else</span> {
+    Serial.<span class="cf">print</span>(<span class="cs">"Humidity: "</span>);    Serial.<span class="cf">print</span>(h);
+    Serial.<span class="cf">print</span>(<span class="cs">" %\tTemperature: "</span>);
+    Serial.<span class="cf">print</span>(t);              Serial.<span class="cf">println</span>(<span class="cs">" *C"</span>);
+  }
+}</div>
+      </div>
+      <div class="warn">DHT11 оновлює дані кожні <strong>2 секунди</strong>. Не опитуйте частіше — отримаєте NaN. Для точніших вимірів використовуйте DHT22 (±0.5°C vs ±2°C у DHT11).</div>
+    </div>
+  </div>
+
+  <!-- TASK 3: REED SWITCH -->
+  <div class="tc">
+    <div class="th purple">
+      <div class="tnum">03</div>
+      <div><div class="tlabel">Геркон · INPUT vs INPUT_PULLUP · tone()</div>
+        <div class="ttitle">Охоронна сигналізація з магнітним датчиком</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">Геркон реагує на наближення магніту — замикає контакти. Arduino зчитує стан і активує LED (D13) та Buzzer (D8) через <code>tone()</code>. Вивчаємо два варіанти підключення з порівнянням.</p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">Геркон (Reed Switch)</div>
+          <div class="mc">Магніт</div><div class="mc">Світлодіод</div>
+          <div class="mc">Резистор 220 Ом (LED)</div>
+          <div class="mc">Резистор 10 кОм (варіант 1)</div>
+          <div class="mc">Зуммер (buzzer)</div><div class="mc">Макетна плата + дроти</div>
+        </div>
+      </div>
+      <div class="circ">
+        <div class="circt">// Варіант 2 (рекомендований): INPUT_PULLUP · Геркон → GND</div>
+        <svg viewBox="0 0 500 170" width="100%" style="max-width:500px">
+          <rect x="10" y="25" width="80" height="120" rx="3" fill="#e8f4fb" stroke="#0a7fc4" stroke-width="1.5"/>
+          <text x="50" y="50" text-anchor="middle" font-size="9" fill="#0a3d6b" font-weight="bold">Arduino</text>
+          <text x="50" y="62" text-anchor="middle" font-size="8" fill="#0a7fc4">Uno</text>
+          <text x="90" y="75" font-size="8" fill="#7c3aed">D2(PULLUP)</text>
+          <text x="90" y="92" font-size="8" fill="#fbbf24">D13(LED)</text>
+          <text x="90" y="109" font-size="8" fill="#c4b5fd">D8(BUZZER)</text>
+          <text x="90" y="126" font-size="8" fill="#2c3e50">GND</text>
+          <!-- Internal PULLUP indicator -->
+          <rect x="13" y="68" width="55" height="14" rx="2" fill="#e0effa" stroke="#7c3aed" stroke-width="1"/>
+          <text x="40" y="78" text-anchor="middle" font-size="7" fill="#7c3aed">~20кОм PULLUP</text>
+          <line x1="68" y1="75" x2="90" y2="75" stroke="#7c3aed" stroke-width="1.5"/>
+          <!-- Reed switch (SVG symbol) -->
+          <rect x="200" y="55" width="14" height="36" rx="7" fill="#e8f4fb" stroke="#a8c0d8" stroke-width="1.5"/>
+          <!-- contacts inside -->
+          <line x1="207" y1="63" x2="207" y2="69" stroke="#c9960a" stroke-width="2"/>
+          <line x1="207" y1="73" x2="207" y2="81" stroke="#c9960a" stroke-width="2"/>
+          <text x="222" y="70" font-size="8" fill="#7c3aed">Геркон</text>
+          <text x="222" y="82" font-size="7" fill="#3a5068">(NO-тип)</text>
+          <!-- Wire from D2 to reed -->
+          <line x1="130" y1="73" x2="200" y2="63" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,2"/>
+          <!-- Wire from reed to GND -->
+          <line x1="207" y1="91" x2="207" y2="145" stroke="#2c3e50" stroke-width="1.5"/>
+          <line x1="130" y1="124" x2="420" y2="124" stroke="#2c3e50" stroke-width="1.5"/>
+          <line x1="207" y1="124" x2="207" y2="145"/>
+          <!-- Magnet hint -->
+          <rect x="245" y="58" width="40" height="30" rx="4" fill="#dc2626" stroke="#991b1b" stroke-width="1.5"/>
+          <text x="265" y="72" text-anchor="middle" font-size="8" fill="#fff" font-weight="bold">N</text>
+          <text x="265" y="82" text-anchor="middle" font-size="7" fill="#fecaca">МАГНІТ</text>
+          <!-- LED branch -->
+          <line x1="130" y1="90" x2="310" y2="90" stroke="#fbbf24" stroke-width="1.5"/>
+          <rect x="310" y="82" width="26" height="16" rx="2" fill="#fff9e0" stroke="#c9960a" stroke-width="1.3"/>
+          <text x="323" y="93" text-anchor="middle" font-size="8" fill="#c9960a">220Ω</text>
+          <line x1="336" y1="90" x2="352" y2="90" stroke="#fbbf24" stroke-width="1.5"/>
+          <polygon points="352,82 352,98 368,90" fill="#fef9c3" stroke="#fbbf24" stroke-width="1.5"/>
+          <line x1="368" y1="82" x2="368" y2="98" stroke="#fbbf24" stroke-width="2"/>
+          <line x1="368" y1="90" x2="388" y2="90" stroke="#fbbf24" stroke-width="1.5"/>
+          <line x1="388" y1="90" x2="388" y2="124" stroke="#2c3e50" stroke-width="1.5"/>
+          <!-- Buzzer branch -->
+          <circle cx="420" cy="95" r="22" fill="#1a0a35" stroke="#7c3aed" stroke-width="1.5"/>
+          <text x="420" y="91" text-anchor="middle" font-size="8" fill="#c4b5fd">BUZZ</text>
+          <text x="420" y="102" text-anchor="middle" font-size="7" fill="#a78bfa">tone(8)</text>
+          <line x1="130" y1="107" x2="398" y2="95" stroke="#c4b5fd" stroke-width="1.5"/>
+          <line x1="420" y1="117" x2="420" y2="124" stroke="#2c3e50" stroke-width="1.5"/>
+          <text x="10" y="162" font-size="8" fill="#718096">Варіант 2: Геркон D2→GND (без зовнішнього резистора!) · LED D13+220Ом → GND · Buzzer D8 → GND</text>
+        </svg>
+      </div>
+      <ul class="sl">
+        <li><div class="sn p">1</div><div>Зберіть схему <strong>Варіант 2</strong>: один контакт геркона → D2, інший → GND. LED із 220 Ом → D13 → GND. Buzzer: + → D8, − → GND. Зовнішній резистор для геркона НЕ потрібен!</div></li>
+        <li><div class="sn p">2</div><div>Введіть Лістинг «Варіант 2». Зверніть увагу: <code>INPUT_PULLUP</code> замість <code>INPUT</code> і умова <code>reedState == LOW</code> (логіка інвертована).</div></li>
+        <li><div class="sn p">3</div><div>Завантажте. Піднесіть магніт до геркона — LED засвітиться, buzzer зазвучить на 1000 Гц. Відведіть — система заспокоїться.</div></li>
+        <li><div class="sn p">4</div><div>Щоб зробити «охорону дверей»: прикріпіть магніт до дверей, геркон до рами. Тривога спрацює при відкритті (магніт відходить). Змініть умову на <code>reedState == HIGH</code>.</div></li>
+      </ul>
+      <div class="cb">
+        <div class="ch"><span class="chl">Варіант 1 · Геркон + INPUT + 10кОм</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">const</span> <span class="ct">int</span> reedPin   = <span class="cn">2</span>;
+<span class="ck">const</span> <span class="ct">int</span> ledPin    = <span class="cn">13</span>;
+<span class="ck">const</span> <span class="ct">int</span> buzzerPin = <span class="cn">8</span>;
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="cf">pinMode</span>(reedPin,   INPUT);    <span class="cm">// зовнішній R 10кОм до GND</span>
+  <span class="cf">pinMode</span>(ledPin,    OUTPUT);
+  <span class="cf">pinMode</span>(buzzerPin, OUTPUT);
+  Serial.<span class="cf">begin</span>(<span class="cn">9600</span>);
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ct">int</span> reedState = <span class="cf">digitalRead</span>(reedPin);
+  <span class="ck">if</span> (reedState == HIGH) {          <span class="cm">// магніт є</span>
+    <span class="cf">digitalWrite</span>(ledPin, HIGH);
+    <span class="cf">tone</span>(buzzerPin, <span class="cn">1000</span>);
+    Serial.<span class="cf">println</span>(<span class="cs">"Тривога! Магніт виявлено!"</span>);
+  } <span class="ck">else</span> {
+    <span class="cf">digitalWrite</span>(ledPin, LOW);
+    <span class="cf">noTone</span>(buzzerPin);
+  }
+  <span class="cf">delay</span>(<span class="cn">100</span>);
+}</div>
+      </div>
+      <div class="cb">
+        <div class="ch"><span class="chl">Варіант 2 · INPUT_PULLUP (рекомендований!)</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">const</span> <span class="ct">int</span> reedPin   = <span class="cn">2</span>;
+<span class="ck">const</span> <span class="ct">int</span> ledPin    = <span class="cn">13</span>;
+<span class="ck">const</span> <span class="ct">int</span> buzzerPin = <span class="cn">8</span>;
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="cf">pinMode</span>(reedPin, INPUT_PULLUP); <span class="cm">// вбудований ~20кОм</span>
+  <span class="cf">pinMode</span>(ledPin,    OUTPUT);
+  <span class="cf">pinMode</span>(buzzerPin, OUTPUT);
+  Serial.<span class="cf">begin</span>(<span class="cn">9600</span>);
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ct">int</span> reedState = <span class="cf">digitalRead</span>(reedPin);
+  <span class="ck">if</span> (reedState == LOW) {   <span class="cm">// LOW = замкнено на GND</span>
+    <span class="cf">digitalWrite</span>(ledPin, HIGH);
+    <span class="cf">tone</span>(buzzerPin, <span class="cn">1000</span>);
+    Serial.<span class="cf">println</span>(<span class="cs">"Контакт замкнено!"</span>);
+  } <span class="ck">else</span> {
+    <span class="cf">digitalWrite</span>(ledPin, LOW);
+    <span class="cf">noTone</span>(buzzerPin);
+  }
+  <span class="cf">delay</span>(<span class="cn">50</span>);
+}</div>
+      </div>
+      <div class="star">Змініть код так, щоб під час тривоги LED <strong>блимав</strong> (а не горів постійно). Яку команду для затримки потрібно додати всередині блоку <code>if</code>?</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SIMULATION ═══════════════ -->
+<section class="sec" id="sec-simulation">
+  <div class="stitle"><span class="sbadge">03</span><h2>Симуляція роботи давачів</h2><div class="sline"></div></div>
+
+  <!-- SIM 1: PIR -->
+  <div class="card purple">
+    <div class="ctitle p">Симуляція 1 — PIR Датчик руху</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · HC-SR501 · digitalRead(D2) → LED D13</div>
+      <div class="simctrl">
+        <button class="sbtn run" onclick="startPIR()">▶ Запустити</button>
+        <button class="sbtn stop" onclick="stopPIR()">■ Зупинити</button>
+        <button class="sbtn reset" onclick="resetPIR()">↺ Скинути</button>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+        <!-- PIR Eye Sensor -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;min-width:120px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba">HC-SR501</div>
+          <div style="position:relative;width:80px;height:80px;display:flex;align-items:center;justify-content:center">
+            <div class="detect-ring" id="pirRing" style="display:none"></div>
+            <div class="pir-eye" id="pirEye">
+              <div class="pir-inner" id="pirInner"></div>
+            </div>
+          </div>
+          <button class="sbtn run" id="pirTrigBtn" onclick="triggerPIR()" style="font-size:10px;padding:6px 12px">🏃 Рух!</button>
+          <div style="font-family:var(--mono);font-size:10px;color:#718096">D2: <span id="pirPinVal" style="color:#7c3aed">LOW</span></div>
+        </div>
+        <!-- Indicators -->
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:110px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba">ІНДИКАТОРИ</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="led-sim" id="pirLed" style="width:32px;height:32px"></div>
+            <span style="font-family:var(--mono);font-size:11px;color:#718096">D13 · LED</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:22px;transition:all .3s" id="pirStatus">😴</div>
+          <div id="pirCountdown" style="font-family:var(--mono);font-size:14px;color:#00e5ff"></div>
+        </div>
+        <!-- Serial Monitor -->
+        <div class="smon" id="pirSerial">
+          <div class="sl2 info">Serial Monitor @ 9600</div>
+          <div class="sl2">PIR готовий (прогрів 60с)</div>
+        </div>
+      </div>
+      <div class="sstat" id="pirStat">● Зупинено</div>
+    </div>
+  </div>
+
+  <!-- SIM 2: DHT11 -->
+  <div class="card green">
+    <div class="ctitle g">Симуляція 2 — Давач DHT11 (температура + вологість)</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · DHT11 · readTemperature() + readHumidity() → Serial</div>
+      <div class="simctrl">
+        <button class="sbtn run" onclick="startDHT()">▶ Запустити</button>
+        <button class="sbtn stop" onclick="stopDHT()">■ Зупинити</button>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+        <!-- Controls -->
+        <div style="min-width:180px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:6px">Температура (°C):</div>
+          <input type="range" id="dhtT" min="-5" max="50" value="22" style="width:100%;margin-bottom:8px" oninput="updateDHT()">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:6px">Вологість (%):</div>
+          <input type="range" id="dhtH" min="10" max="95" value="55" style="width:100%;margin-bottom:12px" oninput="updateDHT()">
+          <div style="display:flex;gap:8px">
+            <div class="dht-display">
+              <div class="dht-val" id="dhtTval" style="color:#4ade80">22.0°</div>
+              <div class="dht-label">TEMPERATURE</div>
+            </div>
+            <div class="dht-display">
+              <div class="dht-val" id="dhtHval" style="color:#63b3ed">55%</div>
+              <div class="dht-label">HUMIDITY</div>
+            </div>
+          </div>
+        </div>
+        <div class="smon" id="dhtSerial">
+          <div class="sl2 info">Serial Monitor @ 9600</div>
+          <div class="sl2">dht.begin() → OK</div>
+        </div>
+      </div>
+      <div class="sstat" id="dhtStat">● Зупинено</div>
+    </div>
+  </div>
+
+  <!-- SIM 3: REED SWITCH -->
+  <div class="card orange">
+    <div class="ctitle o">Симуляція 3 — Геркон та охоронна сигналізація</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · REED SWITCH · INPUT_PULLUP · LED + BUZZER</div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+        <!-- Reed switch visual -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;min-width:100px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba">ГЕРКОН (D2)</div>
+          <div class="reed-wrap">
+            <div style="font-family:var(--mono);font-size:9px;color:#718096;text-align:center">Скляна<br>колба</div>
+            <div class="reed-tube" id="reedTube">
+              <div class="reed-contact" id="rc1"></div>
+              <div class="reed-contact gap" id="rc2"></div>
+            </div>
+          </div>
+          <div class="magnet-block" id="magnetBtn" onclick="toggleReed()">🧲 МАГНІТ<br><span style="font-size:9px;opacity:.7">натисніть</span></div>
+          <div style="font-family:var(--mono);font-size:10px;color:#718096">D2: <span id="reedPinLabel" style="color:#e07b00">HIGH (PULLUP)</span></div>
+        </div>
+        <!-- Indicators -->
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:120px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba">ВИХОДИ</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="led-sim" id="reedLed" style="width:32px;height:32px"></div>
+            <span style="font-family:var(--mono);font-size:11px;color:#718096">D13 · LED</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="bz" id="reedBuzz">🔔</div>
+            <span style="font-family:var(--mono);font-size:11px;" id="reedBuzzLabel" style="color:#718096">noTone()</span>
+          </div>
+          <div id="reedAlarmStatus" style="font-family:var(--mono);font-size:11px;color:#718096"></div>
+        </div>
+        <!-- Serial + compare -->
+        <div style="flex:1;min-width:200px">
+          <div class="smon" id="reedSerial">
+            <div class="sl2 info">Serial Monitor @ 9600</div>
+            <div class="sl2">INPUT_PULLUP активовано</div>
+            <div class="sl2">Очікую магніт...</div>
+          </div>
+          <div style="margin-top:10px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:3px;padding:10px;font-family:var(--mono);font-size:10px">
+            <div style="color:#4a9aba;margin-bottom:4px">ПОРІВНЯННЯ варіантів:</div>
+            <div id="variantCompare" style="color:#a8d8f0">Геркон розімкнений → <span style="color:#4ade80">HIGH</span> → тиша</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIM 4: MAP + RANDOM -->
+  <div class="card">
+    <div class="ctitle">Симуляція 4 — map() та random() інтерактивно</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · map() + randomSeed() + random() · Візуалізація</div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <!-- MAP -->
+        <div style="min-width:220px">
+          <div style="font-family:var(--mono);font-size:10px;color:#00b4d8;margin-bottom:10px">▶ map() — масштабування</div>
+          <div style="font-family:var(--mono);font-size:10px;color:#718096;margin-bottom:4px">Вхідне значення (0–1023):</div>
+          <input type="range" id="mapInput" min="0" max="1023" value="512" style="width:100%;margin-bottom:8px" oninput="updateMap()">
+          <div class="map-range">
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:3px">Вхід (0–1023):</div>
+              <div class="range-bar"><div class="range-fill" id="mapInFill" style="background:linear-gradient(90deg,#0052a3,#00b4d8);width:50%"></div></div>
+              <div style="font-family:var(--mono);font-size:13px;color:#00e5ff" id="mapInVal">512</div>
+            </div>
+            <div style="font-family:var(--mono);font-size:16px;color:#718096;text-align:center">↓ map(x, 0, 1023, 0, 255)</div>
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;color:#4ade80;margin-bottom:3px">Вихід (0–255) → ШІМ/LED:</div>
+              <div class="range-bar"><div class="range-fill" id="mapOutFill" style="background:linear-gradient(90deg,#065f46,#4ade80);width:50%"></div></div>
+              <div style="font-family:var(--mono);font-size:13px;color:#4ade80" id="mapOutVal">127</div>
+            </div>
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;color:#f6ad55;margin-bottom:3px">Інверсія map(x, 0, 1023, 255, 0):</div>
+              <div class="range-bar"><div class="range-fill" id="mapInvFill" style="background:linear-gradient(90deg,#92400e,#f59e0b);width:50%"></div></div>
+              <div style="font-family:var(--mono);font-size:13px;color:#f59e0b" id="mapInvVal">128</div>
+            </div>
+          </div>
+        </div>
+        <!-- RANDOM -->
+        <div style="flex:1;min-width:200px">
+          <div style="font-family:var(--mono);font-size:10px;color:#00b4d8;margin-bottom:10px">▶ random() — псевдовипадкові</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+            <button class="sbtn run" onclick="genRandom()" style="font-size:10px;padding:6px 12px">🎲 Генерувати</button>
+            <button class="sbtn reset" onclick="clearRandom()" style="font-size:10px;padding:6px 12px">↺ Очистити</button>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:#718096;margin-bottom:6px">Діапазон: <span style="color:#f6ad55">random(100, 200)</span></div>
+          <div class="rnd-grid" id="rndGrid"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:#718096;margin-top:8px">
+            Згенеровано: <span id="rndCount" style="color:#00e5ff">0</span> чисел<br>
+            <span style="color:#4a9aba">randomSeed(analogRead(A1))</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ QUIZ ═══════════════ -->
+<section class="sec" id="sec-quiz">
+  <div class="stitle"><span class="sbadge">04</span><h2>Контрольні питання</h2><div class="sline"></div></div>
+  <div id="quizC"></div>
+  <div class="qscore" id="scoreBar" style="display:none">
+    <div><div class="scn" id="scoreNum">0</div><div class="scl">/ <span id="scoreTot">0</span> балів</div></div>
+    <div class="scbw"><div class="scl" id="scoreMsg"></div><div class="scb"><div class="scbf" id="scoreF" style="width:0%"></div></div></div>
+    <button class="qreset" onclick="resetQuiz()">Пройти знову</button>
+  </div>
+</section>
+
+<!-- ═══════════════ REFERENCE ═══════════════ -->
+<section class="sec" id="sec-reference">
+  <div class="stitle"><span class="sbadge">05</span><h2>Довідкові матеріали</h2><div class="sline"></div></div>
+  <div class="rgrid">
+    <div class="rc"><div class="rct">map() · Синтаксис</div>
+      <div class="ri"><span class="rk">Синтаксис</span><span class="rv">map(v,fL,fH,tL,tH)</span></div>
+      <div class="ri"><span class="rk">Тип результату</span><span class="rv">long (ціле!)</span></div>
+      <div class="ri"><span class="rk">ADC→PWM</span><span class="rv">map(x,0,1023,0,255)</span></div>
+      <div class="ri"><span class="rk">Інверсія</span><span class="rv">map(x,0,1023,255,0)</span></div>
+      <div class="ri"><span class="rk">Захист меж</span><span class="rv">+ constrain()</span></div>
+      <div class="ri"><span class="rk">Float?</span><span class="rv">Ні — дроб. відкид.</span></div>
+    </div>
+    <div class="rc"><div class="rct">random() · Функції</div>
+      <div class="ri"><span class="rk">random(max)</span><span class="rv">0 до max-1</span></div>
+      <div class="ri"><span class="rk">random(min,max)</span><span class="rv">min до max-1</span></div>
+      <div class="ri"><span class="rk">randomSeed(seed)</span><span class="rv">ініціалізація</span></div>
+      <div class="ri"><span class="rk">Типи</span><span class="rv">byte,int,long,bool</span></div>
+      <div class="ri"><span class="rk">Float</span><span class="rv">d1+d2/100.0</span></div>
+      <div class="ri"><span class="rk">bool</span><span class="rv">random(5) → 0 з 1/5</span></div>
+    </div>
+    <div class="rc"><div class="rct">PIR HC-SR501</div>
+      <div class="ri"><span class="rk">Живлення</span><span class="rv">5В – 20В</span></div>
+      <div class="ri"><span class="rk">Вихід</span><span class="rv">Digital HIGH=рух</span></div>
+      <div class="ri"><span class="rk">Кут</span><span class="rv">120°</span></div>
+      <div class="ri"><span class="rk">Дальність</span><span class="rv">до 7 м</span></div>
+      <div class="ri"><span class="rk">Прогрів</span><span class="rv">30–60 секунд!</span></div>
+      <div class="ri"><span class="rk">Підключення</span><span class="rv">D2 / INPUT</span></div>
+    </div>
+    <div class="rc"><div class="rct">DHT11 · Параметри</div>
+      <div class="ri"><span class="rk">Інтерфейс</span><span class="rv">1-wire Digital</span></div>
+      <div class="ri"><span class="rk">Піни</span><span class="rv">VCC, DATA, GND</span></div>
+      <div class="ri"><span class="rk">Pull-up</span><span class="rv">10 кОм (обов'язк.)</span></div>
+      <div class="ri"><span class="rk">Температура</span><span class="rv">0–50°C ±2°C</span></div>
+      <div class="ri"><span class="rk">Вологість</span><span class="rv">20–80% ±5%</span></div>
+      <div class="ri"><span class="rk">Оновлення</span><span class="rv">мін. 2 сек</span></div>
+    </div>
+    <div class="rc"><div class="rct">Геркон · Підключення</div>
+      <div class="ri"><span class="rk">Варіант 1</span><span class="rv">+5V→Reed→D2+10k→GND</span></div>
+      <div class="ri"><span class="rk">Варіант 2 ✓</span><span class="rv">Reed→D2→GND</span></div>
+      <div class="ri"><span class="rk">V2 pinMode</span><span class="rv">INPUT_PULLUP</span></div>
+      <div class="ri"><span class="rk">V2 активний</span><span class="rv">LOW (магніт є)</span></div>
+      <div class="ri"><span class="rk">LED</span><span class="rv">D13 + 220Ом</span></div>
+      <div class="ri"><span class="rk">Buzzer</span><span class="rv">D8 / tone(8,1000)</span></div>
+    </div>
+    <div class="rc"><div class="rct">INPUT_PULLUP · Переваги</div>
+      <div class="ri"><span class="rk">Зовн. резистор</span><span class="rv">НЕ потрібен</span></div>
+      <div class="ri"><span class="rk">Внутрішній R</span><span class="rv">~20 кОм до VCC</span></div>
+      <div class="ri"><span class="rk">Стабільність</span><span class="rv">пін не «плаває»</span></div>
+      <div class="ri"><span class="rk">Безпека КЗ</span><span class="rv">захищений</span></div>
+      <div class="ri"><span class="rk">Логіка</span><span class="rv">ІНВЕРТОВАНА!</span></div>
+      <div class="ri"><span class="rk">Увага</span><span class="rv">HIGH=норма,LOW=спрац.</span></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <div class="ctitle">Порівняльна таблиця давачів</div>
+    <table class="st">
+      <tr><th>Давач</th><th>Тип сигналу</th><th>Вихід при спрацюванні</th><th>Особливість</th></tr>
+      <tr><td>PIR HC-SR501</td><td>Цифровий</td><td>HIGH (+3.3В)</td><td>Прогрів 30–60с, 120°, до 7м</td></tr>
+      <tr><td>DHT11</td><td>1-wire Digital</td><td>Serial дані T+H</td><td>Pull-up 10кОм, мін. 2с між зчит.</td></tr>
+      <tr><td>Геркон NO</td><td>Контактний</td><td>HIGH (Var1) / LOW (Var2 PULLUP)</td><td>Магніт замикає; NO = зазвичай розімкнений</td></tr>
+      <tr><td>Кнопка (tact)</td><td>Контактний</td><td>LOW (з PULLUP)</td><td>Брязкіт → debounce delay(50)</td></tr>
+      <tr><td>LDR (фоторезист.)</td><td>Аналоговий</td><td>0–1023 (analogRead)</td><td>Подільник напруги, map() для масштабування</td></tr>
+    </table>
+  </div>
+</section>
+</main>
+
+<script>
+// ─── NAV ─────────────────────────────────────
+function showSec(n){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('visible'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+n).classList.add('visible');
+  const m={theory:0,practice:1,simulation:2,quiz:3,reference:4};
+  document.querySelectorAll('.nb')[m[n]]?.classList.add('active');
+}
+function toggleAcc(h){const b=h.nextElementSibling,o=h.classList.contains('open');h.classList.toggle('open',!o);b.classList.toggle('open',!o)}
+
+// ─── SERIAL LOG HELPER ───────────────────────
+function slog(id,msg,cls=''){
+  const m=document.getElementById(id);const d=document.createElement('div');
+  d.className='sl2'+(cls?' '+cls:'');d.textContent=msg;m.appendChild(d);
+  while(m.children.length>40)m.removeChild(m.firstChild);m.scrollTop=m.scrollHeight;
+}
+
+// ─── SIM 1: PIR ──────────────────────────────
+let pirRunning=false,pirTimer=null,pirCountdown=0,pirCountdownTimer=null,pirTriggered=false;
+let pirAutoTimer=null,pirCycleN=0;
+
+function startPIR(){
+  if(pirRunning)return;
+  pirRunning=true;
+  document.getElementById('pirStat').textContent='● Виконується...';
+  document.getElementById('pirStat').className='sstat run';
+  slog('pirSerial','setup() → pinMode(2,INPUT), pinMode(13,OUTPUT)','info');
+  slog('pirSerial','Прогрів PIR... 60с','warn');
+  setTimeout(()=>{slog('pirSerial','PIR готовий. loop() запущено.','info');},1000);
+  pirAutoTimer=setInterval(()=>{
+    if(Math.random()<0.15&&!pirTriggered) triggerPIR();
+    pirCycleN++;
+    if(pirCycleN%8===0) slog('pirSerial','digitalRead(2) → 0 (немає руху)');
+  },1500);
+}
+function stopPIR(){
+  pirRunning=false;clearInterval(pirAutoTimer);clearTimeout(pirTimer);clearInterval(pirCountdownTimer);
+  pirTriggered=false;
+  document.getElementById('pirEye').className='pir-eye';
+  document.getElementById('pirRing').style.display='none';
+  document.getElementById('pirLed').className='led-sim';
+  document.getElementById('pirStatus').textContent='😴';
+  document.getElementById('pirCountdown').textContent='';
+  document.getElementById('pirPinVal').textContent='LOW';
+  document.getElementById('pirStat').textContent='● Зупинено';
+  document.getElementById('pirStat').className='sstat';
+}
+function resetPIR(){stopPIR();document.getElementById('pirSerial').innerHTML='<div class="sl2 info">Скинуто</div>';}
+function triggerPIR(){
+  if(!pirRunning||pirTriggered)return;
+  pirTriggered=true;
+  document.getElementById('pirEye').className='pir-eye detect';
+  document.getElementById('pirRing').style.display='block';
+  document.getElementById('pirLed').className='led-sim on-y';
+  document.getElementById('pirStatus').textContent='🚨';
+  document.getElementById('pirPinVal').textContent='HIGH';
+  slog('pirSerial','digitalRead(2) → 1 (HIGH)','warn');
+  slog('pirSerial','→ digitalWrite(13, HIGH)','ok');
+  slog('pirSerial','Виявлено рух','warn');
+  slog('pirSerial','delay(2000)...','info');
+  pirCountdown=2;
+  document.getElementById('pirCountdown').textContent='2.0s';
+  pirCountdownTimer=setInterval(()=>{
+    pirCountdown-=0.1;
+    document.getElementById('pirCountdown').textContent=pirCountdown.toFixed(1)+'s';
+    if(pirCountdown<=0){clearInterval(pirCountdownTimer);document.getElementById('pirCountdown').textContent='';}
+  },100);
+  pirTimer=setTimeout(()=>{
+    pirTriggered=false;
+    document.getElementById('pirEye').className='pir-eye';
+    document.getElementById('pirRing').style.display='none';
+    document.getElementById('pirLed').className='led-sim';
+    document.getElementById('pirStatus').textContent='😴';
+    document.getElementById('pirPinVal').textContent='LOW';
+    slog('pirSerial','→ digitalWrite(13, LOW)');
+  },2000);
+}
+
+// ─── SIM 2: DHT11 ────────────────────────────
+let dhtTimer=null,dhtRunning=false;
+function updateDHT(){
+  const t=+document.getElementById('dhtT').value;
+  const h=+document.getElementById('dhtH').value;
+  document.getElementById('dhtTval').textContent=t.toFixed(1)+'°';
+  document.getElementById('dhtHval').textContent=Math.round(h)+'%';
+  const tc=t<0?'#60a5fa':t<20?'#4ade80':t<35?'#fbbf24':'#f87171';
+  document.getElementById('dhtTval').style.color=tc;
+}
+function startDHT(){
+  if(dhtRunning)return;dhtRunning=true;
+  document.getElementById('dhtStat').textContent='● Виконується...';
+  document.getElementById('dhtStat').className='sstat run';
+  slog('dhtSerial','setup() → dht.begin()','info');
+  dhtTimer=setInterval(()=>{
+    const t=(+document.getElementById('dhtT').value+(Math.random()-.5)*0.3).toFixed(1);
+    const h=Math.round(+document.getElementById('dhtH').value+(Math.random()-.5)*0.5);
+    document.getElementById('dhtT').value=t;
+    document.getElementById('dhtH').value=h;
+    updateDHT();
+    slog('dhtSerial',`Humidity: ${h}.00 %\tTemperature: ${t} *C`,'val');
+  },2000);
+}
+function stopDHT(){
+  clearInterval(dhtTimer);dhtRunning=false;
+  document.getElementById('dhtStat').textContent='● Зупинено';
+  document.getElementById('dhtStat').className='sstat';
+}
+updateDHT();
+
+// ─── SIM 3: REED SWITCH ──────────────────────
+let reedClosed=false;
+function toggleReed(){
+  reedClosed=!reedClosed;
+  const magBtn=document.getElementById('magnetBtn');
+  const reedLed=document.getElementById('reedLed');
+  const reedBuzz=document.getElementById('reedBuzz');
+  const reedBuzzLabel=document.getElementById('reedBuzzLabel');
+  const pinLabel=document.getElementById('reedPinLabel');
+  const variantC=document.getElementById('variantCompare');
+  const alarmStatus=document.getElementById('reedAlarmStatus');
+  magBtn.className='magnet-block'+(reedClosed?' near':'');
+  // INPUT_PULLUP: closed → GND → LOW → alarm
+  if(reedClosed){
+    reedLed.className='led-sim on-r';
+    reedBuzz.className='bz active';
+    reedBuzzLabel.textContent='tone(8, 1000)';
+    reedBuzzLabel.style.color='#f6ad55';
+    pinLabel.textContent='LOW (замкнено на GND)';
+    pinLabel.style.color='#f87171';
+    alarmStatus.textContent='🚨 ТРИВОГА!';
+    alarmStatus.style.color='#f87171';
+    variantC.innerHTML='Геркон замкнений → <span style="color:#f87171">LOW</span> → if(LOW) → ALARM!';
+    slog('reedSerial','digitalRead(2) → LOW','warn');
+    slog('reedSerial','if(LOW) → LED HIGH, tone(1000)','warn');
+    slog('reedSerial','Контакт замкнено!','warn');
+  } else {
+    reedLed.className='led-sim';
+    reedBuzz.className='bz';
+    reedBuzzLabel.textContent='noTone()';
+    reedBuzzLabel.style.color='#718096';
+    pinLabel.textContent='HIGH (PULLUP)';
+    pinLabel.style.color='#e07b00';
+    alarmStatus.textContent='✓ Норма';
+    alarmStatus.style.color='#4ade80';
+    variantC.innerHTML='Геркон розімкнений → <span style="color:#4ade80">HIGH</span> → тиша';
+    slog('reedSerial','digitalRead(2) → HIGH (PULLUP)');
+    slog('reedSerial','else → LED LOW, noTone()');
+  }
+}
+
+// ─── SIM 4: MAP + RANDOM ─────────────────────
+function updateMap(){
+  const v=+document.getElementById('mapInput').value;
+  const out=Math.floor(v/1023*255);
+  const inv=255-out;
+  document.getElementById('mapInFill').style.width=(v/1023*100)+'%';
+  document.getElementById('mapOutFill').style.width=(out/255*100)+'%';
+  document.getElementById('mapInvFill').style.width=(inv/255*100)+'%';
+  document.getElementById('mapInVal').textContent=v;
+  document.getElementById('mapOutVal').textContent=out;
+  document.getElementById('mapInvVal').textContent=inv;
+}
+updateMap();
+document.getElementById('mapInput').addEventListener('input',updateMap);
+
+let rndCount=0;
+const COLORS=['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#6366f1'];
+function genRandom(){
+  const grid=document.getElementById('rndGrid');
+  for(let i=0;i<6;i++){
+    const v=Math.floor(Math.random()*(200-100)+100);
+    const c=document.createElement('div');
+    c.className='rnd-cell';
+    c.style.background=COLORS[v%COLORS.length];
+    c.textContent=v;
+    grid.appendChild(c);
+    rndCount++;
+  }
+  document.getElementById('rndCount').textContent=rndCount;
+}
+function clearRandom(){document.getElementById('rndGrid').innerHTML='';rndCount=0;document.getElementById('rndCount').textContent=0;}
+
+// ─── QUIZ ────────────────────────────────────
+const quizData=[
+  {q:'Що повертає функція map(512, 0, 1023, 0, 255)?',
+   opts:['255','128','127','256'],
+   ans:2,expl:'map(512,0,1023,0,255): 512/1023×255 ≈ 127.5 → відкидаємо дріб → 127. map() оперує лише цілими, дробова частина відкидається.'},
+  {q:'Яку функцію потрібно додати після map(), щоб гарантувати, що результат не виходить за межі діапазону?',
+   opts:['limit()','clamp()','constrain()','bound()'],
+   ans:2,expl:'constrain(value, low, high) — затискає значення між min та max. map() не затискає автоматично!'},
+  {q:'Чому рекомендують використовувати randomSeed(analogRead(A1)) з незаземленим піном?',
+   opts:['Для прискорення генерації','Незаземлений пін ловить електромагнітний шум, даючи різне зерно при кожному старті','Для економії памяті','analogRead(A1) завжди дає 0'],
+   ans:1,expl:'Вільний аналоговий пін «ловить» ЕМ-шум (Wi-Fi, GSM, мережа 50Гц). Різне зернорandomSeed → різна послідовність при кожному запуску.'},
+  {q:'PIR датчик HC-SR501 після увімкнення живлення вимагає прогріву:',
+   opts:['1–2 секунди','10 секунд','30–60 секунд','Прогрів не потрібен'],
+   ans:2,expl:'PIR-сенсор після подачі живлення потребує 30–60 секунд для стабілізації інфрачервоного фонового рівня. У цей час можливі хибні спрацювання.'},
+  {q:'Для DHT11 між лінією DATA та VCC підключають резистор 10 кОм (pull-up). Навіщо?',
+   opts:['Обмеження струму','Лінія 1-wire з відкритим стоком потребує підтяжки до HIGH','Зменшення шуму','Живлення датчика'],
+   ans:1,expl:'DHT11 використовує 1-wire з відкритим стоком (open-drain). Без pull-up лінія DATA «плаває» між HIGH і LOW → NaN при зчитуванні. Вбудований PULLUP Arduino (~100 кОм) занадто слабкий.'},
+  {q:'Геркон підключений за схемою INPUT_PULLUP (D2 → GND). Яка умова коду відповідає «магніт поруч»?',
+   opts:['if(reedState == HIGH)','if(reedState == LOW)','if(reedState == 1)','if(!reedState == 0)'],
+   ans:1,expl:'INPUT_PULLUP утримує пін HIGH через внутрішній резистор. Коли геркон замикається на GND → пін стає LOW. Тому активний стан = LOW.'},
+  {q:'Яка різниця між INPUT та INPUT_PULLUP у pinMode()?',
+   opts:['INPUT швидший','INPUT_PULLUP вмикає внутрішній резистор ~20кОм до VCC — стабілізує нефіксований вхід','INPUT_PULLUP тільки для аналогових пінів','Різниці немає'],
+   ans:1,expl:'INPUT_PULLUP: Arduino підключає внутрішній резистор ~20кОм між піном та +5В. Пін за замовчуванням HIGH. Активний сигнал (кнопка, геркон) тягне до GND → LOW.'},
+  {q:'Яка функція використовується для генерації звуку певної частоти в Arduino?',
+   opts:['sound(pin,freq)','buzz(pin,freq)','tone(pin,freq)','play(freq)'],
+   ans:2,expl:'tone(pin, frequency) генерує прямокутний сигнал заданої частоти на вказаному піні. noTone(pin) зупиняє генерацію.'},
+  {q:'Результат map(0, 0, 1023, 255, 0) дорівнює:',
+   opts:['0','255','512','127'],
+   ans:1,expl:'Інвертований map: при вхідному значенні 0 (мінімум fromLow) результат = 255 (toLow=255). Чим менший вхід → тим більший вихід.'},
+  {q:'Чому random() генерує «псевдовипадкові» числа, а не справді випадкові?',
+   opts:['Через обмеження тактової частоти','Алгоритм детермінований: при однаковому зерні seed дає однакову послідовність','Arduino не має достатньо памяті','Функція не завершена'],
+   ans:1,expl:'Псевдовипадкові числа генеруються за детермінованим алгоритмом (PRNG). Одне й те саме зерно (seed) завжди дає однакову послідовність. randomSeed() змінює початкову точку.'},
+];
+
+let qAns=0,qCorr=0;
+function buildQuiz(){
+  const c=document.getElementById('quizC');c.innerHTML='';qAns=0;qCorr=0;
+  document.getElementById('scoreBar').style.display='none';
+  quizData.forEach((q,qi)=>{
+    const card=document.createElement('div');card.className='qcard';
+    let opts=q.opts.map((o,oi)=>`<div class="qopt" onclick="ansQ(${qi},${oi})"><div class="qr"></div><span>${o}</span></div>`).join('');
+    card.innerHTML=`<div class="qqn">Питання ${qi+1} / ${quizData.length}</div>
+      <div class="qqt">${q.q}</div>
+      <div class="qopts" id="qopts${qi}">${opts}</div>
+      <div class="qfb" id="qfb${qi}"></div>`;
+    c.appendChild(card);
+  });
+}
+function ansQ(qi,oi){
+  const opts=document.querySelectorAll(`#qopts${qi} .qopt`);
+  opts.forEach(o=>o.classList.add('disabled'));
+  const fb=document.getElementById('qfb'+qi);
+  const correct=quizData[qi].ans;
+  opts[correct].classList.add('correct');
+  if(oi===correct){qCorr++;fb.textContent='✓ Правильно! '+quizData[qi].expl;fb.className='qfb show ok';}
+  else{opts[oi].classList.add('wrong');fb.textContent='✗ Неправильно. '+quizData[qi].expl;fb.className='qfb show err';}
+  qAns++;if(qAns===quizData.length)showScore();
+}
+function showScore(){
+  const bar=document.getElementById('scoreBar');bar.style.display='flex';
+  const pct=Math.round(qCorr/quizData.length*100);
+  document.getElementById('scoreNum').textContent=qCorr;
+  document.getElementById('scoreTot').textContent=quizData.length;
+  document.getElementById('scoreF').style.width=pct+'%';
+  const msg=pct>=90?'🏆 Відмінно! Майстер давачів та функцій!':
+            pct>=70?'👍 Добре! Перегляньте нюанси PULLUP та map().':
+            pct>=50?'📚 Непогано, повторіть теоретичний матеріал.':'🔄 Рекомендуємо повторити всю тему.';
+  document.getElementById('scoreMsg').textContent=msg;
+  bar.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function resetQuiz(){buildQuiz();}
+buildQuiz();
+</script>
+</body>
+</html>
