@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arduino — Пр. №8: Азбука Морзе та Метеостанція-будильник</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f4f8;--bg2:#e8eef5;--bg3:#dde6f0;
+  --surface:#fff;--surface2:#f7fafd;
+  --border:#c5d5e8;--border2:#a8c0d8;
+  --grid:rgba(100,160,220,.12);
+  --accent:#0a7fc4;--accent2:#00b4d8;--accent3:#0052a3;
+  --green:#0b9e5f;--orange:#e07b00;--red:#c0392b;--yellow:#c9960a;
+  --purple:#7c3aed;--teal:#0d9488;--pink:#db2777;
+  --text:#1a2a3a;--text2:#3a5068;--text3:#6a8099;
+  --mono:'Share Tech Mono',monospace;--sans:'Exo 2',sans-serif;--display:'Russo One',sans-serif;
+  --shadow:0 2px 16px rgba(10,80,160,.10),0 1px 4px rgba(10,80,160,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);overflow-x:hidden;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:32px 32px;background-attachment:fixed}
+header{background:linear-gradient(135deg,#0a3d6b 0%,#0a6fa8 55%,#00b4d8 100%);
+  position:relative;overflow:hidden;box-shadow:0 4px 32px rgba(0,60,120,.25)}
+header::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+  background-size:24px 24px;pointer-events:none}
+.hi{max-width:1100px;margin:0 auto;padding:36px 32px 28px;position:relative;z-index:1}
+.hchip{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.22);color:#a8ddff;font-family:var(--mono);
+  font-size:11px;letter-spacing:.12em;padding:4px 12px;border-radius:2px;margin-bottom:16px;text-transform:uppercase}
+.hchip::before{content:'◆';font-size:8px;color:#00e5ff}
+header h1{font-family:var(--display);font-size:clamp(24px,5vw,48px);color:#fff;
+  line-height:1.1;text-shadow:0 2px 20px rgba(0,0,0,.3);margin-bottom:8px}
+header h1 span{color:#00e5ff}
+.hsub{font-family:var(--mono);color:rgba(200,230,255,.8);font-size:13px;letter-spacing:.05em;margin-bottom:24px}
+.hnav{display:flex;flex-wrap:wrap;gap:8px}
+.nb{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:rgba(200,235,255,.9);
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+  padding:7px 16px;cursor:pointer;border-radius:2px;transition:all .2s;text-transform:uppercase}
+.nb:hover,.nb.active{background:rgba(0,229,255,.15);border-color:#00e5ff;color:#00e5ff;box-shadow:0 0 12px rgba(0,229,255,.2)}
+.sch-deco{position:absolute;right:28px;top:50%;transform:translateY(-50%);opacity:.18;pointer-events:none}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 64px}
+.sec{display:none;animation:fi .4s ease}.sec.visible{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.stitle{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.sbadge{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+  background:var(--accent);color:#fff;padding:4px 10px;border-radius:2px}
+.stitle h2{font-family:var(--display);font-size:22px;color:var(--accent3);letter-spacing:.03em}
+.sline{flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  box-shadow:var(--shadow);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent2)}
+.card.green::before{background:var(--green)}.card.purple::before{background:var(--purple)}
+.card.orange::before{background:var(--orange)}.card.teal::before{background:var(--teal)}
+.card.red::before{background:var(--red)}.card.pink::before{background:var(--pink)}
+.ctitle{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ctitle::before{content:'';display:inline-block;width:6px;height:6px;background:var(--accent2);
+  border-radius:50%;box-shadow:0 0 6px var(--accent2)}
+.ctitle.g::before{background:var(--green);box-shadow:0 0 6px var(--green)}
+.ctitle.o::before{background:var(--orange);box-shadow:0 0 6px var(--orange)}
+.ctitle.p::before{background:var(--purple);box-shadow:0 0 6px var(--purple)}
+.ctitle.t::before{background:var(--teal);box-shadow:0 0 6px var(--teal)}
+.ctitle.r::before{background:var(--red);box-shadow:0 0 6px var(--red)}
+.card p{font-size:15px;line-height:1.75;color:var(--text2)}
+.card h3{font-family:var(--sans);font-weight:700;font-size:16px;color:var(--text);margin:16px 0 8px}
+.card h3:first-child{margin-top:0}
+.tc{background:var(--surface);border:1px solid var(--border);border-radius:4px;box-shadow:var(--shadow);margin-bottom:28px;overflow:hidden}
+.th{padding:14px 20px;display:flex;align-items:center;gap:14px}
+.th.blue{background:linear-gradient(90deg,#0052a3,#0a7fc4)}
+.th.orange{background:linear-gradient(90deg,#92400e,#d97706)}
+.th.purple{background:linear-gradient(90deg,#5b21b6,#7c3aed)}
+.tnum{font-family:var(--mono);font-size:22px;font-weight:700;color:rgba(255,255,255,.3)}
+.tlabel{font-family:var(--mono);font-size:10px;letter-spacing:.15em;color:rgba(200,230,255,.7);text-transform:uppercase;margin-bottom:2px}
+.ttitle{font-family:var(--display);font-size:16px;color:#fff;letter-spacing:.03em}
+.tbody{padding:20px}
+.mats{background:var(--bg2);border:1px dashed var(--border2);border-radius:3px;padding:14px 18px;margin-bottom:16px}
+.mats-t{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.ml{display:flex;flex-wrap:wrap;gap:6px}
+.mc{background:var(--surface);border:1px solid var(--border2);border-radius:2px;
+  padding:4px 10px;font-family:var(--mono);font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.mc::before{content:'⬡';color:var(--accent2);font-size:9px}
+.sl{list-style:none}
+.sl li{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--bg3);font-size:14.5px;color:var(--text2);line-height:1.6;align-items:flex-start}
+.sl li:last-child{border-bottom:none}
+.sn{font-family:var(--mono);font-size:11px;color:#fff;background:var(--accent);
+  min-width:24px;height:24px;border-radius:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.sn.g{background:var(--green)}.sn.o{background:var(--orange)}.sn.p{background:var(--purple)}
+.cb{background:#0d1f33;border:1px solid #1a4a6a;border-radius:4px;margin:16px 0;overflow:hidden}
+.ch{background:#0a1827;border-bottom:1px solid #1a4a6a;padding:8px 16px;display:flex;align-items:center;justify-content:space-between}
+.chl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#4a9aba;text-transform:uppercase}
+.dots{display:flex;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot:nth-child(1){background:#c0392b}.dot:nth-child(2){background:#e07b00}.dot:nth-child(3){background:#0b9e5f}
+.cp{padding:18px 20px;font-family:var(--mono);font-size:12px;line-height:1.8;color:#c8dff0;overflow-x:auto;white-space:pre}
+.cm{color:#6a8f5a}.ck{color:#569cd6}.cf{color:#dcdcaa}.cn{color:#b5cea8}.cs{color:#ce9178}.cd{color:#c586c0}.ct{color:#4ec9b0}.fill{color:#ff6b6b;font-weight:bold}
+.circ{background:#f7fbff;border:1px solid var(--border);border-radius:4px;padding:20px;margin:16px 0;text-align:center}
+.circt{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);margin-bottom:14px}
+.st{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:12px}
+.st th{background:linear-gradient(90deg,var(--accent3),var(--accent));color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:9px 14px;text-align:left}
+.st td{padding:8px 14px;border-bottom:1px solid var(--bg3);color:var(--text2);font-family:var(--mono);font-size:12.5px}
+.st tr:nth-child(even) td{background:var(--bg2)}.st tr:hover td{background:#e0effa}
+.st td:first-child{color:var(--accent3);font-weight:600}
+.hbox{background:linear-gradient(90deg,rgba(0,180,220,.06),rgba(0,180,220,.02));border-left:3px solid var(--accent2);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.tip{background:linear-gradient(90deg,rgba(11,158,95,.07),rgba(11,158,95,.02));border-left:3px solid var(--green);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.tip::before{content:'💡 '}
+.warn{background:linear-gradient(90deg,rgba(192,57,43,.07),rgba(192,57,43,.02));border-left:3px solid var(--red);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.warn::before{content:'⚠ ';color:var(--red)}
+.info{background:linear-gradient(90deg,rgba(124,58,237,.07),rgba(124,58,237,.02));border-left:3px solid var(--purple);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.info::before{content:'🔬 '}
+.star{background:linear-gradient(90deg,rgba(201,150,10,.07),rgba(201,150,10,.02));border-left:3px solid var(--yellow);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.star::before{content:'⭐ Завдання на «зірочку»: ';font-weight:700;color:var(--yellow)}
+.acc{margin-bottom:10px}
+.ah{background:var(--surface2);border:1px solid var(--border);padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-radius:3px;transition:all .2s;font-size:14px;font-weight:600;color:var(--text)}
+.ah:hover{border-color:var(--accent2);background:#e8f4fb}
+.ah.open{background:#e0effa;border-color:var(--accent);border-radius:3px 3px 0 0}
+.ai{font-family:var(--mono);font-size:16px;color:var(--accent);transition:transform .2s}
+.ah.open .ai{transform:rotate(45deg)}
+.ab{display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 3px 3px;padding:16px;font-size:14px;color:var(--text2);line-height:1.7}
+.ab.open{display:block}
+.sim{background:#0d1f33;border:1px solid #1a4a6a;border-radius:4px;padding:24px;margin:16px 0}
+.simt{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#00b4d8;margin-bottom:16px}
+.simctrl{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.sbtn{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 18px;border:1px solid;border-radius:2px;cursor:pointer;transition:all .2s}
+.sbtn.run{background:rgba(11,158,95,.15);border-color:#0b9e5f;color:#4ade80}.sbtn.run:hover{background:rgba(11,158,95,.3)}
+.sbtn.stop{background:rgba(192,57,43,.15);border-color:#c0392b;color:#fc8181}.sbtn.stop:hover{background:rgba(192,57,43,.3)}
+.sbtn.reset{background:rgba(10,127,196,.15);border-color:#0a7fc4;color:#90cdf4}.sbtn.reset:hover{background:rgba(10,127,196,.3)}
+.sbtn.orange{background:rgba(224,123,0,.15);border-color:#e07b00;color:#fbbf24}.sbtn.orange:hover{background:rgba(224,123,0,.3)}
+.slog{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:3px;padding:12px;font-family:var(--mono);font-size:11px;color:#4ade80;height:140px;overflow-y:auto;flex:1;min-width:180px}
+.ll{margin-bottom:3px;color:#a8d8f0}.ll.ok{color:#4ade80}.ll.warn{color:#f6ad55}.ll.info{color:#63b3ed}
+.sstat{font-family:var(--mono);font-size:11px;color:#718096;margin-top:10px}
+.sstat.run{color:#4ade80}
+/* LED SIM */
+.led-sim{width:28px;height:28px;border-radius:50%;background:#1a1a1a;border:2px solid rgba(255,255,255,.1);transition:all .2s;flex-shrink:0}
+.led-sim.on-y{background:#fbbf24;border-color:#f59e0b;box-shadow:0 0 16px rgba(251,191,36,.8),0 0 32px rgba(251,191,36,.3)}
+.led-sim.on-r{background:#f87171;border-color:#ef4444;box-shadow:0 0 16px rgba(248,113,113,.8)}
+.led-sim.on-g{background:#4ade80;border-color:#22c55e;box-shadow:0 0 16px rgba(74,222,128,.8)}
+.bz{font-size:26px;transition:all .2s;filter:grayscale(1);opacity:.4}
+.bz.on{filter:none;opacity:1;animation:bzz .15s infinite}
+@keyframes bzz{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+/* MORSE DISPLAY */
+.morse-tape{background:#0a1827;border:1px solid #1a4a6a;border-radius:3px;padding:10px 14px;font-family:var(--mono);font-size:18px;color:#f6ad55;letter-spacing:.2em;min-height:44px;word-break:break-all;flex:1;min-width:160px}
+.morse-char-display{font-family:var(--mono);font-size:36px;color:#00e5ff;text-align:center;min-width:60px;text-shadow:0 0 16px rgba(0,229,255,.5)}
+/* SMON */
+.smon{background:#0a0f1a;border:1px solid #1a4a6a;border-radius:3px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:#4ade80;height:130px;overflow-y:auto;flex:1;min-width:200px}
+.sl2{margin-bottom:2px;color:#a8d8f0}.sl2.val{color:#4ade80}.sl2.warn{color:#f6ad55}.sl2.info{color:#63b3ed}
+/* ADC BAR */
+.abar{height:10px;background:#0a1827;border-radius:2px;overflow:hidden;border:1px solid #1a4a6a;margin-bottom:3px}
+.afill{height:100%;border-radius:2px;transition:width .2s}
+/* WEATHER STATION */
+.ws-panel{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:12px}
+.ws-card{background:#0a1827;border:1px solid #1a4a6a;border-radius:4px;padding:12px 14px}
+.ws-label{font-family:var(--mono);font-size:10px;color:#4a9aba;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.ws-val{font-family:var(--mono);font-size:24px;line-height:1.1}
+/* MORSE TABLE */
+.morse-table-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-top:12px}
+.morse-entry{background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:6px 10px;display:flex;justify-content:space-between;align-items:center}
+.morse-letter{font-family:var(--display);font-size:16px;color:var(--accent3)}
+.morse-code{font-family:var(--mono);font-size:12px;color:var(--orange);letter-spacing:.15em}
+/* QUIZ */
+.qcard{background:var(--surface);border:1px solid var(--border);border-radius:4px;box-shadow:var(--shadow);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.qcard::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--orange)}
+.qqn{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+.qqt{font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px;line-height:1.5}
+.qopts{display:flex;flex-direction:column;gap:8px}
+.qopt{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:3px;cursor:pointer;transition:all .2s;font-size:14px;color:var(--text2);background:var(--surface2);user-select:none}
+.qopt:hover{border-color:var(--accent2);background:#e8f4fb}
+.qopt.correct{background:#e6f7ef;border-color:var(--green);color:var(--green)}
+.qopt.wrong{background:#fde8e8;border-color:var(--red);color:var(--red)}
+.qopt.disabled{pointer-events:none}
+.qr{width:14px;height:14px;border:2px solid var(--border2);border-radius:50%;flex-shrink:0}
+.qopt.correct .qr{background:var(--green);border-color:var(--green)}
+.qopt.wrong .qr{background:var(--red);border-color:var(--red)}
+.qfb{margin-top:10px;font-size:13px;padding:8px 12px;border-radius:3px;display:none;font-family:var(--mono)}
+.qfb.show{display:block}.qfb.ok{background:#e6f7ef;color:var(--green)}.qfb.err{background:#fde8e8;color:var(--red)}
+.qscore{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 24px;margin-top:24px;display:flex;align-items:center;gap:20px;box-shadow:var(--shadow)}
+.scn{font-family:var(--display);font-size:40px;color:var(--accent);line-height:1}
+.scl{font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.scbw{flex:1}.scb{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:8px}
+.scbf{height:100%;background:linear-gradient(90deg,var(--accent2),var(--green));border-radius:4px;transition:width .8s}
+.qreset{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:2px;cursor:pointer}
+.qreset:hover{background:var(--accent3)}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:16px}
+.rc{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:18px;box-shadow:var(--shadow)}
+.rct{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.rct::before{content:'#';color:var(--accent2);font-size:14px}
+.ri{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px dashed var(--bg3);font-size:13px}
+.ri:last-child{border-bottom:none}
+.rk{color:var(--text2);font-family:var(--mono);font-size:12px}
+.rv{color:var(--accent3);font-family:var(--mono);font-size:12px;font-weight:600}
+ul.ul{padding-left:0;list-style:none}
+ul.ul li{padding:5px 0 5px 18px;position:relative;font-size:14px;color:var(--text2);line-height:1.6}
+ul.ul li::before{content:'▸';position:absolute;left:0;color:var(--accent2);font-size:11px;top:7px}
+.tag{display:inline-block;background:var(--bg3);border:1px solid var(--border2);border-radius:2px;padding:1px 7px;font-family:var(--mono);font-size:11px;color:var(--accent3);margin:2px}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--accent2)}
+@media(max-width:640px){.hi{padding:24px 16px 20px}main{padding:20px 12px 48px}.cp{font-size:11px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hi">
+    <div class="hchip">PUET · STEAM-HUB · Практична робота №8</div>
+    <h1>Азбука <span>Морзе</span> & Метеостанція</h1>
+    <p class="hsub">// Project 6-1 · 6-2 · 6-3 · tone() · switch/case · millis() · INPUT_PULLUP</p>
+    <nav class="hnav">
+      <button class="nb active" onclick="showSec('practice')">① Практика</button>
+      <button class="nb" onclick="showSec('simulation')">② Симуляція</button>
+      <button class="nb" onclick="showSec('quiz')">③ Контроль</button>
+      <button class="nb" onclick="showSec('reference')">④ Довідник</button>
+    </nav>
+  </div>
+  <!-- Morse code deco: SOS -->
+  <svg class="sch-deco" width="220" height="130" viewBox="0 0 220 130">
+    <!-- S: ... -->
+    <circle cx="20" cy="60" r="5" fill="#fff"/>
+    <circle cx="36" cy="60" r="5" fill="#fff"/>
+    <circle cx="52" cy="60" r="5" fill="#fff"/>
+    <!-- O: --- -->
+    <rect x="68" y="55" width="18" height="10" rx="5" fill="#fbbf24"/>
+    <rect x="92" y="55" width="18" height="10" rx="5" fill="#fbbf24"/>
+    <rect x="116" y="55" width="18" height="10" rx="5" fill="#fbbf24"/>
+    <!-- S: ... -->
+    <circle cx="146" cy="60" r="5" fill="#fff"/>
+    <circle cx="162" cy="60" r="5" fill="#fff"/>
+    <circle cx="178" cy="60" r="5" fill="#fff"/>
+    <text x="20" y="82" font-size="8" fill="rgba(255,255,255,.4)" font-family="monospace">· · ·  — — —  · · ·</text>
+    <text x="65" y="96" font-size="10" fill="#00e5ff" font-family="monospace">S O S</text>
+    <!-- Sound waves from buzzer -->
+    <circle cx="190" cy="32" r="12" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/>
+    <circle cx="190" cy="32" r="20" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+    <text x="185" y="36" font-size="12" fill="rgba(255,255,255,.6)">🔊</text>
+  </svg>
+</header>
+
+<main>
+<!-- ═══════════ PRACTICE ═══════════ -->
+<section class="sec visible" id="sec-practice">
+  <div class="stitle"><span class="sbadge">01</span><h2>Практичні завдання</h2><div class="sline"></div></div>
+
+  <!-- TASK 1: MORSE KEY -->
+  <div class="tc">
+    <div class="th blue">
+      <div class="tnum">01</div>
+      <div><div class="tlabel">Project 6-1 · Кнопка · tone() · digitalRead()</div>
+        <div class="ttitle">Ключ азбуки Морзе — кнопка + LED + Buzzer</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        Класичний <strong>телеграфний ключ</strong> на Arduino: при натисканні кнопки загоряється LED і звучить buzzer. Поки кнопка натиснута — LED блимає, звук триває. Так вручну можна передавати точки і тире азбуки Морзе.
+      </p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">Кнопка (tact switch)</div>
+          <div class="mc">Зумер (buzzer)</div><div class="mc">Світлодіод</div>
+          <div class="mc">2 резистори</div><div class="mc">Макетна плата</div>
+          <div class="mc">9 дротів «тато-тато»</div>
+        </div>
+      </div>
+      <!-- Circuit -->
+      <div class="circ">
+        <div class="circt">// Принципова схема · Morse Key · Кнопка + LED + Buzzer</div>
+        <svg viewBox="0 0 520 175" width="100%" style="max-width:520px">
+          <rect x="10" y="25" width="80" height="120" rx="3" fill="#e8f4fb" stroke="#0a7fc4" stroke-width="1.5"/>
+          <text x="50" y="50" text-anchor="middle" font-size="9" fill="#0a3d6b" font-weight="bold">Arduino</text>
+          <text x="50" y="62" text-anchor="middle" font-size="8" fill="#0a7fc4">Uno</text>
+          <text x="90" y="78" font-size="8" fill="#7c3aed">D2 (BTN)</text>
+          <text x="90" y="95" font-size="8" fill="#fbbf24">D9 (LED)</text>
+          <text x="90" y="112" font-size="8" fill="#c4b5fd">D8 (BUZ)</text>
+          <text x="90" y="129" font-size="8" fill="#c0392b">5V</text>
+          <text x="90" y="146" font-size="8" fill="#2c3e50">GND</text>
+          <!-- GND rail -->
+          <line x1="130" y1="144" x2="490" y2="144" stroke="#2c3e50" stroke-width="1.5"/>
+          <!-- 5V rail -->
+          <line x1="130" y1="127" x2="200" y2="127" stroke="#c0392b" stroke-width="1.5"/>
+          <!-- Button branch -->
+          <line x1="130" y1="76" x2="160" y2="76" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,2"/>
+          <rect x="155" y="66" width="40" height="22" rx="4" fill="#e8f4fb" stroke="#7c3aed" stroke-width="1.5"/>
+          <text x="175" y="81" text-anchor="middle" font-size="9" fill="#7c3aed">BTN</text>
+          <!-- R pull-down 220Ω between btn and GND -->
+          <line x1="175" y1="88" x2="175" y2="100" stroke="#7c3aed" stroke-width="1.3"/>
+          <rect x="166" y="100" width="18" height="22" rx="2" fill="#fff9e0" stroke="#c9960a" stroke-width="1.2"/>
+          <text x="175" y="114" text-anchor="middle" font-size="7" fill="#c9960a">220Ω</text>
+          <line x1="175" y1="122" x2="175" y2="144" stroke="#2c3e50" stroke-width="1.3"/>
+          <!-- 5V to btn other side -->
+          <line x1="200" y1="127" x2="200" y2="76" stroke="#c0392b" stroke-width="1.3"/>
+          <line x1="197" y1="76" x2="200" y2="76" stroke="#c0392b" stroke-width="1.3"/>
+          <!-- LED branch -->
+          <line x1="130" y1="93" x2="280" y2="93" stroke="#fbbf24" stroke-width="1.5"/>
+          <rect x="280" y="84" width="26" height="18" rx="2" fill="#fff9e0" stroke="#c9960a" stroke-width="1.3"/>
+          <text x="293" y="96" text-anchor="middle" font-size="8" fill="#c9960a">220Ω</text>
+          <line x1="306" y1="93" x2="323" y2="93" stroke="#fbbf24" stroke-width="1.5"/>
+          <polygon points="323,85 323,101 340,93" fill="#fef9c3" stroke="#fbbf24" stroke-width="1.5"/>
+          <line x1="340" y1="85" x2="340" y2="101" stroke="#fbbf24" stroke-width="2"/>
+          <line x1="340" y1="93" x2="360" y2="93" stroke="#fbbf24" stroke-width="1.5"/>
+          <line x1="360" y1="93" x2="360" y2="144" stroke="#2c3e50" stroke-width="1.3"/>
+          <!-- Glow -->
+          <line x1="344" y1="84" x2="352" y2="76" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2,2" opacity=".7"/>
+          <line x1="347" y1="88" x2="356" y2="82" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2,2" opacity=".7"/>
+          <!-- Buzzer branch -->
+          <circle cx="430" cy="108" r="24" fill="#1a0a35" stroke="#7c3aed" stroke-width="1.5"/>
+          <text x="430" y="105" text-anchor="middle" font-size="8" fill="#c4b5fd" font-weight="bold">BUZ</text>
+          <text x="430" y="116" text-anchor="middle" font-size="7" fill="#a78bfa">tone(8,1000)</text>
+          <line x1="130" y1="110" x2="406" y2="108" stroke="#c4b5fd" stroke-width="1.5"/>
+          <line x1="430" y1="132" x2="430" y2="144" stroke="#2c3e50" stroke-width="1.3"/>
+          <!-- Sound waves -->
+          <path d="M457 96 Q470 108 457 120" fill="none" stroke="#7c3aed" stroke-width="1.3" opacity=".7"/>
+          <path d="M463 90 Q480 108 463 126" fill="none" stroke="#7c3aed" stroke-width="1" opacity=".4"/>
+          <text x="10" y="168" font-size="8" fill="#718096">BTN один конт.→5V, другий→D2 + 220Ом→GND · LED 220Ом→D9→GND · Buzzer(+)→D8, (-)→GND</text>
+        </svg>
+      </div>
+      <div class="hbox">
+        <strong>Завдання — заповніть пробіли (***) у Лістингу 6-1:</strong><br>
+        Визначте номери пінів (buzzer=8, button=2, led=9), напишіть <code>setup()</code> з правильними <code>pinMode()</code>, а також умови <code>if(morse==1)</code> та <code>else</code>.
+      </div>
+      <ul class="sl">
+        <li><div class="sn">1</div><div>Зберіть схему: кнопка між 5V і D2, резистор 220 Ом від D2 до GND. LED із 220 Ом від D9 до GND. Buzzer: + → D8, − → GND.</div></li>
+        <li><div class="sn">2</div><div>Відкрийте Лістинг 6-1. Замість <span style="color:var(--red);font-weight:bold">***</span> вставте правильні значення пінів та код для <code>setup()</code>.</div></li>
+        <li><div class="sn">3</div><div>Умова: <code>if(morse == 1)</code> → <code>digitalWrite(led, HIGH)</code> + <code>tone(buzzer, 1000)</code>. Умова <code>else</code> → вимикаємо LED та звук.</div></li>
+        <li><div class="sn">4</div><div>Завантажте. Відкрийте Serial Monitor. Натискайте кнопку — передавайте SOS: <strong>· · · — — — · · ·</strong></div></li>
+      </ul>
+      <div class="cb">
+        <div class="ch"><span class="chl">Лістинг 6-1 · Morse Key (заповніть ***)</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">const</span> <span class="ct">int</span> buzzer = <span class="fill">8</span>;    <span class="cm">// ← замість *** пін зуммера</span>
+<span class="ck">const</span> <span class="ct">int</span> button = <span class="fill">2</span>;    <span class="cm">// ← замість *** пін кнопки</span>
+<span class="ck">const</span> <span class="ct">int</span> led    = <span class="fill">9</span>;    <span class="cm">// ← замість *** пін LED</span>
+
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="fill">pinMode(buzzer, OUTPUT);
+  pinMode(button, INPUT);
+  pinMode(led, OUTPUT);
+  Serial.begin(9600);</span>           <span class="cm">// ← замість ***</span>
+}
+
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ct">int</span> morse = <span class="cf">digitalRead</span>(button);
+  Serial.<span class="cf">println</span>(morse);
+
+  <span class="ck">if</span> (morse == <span class="cn">1</span>) {
+    <span class="fill">digitalWrite(led, HIGH);
+    tone(buzzer, 1000);</span>            <span class="cm">// ← замість ***</span>
+  } <span class="ck">else</span> {
+    <span class="fill">digitalWrite(led, LOW);
+    noTone(buzzer);</span>               <span class="cm">// ← замість ***</span>
+  }
+  <span class="cf">delay</span>(<span class="cn">50</span>);
+}</div>
+      </div>
+      <div class="tip">Тире = кнопка натиснута ~300 мс. Точка = ~100 мс. Пауза між символами = 300 мс. Пауза між словами = 700 мс. Тренуйтесь передавати своє ім'я!</div>
+    </div>
+  </div>
+
+  <!-- TASK 2: AUTO MORSE -->
+  <div class="tc">
+    <div class="th orange">
+      <div class="tnum">02</div>
+      <div><div class="tlabel">Project 6-2 · switch/case · Функції · char[] рядок</div>
+        <div class="ttitle">Автоматичний передавач азбукою Морзе</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        Arduino автоматично передає введений текст азбукою Морзе. Рядок символів декодується через <code>switch/case</code>, кожна літера конвертується у послідовність крапок і тирок — одночасно LED + buzzer.
+      </p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">Зумер (buzzer)</div>
+          <div class="mc">Резистор 220 Ом</div><div class="mc">Світлодіод</div>
+          <div class="mc">Макетна плата</div><div class="mc">5 дротів «тато-тато»</div>
+        </div>
+      </div>
+      <div class="acc">
+        <div class="ah" onclick="toggleAcc(this)"><span>📖 Ключові конструкції Лістингу 6-2</span><span class="ai">+</span></div>
+        <div class="ab">
+          <ul class="ul">
+            <li><strong>char stringToMorseCode[]</strong> — рядок символів для передачі. Змініть на будь-який текст!</li>
+            <li><strong>for(int i=0; i &lt; sizeof(str)-1; i++)</strong> — перебирає кожен символ. <code>sizeof()-1</code> — не передаємо нульовий термінатор <code>\0</code>.</li>
+            <li><strong>toLowerCase(tmpChar)</strong> — переводить у нижній регістр для однотипного порівняння в <code>switch</code>.</li>
+            <li><strong>switch(tmpChar)</strong> — обирає варіант з тисяч символів ефективніше, ніж ланцюжок <code>if-else</code>.</li>
+            <li><strong>MorseDot() / MorseDash()</strong> — окремі функції для крапки та тире. Принцип <em>DRY: Don't Repeat Yourself</em>.</li>
+            <li><strong>LightsOff(delayTime)</strong> — пауза між елементами. Час паузи передається як аргумент.</li>
+            <li><strong>dotLen</strong> — ключова константа. Всі інші тривалості розраховуються від неї. Змінюйте лише dotLen для прискорення/уповільнення.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="acc">
+        <div class="ah" onclick="toggleAcc(this)"><span>📡 Таблиця: Міжнародна азбука Морзе (A–Z, цифри)</span><span class="ai">+</span></div>
+        <div class="ab">
+          <div class="morse-table-wrap" id="morseTableWrap"></div>
+        </div>
+      </div>
+      <ul class="sl">
+        <li><div class="sn o">1</div><div>Підключіть LED із резистором 220 Ом → D12 → GND. Buzzer: + → D8, − → GND.</div></li>
+        <li><div class="sn o">2</div><div>Введіть Лістинг 6-2. Заповніть <code>led12 = 12; audio8 = 8;</code>. Допишіть <code>setup()</code> з <code>pinMode</code> для обох пінів та <code>Serial.begin(9600)</code>.</div></li>
+        <li><div class="sn o">3</div><div>Допишіть функції <code>MorseDot()</code> та <code>MorseDash()</code>: увімкнути LED, генерувати звук через <code>tone()</code>, витримати паузу <code>delay(dotLen)</code> або <code>delay(dashLen)</code>. <code>LightsOff()</code> — вимкнути LED, <code>noTone()</code>, затримка.</div></li>
+        <li><div class="sn o">4</div><div>Доповніть switch/case для повного алфавіту — латиниця A–Z та кирилиця А–Я (таблиця вище).</div></li>
+        <li><div class="sn o">5</div><div>Завантажте. Система один раз передасть текст «Слава Україні» і зупиниться (loop() порожній).</div></li>
+      </ul>
+      <div class="cb">
+        <div class="ch"><span class="chl">Лістинг 6-2 · Автомат азбуки Морзе (завершений)</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">char</span> stringToMorseCode[] = <span class="cs">"Slava Ukraini"</span>; <span class="cm">// ваш текст</span>
+
+<span class="ck">int</span> led12   = <span class="fill">12</span>;   <span class="cm">// ← замість ***</span>
+<span class="ck">int</span> audio8  = <span class="fill">8</span>;    <span class="cm">// ← замість ***</span>
+<span class="ck">int</span> note    = <span class="cn">1200</span>; <span class="cm">// частота тону Морзе (Гц)</span>
+
+<span class="ck">int</span> dotLen    = <span class="cn">100</span>;            <span class="cm">// крапка = 100 мс</span>
+<span class="ck">int</span> dashLen   = dotLen * <span class="cn">3</span>;     <span class="cm">// тире = 300 мс</span>
+<span class="ck">int</span> elemPause = dotLen;          <span class="cm">// пауза між елементами</span>
+<span class="ck">int</span> Spaces    = dotLen * <span class="cn">3</span>;     <span class="cm">// пауза між символами</span>
+<span class="ck">int</span> wordPause = dotLen * <span class="cn">7</span>;     <span class="cm">// пауза між словами</span>
+
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="cf">pinMode</span>(led12,  OUTPUT);
+  <span class="cf">pinMode</span>(audio8, OUTPUT);
+  Serial.<span class="cf">begin</span>(<span class="cn">9600</span>);
+  <span class="cf">MorseCode</span>();   <span class="cm">// запускаємо передачу один раз</span>
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {}  <span class="cm">// порожній — передача лише в setup()</span>
+
+<span class="ck">void</span> <span class="cf">MorseCode</span>() {
+  <span class="ck">for</span> (<span class="ct">int</span> i = <span class="cn">0</span>; i &lt; <span class="cf">sizeof</span>(stringToMorseCode) - <span class="cn">1</span>; i++) {
+    <span class="ct">char</span> tmpChar = <span class="cf">toLowerCase</span>(stringToMorseCode[i]);
+    <span class="cf">GetChar</span>(tmpChar);
+    <span class="cf">delay</span>(<span class="cn">1000</span>);   <span class="cm">// пауза між символами</span>
+  }
+}
+
+<span class="ck">void</span> <span class="cf">MorseDot</span>() {
+  <span class="cf">digitalWrite</span>(led12, HIGH);
+  <span class="cf">tone</span>(audio8, note, dotLen);
+  <span class="cf">delay</span>(dotLen);
+}
+<span class="ck">void</span> <span class="cf">MorseDash</span>() {
+  <span class="cf">digitalWrite</span>(led12, HIGH);
+  <span class="cf">tone</span>(audio8, note, dashLen);
+  <span class="cf">delay</span>(dashLen);
+}
+<span class="ck">void</span> <span class="cf">LightsOff</span>(<span class="ct">int</span> delayTime) {
+  <span class="cf">digitalWrite</span>(led12, LOW);
+  <span class="cf">noTone</span>(audio8);
+  <span class="cf">delay</span>(delayTime);
+}
+
+<span class="ck">void</span> <span class="cf">GetChar</span>(<span class="ct">char</span> tmpChar) {
+  <span class="ck">switch</span> (tmpChar) {
+    <span class="ck">case</span> <span class="cs">'a'</span>: <span class="cf">MorseDot</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="cf">MorseDash</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="ck">break</span>; <span class="cm">// ·−</span>
+    <span class="ck">case</span> <span class="cs">'b'</span>: <span class="cf">MorseDash</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="cf">MorseDot</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="cf">MorseDot</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="cf">MorseDot</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="ck">break</span>; <span class="cm">// −···</span>
+    <span class="ck">case</span> <span class="cs">'s'</span>: <span class="cf">MorseDot</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="cf">MorseDot</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="cf">MorseDot</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="ck">break</span>; <span class="cm">// ···</span>
+    <span class="ck">case</span> <span class="cs">'o'</span>: <span class="cf">MorseDash</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="cf">MorseDash</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="cf">MorseDash</span>(); <span class="cf">LightsOff</span>(elemPause); <span class="ck">break</span>; <span class="cm">// −−−</span>
+    <span class="ck">case</span> <span class="cs">' '</span>: <span class="cf">LightsOff</span>(wordPause); <span class="ck">break</span>; <span class="cm">// пробіл між словами</span>
+    <span class="ck">default</span>: <span class="cf">LightsOff</span>(Spaces); <span class="cm">// невідомий символ</span>
+  }
+}</div>
+      </div>
+      <div class="tip">Змініть <code>dotLen = 50</code> щоб удвічі прискорити передачу. Усі інші тривалості автоматично масштабуються через множники × 3 та × 7.</div>
+    </div>
+  </div>
+
+  <!-- TASK 3: WEATHER ALARM -->
+  <div class="tc">
+    <div class="th purple">
+      <div class="tnum">03</div>
+      <div><div class="tlabel">Project 6-3 · millis() · INPUT_PULLUP · 5 давачів</div>
+        <div class="ttitle">Метеостанція-будильник — фінальний проєкт курсу</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        Кульмінаційний проєкт: об'єднуємо <strong>5 компонентів</strong> у єдину інтелектуальну систему. Фоторезистор (ранок?), PIR (рух?), TMP36 (спека?), кнопка (скидання), два LED (індикація). Використовуємо <strong>millis()</strong> для миготіння без блокування <code>delay()</code>.
+      </p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">PIR HC-SR501</div>
+          <div class="mc">Фоторезистор (LDR)</div><div class="mc">Давач TMP36</div>
+          <div class="mc">Кнопка (tact)</div><div class="mc">2 LED (червоний, зелений)</div>
+          <div class="mc">2 × 220 Ом (LED)</div><div class="mc">1 × 10 кОм (LDR)</div>
+          <div class="mc">Макетна плата</div><div class="mc">З'єднувальні дроти</div>
+        </div>
+      </div>
+      <!-- Architecture diagram -->
+      <div class="circ">
+        <div class="circt">// Архітектура системи · Project 6-3 · Метеостанція-будильник</div>
+        <svg viewBox="0 0 520 200" width="100%" style="max-width:520px">
+          <!-- Arduino center -->
+          <rect x="190" y="70" width="120" height="90" rx="4" fill="#e8f4fb" stroke="#0a7fc4" stroke-width="2"/>
+          <text x="250" y="95" text-anchor="middle" font-size="9" fill="#0a3d6b" font-weight="bold">Arduino UNO</text>
+          <text x="250" y="108" text-anchor="middle" font-size="8" fill="#0a7fc4">5 давачів · 2 LED</text>
+          <!-- Inputs LEFT -->
+          <!-- PIR -->
+          <rect x="20" y="20" width="65" height="40" rx="3" fill="#e8f0e0" stroke="#7c3aed" stroke-width="1.5"/>
+          <text x="52" y="36" text-anchor="middle" font-size="8" fill="#5b21b6" font-weight="bold">PIR</text>
+          <text x="52" y="48" text-anchor="middle" font-size="7" fill="#7c3aed">D7 · INPUT</text>
+          <line x1="85" y1="40" x2="190" y2="100" stroke="#7c3aed" stroke-width="1.3" stroke-dasharray="4,2"/>
+          <!-- LDR -->
+          <rect x="20" y="80" width="65" height="40" rx="3" fill="#e8f4fb" stroke="#00b4d8" stroke-width="1.5"/>
+          <text x="52" y="96" text-anchor="middle" font-size="8" fill="#0a3d6b" font-weight="bold">LDR</text>
+          <text x="52" y="108" text-anchor="middle" font-size="7" fill="#0a7fc4">A0 · analogRead</text>
+          <line x1="85" y1="100" x2="190" y2="115" stroke="#0a7fc4" stroke-width="1.3" stroke-dasharray="4,2"/>
+          <!-- TMP36 -->
+          <rect x="20" y="140" width="65" height="40" rx="3" fill="#e8f0e0" stroke="#0b9e5f" stroke-width="1.5"/>
+          <text x="52" y="156" text-anchor="middle" font-size="8" fill="#065f46" font-weight="bold">TMP36</text>
+          <text x="52" y="168" text-anchor="middle" font-size="7" fill="#0b9e5f">A1 · (V−0.5)×100</text>
+          <line x1="85" y1="160" x2="190" y2="140" stroke="#0b9e5f" stroke-width="1.3" stroke-dasharray="4,2"/>
+          <!-- Button RIGHT inputs -->
+          <rect x="415" y="50" width="65" height="40" rx="3" fill="#e8f4fb" stroke="#fbbf24" stroke-width="1.5"/>
+          <text x="447" y="66" text-anchor="middle" font-size="8" fill="#92400e" font-weight="bold">КНОПКА</text>
+          <text x="447" y="78" text-anchor="middle" font-size="7" fill="#d97706">D2 · PULLUP</text>
+          <line x1="415" y1="70" x2="310" y2="100" stroke="#fbbf24" stroke-width="1.3" stroke-dasharray="4,2"/>
+          <!-- Outputs RIGHT -->
+          <rect x="415" y="110" width="65" height="35" rx="3" fill="#1a0000" stroke="#c0392b" stroke-width="1.5"/>
+          <text x="447" y="124" text-anchor="middle" font-size="8" fill="#fc8181" font-weight="bold">LED ЧЕР.</text>
+          <text x="447" y="135" text-anchor="middle" font-size="7" fill="#fca5a5">D8 · Темп. &gt;27°C</text>
+          <line x1="415" y1="124" x2="310" y2="120" stroke="#c0392b" stroke-width="1.5"/>
+          <rect x="415" y="155" width="65" height="35" rx="3" fill="#001a00" stroke="#0b9e5f" stroke-width="1.5"/>
+          <text x="447" y="169" text-anchor="middle" font-size="8" fill="#4ade80" font-weight="bold">LED ЗЕЛ.</text>
+          <text x="447" y="180" text-anchor="middle" font-size="7" fill="#86efac">D9 · Будильник</text>
+          <line x1="415" y1="169" x2="310" y2="140" stroke="#0b9e5f" stroke-width="1.5"/>
+          <!-- Logic labels inside Arduino -->
+          <text x="250" y="122" text-anchor="middle" font-size="7" fill="#3a5068">⚙ millis() — без delay()</text>
+          <text x="250" y="133" text-anchor="middle" font-size="7" fill="#3a5068">⚙ alarmActive bool</text>
+          <text x="250" y="144" text-anchor="middle" font-size="7" fill="#3a5068">⚙ Serial Monitor</text>
+          <text x="250" y="155" text-anchor="middle" font-size="7" fill="#3a5068">⚙ 100 мс цикл</text>
+          <!-- labels at bottom -->
+          <text x="10" y="195" font-size="7" fill="#718096">PIR→D7 · LDR+10к→A0 · TMP36→A1 · BTN PULLUP→D2 · RedLED 220Ом→D8 · GreenLED 220Ом→D9</text>
+        </svg>
+      </div>
+      <div class="hbox">
+        <strong>Ключова інновація — millis() замість delay():</strong><br>
+        <code>if ((millis() / 300) % 2 == 0)</code> — ділимо мілісекунди на 300, беремо остаток від ділення на 2. Це дає 0 або 1, що чергуються кожні 300 мс → LED блимає. При цьому <code>loop()</code> продовжує виконуватись — давачі опитуються кожні 100 мс, кнопка реагує миттєво.
+      </div>
+      <div class="acc">
+        <div class="ah" onclick="toggleAcc(this)"><span>⚡ Чому millis() краще за delay() для миготіння?</span><span class="ai">+</span></div>
+        <div class="ab">
+          <ul class="ul">
+            <li><strong>delay() блокує</strong> весь контролер — жоден інший код не виконується під час паузи.</li>
+            <li><strong>millis()</strong> повертає час з моменту старту в мс. Перевірка <code>(millis()/300)%2</code> не блокує — виконується миттєво.</li>
+            <li>При <code>delay(1000)</code> для миготіння — натискання кнопки може <em>ігноруватись</em> до закінчення паузи.</li>
+            <li>У цьому проєкті кнопка скидання повинна реагувати <strong>завжди</strong> — тому millis() обов'язковий.</li>
+          </ul>
+        </div>
+      </div>
+      <ul class="sl">
+        <li><div class="sn p">1</div><div><strong>Живлення:</strong> підключіть 5V та GND від Arduino до шин живлення макетної плати (+ та −).</div></li>
+        <li><div class="sn p">2</div><div><strong>LED:</strong> червоний → D8 через 220 Ом → GND. Зелений → D9 через 220 Ом → GND.</div></li>
+        <li><div class="sn p">3</div><div><strong>Кнопка:</strong> один контакт → D2, другий → GND. <code>INPUT_PULLUP</code> — зовнішній резистор не потрібен.</div></li>
+        <li><div class="sn p">4</div><div><strong>LDR:</strong> одна ніжка → 5V, друга → A0. Між другою ніжкою та GND — резистор 10 кОм (дільник напруги).</div></li>
+        <li><div class="sn p">5</div><div><strong>TMP36:</strong> плоска сторона до вас. Ліва ніжка → 5V, права → GND, середня (OUT) → A1.</div></li>
+        <li><div class="sn p">6</div><div><strong>PIR:</strong> VCC → 5V, GND → GND, OUT → D7.</div></li>
+        <li><div class="sn p">7</div><div>Завантажте скетч. Відкрийте Serial Monitor (9600 бод). Калібруйте пороги: потримайте TMP36 пальцями → червоний LED. Посвітіть ліхтариком на LDR і пройдіть перед PIR → зелений LED миготить. Натисніть кнопку → скидання.</div></li>
+      </ul>
+      <div class="cb">
+        <div class="ch"><span class="chl">Лістинг 6-3 · Метеостанція-будильник (повний)</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">const</span> <span class="ct">int</span> buttonPin   = <span class="cn">2</span>;
+<span class="ck">const</span> <span class="ct">int</span> pirPin      = <span class="cn">7</span>;
+<span class="ck">const</span> <span class="ct">int</span> redLedPin  = <span class="cn">8</span>;
+<span class="ck">const</span> <span class="ct">int</span> greenLedPin = <span class="cn">9</span>;
+<span class="ck">const</span> <span class="ct">int</span> lightPin   = A0;
+<span class="ck">const</span> <span class="ct">int</span> tempPin    = A1;
+
+<span class="ct">bool</span>  alarmActive    = <span class="ck">false</span>;
+<span class="ck">const</span> <span class="ct">float</span> tempThreshold  = <span class="cn">27.0</span>; <span class="cm">// °C для тривоги</span>
+<span class="ck">const</span> <span class="ct">int</span>   lightThreshold = <span class="cn">600</span>;  <span class="cm">// поріг «ранок»</span>
+
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  Serial.<span class="cf">begin</span>(<span class="cn">9600</span>);
+  <span class="cf">pinMode</span>(buttonPin,   INPUT_PULLUP);
+  <span class="cf">pinMode</span>(pirPin,      INPUT);
+  <span class="cf">pinMode</span>(redLedPin,   OUTPUT);
+  <span class="cf">pinMode</span>(greenLedPin, OUTPUT);
+}
+
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ct">int</span>   lightLevel    = <span class="cf">analogRead</span>(lightPin);
+  <span class="ct">int</span>   tempSensorVal = <span class="cf">analogRead</span>(tempPin);
+  <span class="ct">int</span>   motionDetect  = <span class="cf">digitalRead</span>(pirPin);
+  <span class="ct">int</span>   buttonState   = <span class="cf">digitalRead</span>(buttonPin); <span class="cm">// LOW=натиснута</span>
+
+  <span class="cm">// TMP36: АЦП → Вольти → °C</span>
+  <span class="ct">float</span> voltage     = tempSensorVal * <span class="cn">5.0</span> / <span class="cn">1024.0</span>;
+  <span class="ct">float</span> temperatureC = (voltage - <span class="cn">0.5</span>) * <span class="cn">100.0</span>;
+
+  <span class="cm">// 1. ТЕМПЕРАТУРА → червоний LED</span>
+  <span class="ck">if</span> (temperatureC > tempThreshold)
+       <span class="cf">digitalWrite</span>(redLedPin, HIGH);
+  <span class="ck">else</span> <span class="cf">digitalWrite</span>(redLedPin, LOW);
+
+  <span class="cm">// 2. БУДИЛЬНИК: СВІТЛО + РУХ → активація</span>
+  <span class="ck">if</span> (lightLevel > lightThreshold && motionDetect == HIGH)
+    alarmActive = <span class="ck">true</span>;
+
+  <span class="cm">// 3. КНОПКА → скидання</span>
+  <span class="ck">if</span> (buttonState == LOW) {
+    alarmActive = <span class="ck">false</span>;
+    <span class="cf">digitalWrite</span>(greenLedPin, LOW);
+    <span class="cf">delay</span>(<span class="cn">250</span>);   <span class="cm">// debounce</span>
+  }
+
+  <span class="cm">// 4. МИГОТІННЯ зеленого через millis() — БЕЗ delay()!</span>
+  <span class="ck">if</span> (alarmActive) {
+    <span class="ck">if</span> ((<span class="cf">millis</span>() / <span class="cn">300</span>) % <span class="cn">2</span> == <span class="cn">0</span>)
+         <span class="cf">digitalWrite</span>(greenLedPin, HIGH);
+    <span class="ck">else</span> <span class="cf">digitalWrite</span>(greenLedPin, LOW);
+  } <span class="ck">else</span> <span class="cf">digitalWrite</span>(greenLedPin, LOW);
+
+  <span class="cm">// 5. Serial Monitor для калібрування</span>
+  Serial.<span class="cf">print</span>(<span class="cs">"Температура: "</span>);  Serial.<span class="cf">print</span>(temperatureC);
+  Serial.<span class="cf">print</span>(<span class="cs">" °C | Світло: "</span>);  Serial.<span class="cf">print</span>(lightLevel);
+  Serial.<span class="cf">print</span>(<span class="cs">" | Рух: "</span>);        Serial.<span class="cf">println</span>(motionDetect);
+  <span class="cf">delay</span>(<span class="cn">100</span>);
+}</div>
+      </div>
+      <div class="warn">Після подачі живлення PIR потребує <strong>30–60 секунд</strong> прогріву. Протягом цього часу можуть бути хибні спрацювання будильника.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SIMULATION ═══════════ -->
+<section class="sec" id="sec-simulation">
+  <div class="stitle"><span class="sbadge">02</span><h2>Симуляція роботи проєктів</h2><div class="sline"></div></div>
+
+  <!-- SIM 1: MORSE KEY -->
+  <div class="card">
+    <div class="ctitle">Симуляція 1 — Ключ азбуки Морзе (Project 6-1)</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · MORSE KEY · Утримуйте кнопку = крапка/тире</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px;min-width:120px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba">КНОПКА (D2)</div>
+          <div id="morseKeyBtn" style="width:64px;height:64px;background:linear-gradient(135deg,#2d3748,#4a5568);
+            border:3px solid #718096;border-radius:8px;cursor:pointer;display:flex;align-items:center;
+            justify-content:center;font-family:var(--mono);font-size:11px;color:#a0aec0;
+            user-select:none;transition:all .1s;box-shadow:0 5px 0 #1a202c;letter-spacing:.08em"
+            onmousedown="morseKeyDown()" onmouseup="morseKeyUp()" onmouseleave="morseKeyUp()"
+            ontouchstart="morseKeyDown()" ontouchend="morseKeyUp()">KEY</div>
+          <div style="font-family:var(--mono);font-size:9px;color:#718096">утримуйте</div>
+          <div class="led-sim" id="morseKeyLed" style="width:36px;height:36px"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:#718096">D9 · LED</div>
+          <div class="bz" id="morseKeyBuzz">🔊</div>
+        </div>
+        <div style="flex:1;min-width:200px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:6px">СТРІЧКА МОРЗЕ:</div>
+          <div class="morse-tape" id="morseTape">готовий до передачі...</div>
+          <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+            <button class="sbtn reset" onclick="clearMorse()" style="font-size:10px;padding:5px 12px">↺ Очистити</button>
+          </div>
+          <div class="slog" id="morseKeyLog" style="margin-top:10px;height:100px">
+            <div class="ll info">&gt; setup() → pinMode(9,OUTPUT)</div>
+            <div class="ll">&gt; Утримуйте KEY: ·=крапка —=тире</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIM 2: AUTO MORSE -->
+  <div class="card orange">
+    <div class="ctitle o">Симуляція 2 — Автопередача азбукою Морзе (Project 6-2)</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · AUTO MORSE · switch/case · dotLen=100</div>
+      <div class="simctrl">
+        <button class="sbtn run" onclick="startAutoMorse()">▶ Передати текст</button>
+        <button class="sbtn stop" onclick="stopAutoMorse()">■ Зупинити</button>
+        <button class="sbtn reset" onclick="resetAutoMorse()">↺ Скинути</button>
+      </div>
+      <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:var(--mono);font-size:11px;color:#4a9aba">Текст:</span>
+        <input id="morseTextInput" type="text" value="SOS SLAVA" maxlength="20"
+          style="background:#0a1827;border:1px solid #1a4a6a;border-radius:2px;padding:5px 10px;
+          font-family:var(--mono);font-size:13px;color:#00e5ff;outline:none;width:180px;letter-spacing:.08em">
+        <span style="font-family:var(--mono);font-size:10px;color:#718096">max 20 символів (A–Z, пробіл)</span>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;min-width:100px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba">D12 · LED</div>
+          <div class="led-sim" id="autoMorseLed" style="width:40px;height:40px"></div>
+          <div class="bz" id="autoMorseBuzz" style="font-size:28px">🔊</div>
+          <div style="font-family:var(--mono);font-size:10px;color:#718096">D8 · Buzzer</div>
+          <div id="autoMorseSymbol" class="morse-char-display">─</div>
+        </div>
+        <div style="flex:1;min-width:200px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:4px">ПОТОЧНИЙ СИМВОЛ:</div>
+          <div class="morse-tape" id="autoMorseTape" style="font-size:22px;min-height:50px">─</div>
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-top:10px;margin-bottom:4px">ПРОГРЕС:</div>
+          <div id="autoMorseProgress" style="background:#0a1827;border:1px solid #1a4a6a;border-radius:2px;padding:6px 10px;font-family:var(--mono);font-size:11px;color:#a8d8f0;letter-spacing:.08em">
+            ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+          </div>
+        </div>
+        <div class="slog" id="autoMorseLog">
+          <div class="ll info">&gt; MorseCode() готовий</div>
+        </div>
+      </div>
+      <div class="sstat" id="autoMorseStat">● Зупинено</div>
+    </div>
+  </div>
+
+  <!-- SIM 3: WEATHER STATION -->
+  <div class="card purple">
+    <div class="ctitle p">Симуляція 3 — Метеостанція-будильник (Project 6-3)</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · millis() · LDR · TMP36 · PIR · BUTTON</div>
+      <div class="simctrl">
+        <button class="sbtn run" onclick="startWeather()">▶ Запустити</button>
+        <button class="sbtn stop" onclick="stopWeather()">■ Зупинити</button>
+        <button class="sbtn reset" onclick="resetWeather()">↺ Скинути</button>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+        <!-- Controls -->
+        <div style="min-width:200px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:8px">СЕНСОРИ (повзунки):</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;color:#fbbf24;margin-bottom:2px">☀ Освітлення (A0):</div>
+              <input type="range" id="wsLight" min="0" max="1023" value="300" style="width:100%" oninput="updateWS()">
+              <div style="font-family:var(--mono);font-size:11px;color:#00e5ff"><span id="wsLightV">300</span> <span style="color:#718096">(поріг: 600)</span></div>
+            </div>
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;color:#4ade80;margin-bottom:2px">🌡 Температура °C:</div>
+              <input type="range" id="wsTemp" min="15" max="40" value="24" style="width:100%" oninput="updateWS()">
+              <div style="font-family:var(--mono);font-size:11px;color:#00e5ff"><span id="wsTempV">24</span>°C <span style="color:#718096">(поріг: 27°C)</span></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="sbtn orange" onclick="pirTrigger()" style="font-size:10px;padding:6px 12px">🏃 Рух (PIR)</button>
+            <button class="sbtn run" onclick="wsButtonPress()" style="font-size:10px;padding:6px 12px">🔘 Кнопка</button>
+          </div>
+        </div>
+        <!-- LED Panel -->
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:120px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba">ІНДИКАТОРИ</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="led-sim" id="wsRedLed" style="width:32px;height:32px"></div>
+            <div>
+              <div style="font-family:var(--mono);font-size:11px;color:#f87171">D8 · Темп</div>
+              <div id="wsRedLabel" style="font-family:var(--mono);font-size:10px;color:#718096">OFF</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="led-sim" id="wsGreenLed" style="width:32px;height:32px"></div>
+            <div>
+              <div style="font-family:var(--mono);font-size:11px;color:#4ade80">D9 · Будильник</div>
+              <div id="wsGreenLabel" style="font-family:var(--mono);font-size:10px;color:#718096">OFF</div>
+            </div>
+          </div>
+          <div id="wsAlarmBadge" style="font-family:var(--mono);font-size:12px;color:#718096"></div>
+        </div>
+        <!-- Serial -->
+        <div class="smon" id="wsSmon">
+          <div class="sl2 info">Serial Monitor @ 9600</div>
+          <div class="sl2">Метеостанція-будильник готова</div>
+        </div>
+      </div>
+      <div class="sstat" id="wsStat">● Зупинено</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ QUIZ ═══════════ -->
+<section class="sec" id="sec-quiz">
+  <div class="stitle"><span class="sbadge">03</span><h2>Контрольні питання</h2><div class="sline"></div></div>
+  <div id="quizC"></div>
+  <div class="qscore" id="scoreBar" style="display:none">
+    <div><div class="scn" id="scoreNum">0</div><div class="scl">/ <span id="scoreTot">0</span> балів</div></div>
+    <div class="scbw"><div class="scl" id="scoreMsg"></div><div class="scb"><div class="scbf" id="scoreF" style="width:0%"></div></div></div>
+    <button class="qreset" onclick="resetQuiz()">Пройти знову</button>
+  </div>
+</section>
+
+<!-- ═══════════ REFERENCE ═══════════ -->
+<section class="sec" id="sec-reference">
+  <div class="stitle"><span class="sbadge">04</span><h2>Довідкові матеріали</h2><div class="sline"></div></div>
+  <!-- Morse table full -->
+  <div class="card">
+    <div class="ctitle">Повна таблиця: Міжнародна азбука Морзе</div>
+    <div class="morse-table-wrap" id="fullMorseTable"></div>
+  </div>
+  <div class="rgrid" style="margin-top:20px">
+    <div class="rc"><div class="rct">tone() / noTone()</div>
+      <div class="ri"><span class="rk">tone(pin,freq)</span><span class="rv">генерує звук</span></div>
+      <div class="ri"><span class="rk">tone(pin,f,dur)</span><span class="rv">+тривалість мс</span></div>
+      <div class="ri"><span class="rk">noTone(pin)</span><span class="rv">вимкнути</span></div>
+      <div class="ri"><span class="rk">Морзе нота</span><span class="rv">1000–1200 Гц</span></div>
+    </div>
+    <div class="rc"><div class="rct">millis() · Час</div>
+      <div class="ri"><span class="rk">millis()</span><span class="rv">мс від старту</span></div>
+      <div class="ri"><span class="rk">Переповнення</span><span class="rv">~49.7 днів</span></div>
+      <div class="ri"><span class="rk">Миготіння</span><span class="rv">(millis()/T)%2</span></div>
+      <div class="ri"><span class="rk">Не блокує</span><span class="rv">loop() продовж.</span></div>
+    </div>
+    <div class="rc"><div class="rct">Тривалості Морзе</div>
+      <div class="ri"><span class="rk">Крапка (dot)</span><span class="rv">dotLen мс</span></div>
+      <div class="ri"><span class="rk">Тире (dash)</span><span class="rv">dotLen × 3</span></div>
+      <div class="ri"><span class="rk">Пауза в симв.</span><span class="rv">dotLen × 1</span></div>
+      <div class="ri"><span class="rk">Пауза між симв.</span><span class="rv">dotLen × 3</span></div>
+      <div class="ri"><span class="rk">Пауза між слов.</span><span class="rv">dotLen × 7</span></div>
+    </div>
+    <div class="rc"><div class="rct">switch/case</div>
+      <div class="ri"><span class="rk">switch(expr)</span><span class="rv">вхід блоку</span></div>
+      <div class="ri"><span class="rk">case 'a':</span><span class="rv">умова символ</span></div>
+      <div class="ri"><span class="rk">break;</span><span class="rv">вихід з блоку</span></div>
+      <div class="ri"><span class="rk">default:</span><span class="rv">за замовч.</span></div>
+      <div class="ri"><span class="rk">vs if-else</span><span class="rv">швидше, чистіше</span></div>
+    </div>
+    <div class="rc"><div class="rct">Project 6-3 · Піни</div>
+      <div class="ri"><span class="rk">Кнопка</span><span class="rv">D2 · INPUT_PULLUP</span></div>
+      <div class="ri"><span class="rk">PIR</span><span class="rv">D7 · INPUT</span></div>
+      <div class="ri"><span class="rk">Red LED</span><span class="rv">D8 · 220Ом</span></div>
+      <div class="ri"><span class="rk">Green LED</span><span class="rv">D9 · 220Ом</span></div>
+      <div class="ri"><span class="rk">LDR</span><span class="rv">A0 · +10кОм→GND</span></div>
+      <div class="ri"><span class="rk">TMP36</span><span class="rv">A1 · (V−0.5)×100</span></div>
+    </div>
+    <div class="rc"><div class="rct">sizeof() · Рядки</div>
+      <div class="ri"><span class="rk">sizeof(array)</span><span class="rv">кількість байт</span></div>
+      <div class="ri"><span class="rk">sizeof(str)-1</span><span class="rv">без \0 терм.</span></div>
+      <div class="ri"><span class="rk">toLowerCase(c)</span><span class="rv">нижній регістр</span></div>
+      <div class="ri"><span class="rk">char str[]</span><span class="rv">масив символів</span></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+// ─── NAV ─────────────────────────────────
+function showSec(n){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('visible'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+n).classList.add('visible');
+  const m={practice:0,simulation:1,quiz:2,reference:3};
+  document.querySelectorAll('.nb')[m[n]]?.classList.add('active');
+}
+function toggleAcc(h){const b=h.nextElementSibling,o=h.classList.contains('open');h.classList.toggle('open',!o);b.classList.toggle('open',!o)}
+
+// ─── MORSE ALPHABET ──────────────────────
+const MORSE={
+  'a':'.-','b':'-...','c':'-.-.','d':'-..','e':'.','f':'..-.','g':'--.','h':'....','i':'..','j':'.---',
+  'k':'-.-','l':'.-..','m':'--','n':'-.','o':'---','p':'.--.','q':'--.-','r':'.-.','s':'...','t':'-',
+  'u':'..-','v':'...-','w':'.--','x':'-..-','y':'-.--','z':'--..',
+  '0':'-----','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....',
+  '6':'-....','7':'--...','8':'---..','9':'----.',
+  ' ':' / '
+};
+
+// Build morse tables
+function buildMorseTable(id){
+  const wrap=document.getElementById(id);if(!wrap)return;
+  wrap.innerHTML='';
+  Object.entries(MORSE).forEach(([k,v])=>{
+    if(k===' ')return;
+    const e=document.createElement('div');e.className='morse-entry';
+    e.innerHTML=`<span class="morse-letter">${k.toUpperCase()}</span><span class="morse-code">${v}</span>`;
+    wrap.appendChild(e);
+  });
+}
+buildMorseTable('morseTableWrap');
+buildMorseTable('fullMorseTable');
+
+function slog(id,msg,cls=''){
+  const m=document.getElementById(id);const d=document.createElement('div');
+  d.className='sl2'+(cls?' '+cls:'');d.textContent=msg;m.appendChild(d);
+  while(m.children.length>50)m.removeChild(m.firstChild);m.scrollTop=m.scrollHeight;
+}
+function llog(id,msg,cls=''){
+  const m=document.getElementById(id);const d=document.createElement('div');
+  d.className='ll'+(cls?' '+cls:'');d.textContent='> '+msg;m.appendChild(d);
+  while(m.children.length>40)m.removeChild(m.firstChild);m.scrollTop=m.scrollHeight;
+}
+
+// ─── SIM 1: MORSE KEY ────────────────────
+let morseKeyHeld=false,morseKeyStart=0,morseTapeStr='';
+let audioCtx=null,osc=null,gainN=null;
+
+function initAudio(){
+  if(audioCtx)return;
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  gainN=audioCtx.createGain();gainN.gain.value=0;gainN.connect(audioCtx.destination);
+  osc=audioCtx.createOscillator();osc.type='square';osc.frequency.value=1000;osc.connect(gainN);osc.start();
+}
+document.addEventListener('click',initAudio,{once:true});
+
+function morseKeyDown(){
+  initAudio();
+  morseKeyHeld=true;morseKeyStart=Date.now();
+  document.getElementById('morseKeyLed').className='led-sim on-y';
+  document.getElementById('morseKeyBuzz').className='bz on';
+  document.getElementById('morseKeyBtn').style.transform='translateY(4px)';
+  document.getElementById('morseKeyBtn').style.boxShadow='0 1px 0 #1a202c';
+  if(gainN) gainN.gain.setTargetAtTime(.06,audioCtx.currentTime,.01);
+  llog('morseKeyLog','digitalWrite(9, HIGH) + tone(8,1000)','ok');
+}
+function morseKeyUp(){
+  if(!morseKeyHeld)return;
+  morseKeyHeld=false;
+  const dur=Date.now()-morseKeyStart;
+  document.getElementById('morseKeyLed').className='led-sim';
+  document.getElementById('morseKeyBuzz').className='bz';
+  document.getElementById('morseKeyBtn').style.transform='';
+  document.getElementById('morseKeyBtn').style.boxShadow='';
+  if(gainN) gainN.gain.setTargetAtTime(0,audioCtx.currentTime,.01);
+  const sym=dur<200?'·':'—';
+  morseTapeStr+=sym+' ';
+  document.getElementById('morseTape').textContent=morseTapeStr;
+  llog('morseKeyLog',`digitalRead → HIGH → ${sym} (${dur}мс)`,'warn');
+  llog('morseKeyLog','→ LOW · noTone()');
+}
+function clearMorse(){morseTapeStr='';document.getElementById('morseTape').textContent='готовий до передачі...';document.getElementById('morseKeyLog').innerHTML='<div class="ll info">> Очищено</div>';}
+
+// ─── SIM 2: AUTO MORSE ───────────────────
+let autoMorseRunning=false,autoMorseQueue=[],autoMorseTimer=null;
+const DOT=120,DASH=DOT*3,ELEM=DOT,SPC=DOT*3,WORD=DOT*7;
+
+function autoMorseElement(type, duration){
+  const led=document.getElementById('autoMorseLed');
+  const buz=document.getElementById('autoMorseBuzz');
+  const tape=document.getElementById('autoMorseTape');
+  led.className='led-sim '+(type==='on'?'on-y':'');
+  buz.className='bz '+(type==='on'?'on':'');
+  if(type==='dot'){tape.textContent='·';}
+  else if(type==='dash'){tape.textContent='—';}
+}
+
+function buildMorseQueue(text){
+  const q=[];
+  for(const ch of text.toLowerCase()){
+    const code=MORSE[ch];
+    if(!code)continue;
+    if(ch===' '){q.push({t:'off',d:WORD});continue;}
+    const syms=code.split('');
+    syms.forEach((s,i)=>{
+      if(s==='.'){q.push({t:'dot',d:DOT,sym:'·'});} else {q.push({t:'dash',d:DASH,sym:'—'});}
+      if(i<syms.length-1) q.push({t:'off',d:ELEM});
+    });
+    q.push({t:'off',d:SPC,end:ch});
+  }
+  return q;
+}
+
+function runMorseQueue(){
+  if(!autoMorseRunning||autoMorseQueue.length===0){
+    stopAutoMorse();
+    document.getElementById('autoMorseStat').textContent='● Передача завершена';
+    llog('autoMorseLog','MorseCode() завершено','ok');
+    return;
+  }
+  const step=autoMorseQueue.shift();
+  const led=document.getElementById('autoMorseLed');
+  const buz=document.getElementById('autoMorseBuzz');
+  const tape=document.getElementById('autoMorseTape');
+  const symEl=document.getElementById('autoMorseSymbol');
+  if(step.t==='dot'){led.className='led-sim on-y';buz.className='bz on';tape.textContent='·';
+    if(osc&&gainN) gainN.gain.setTargetAtTime(.06,audioCtx.currentTime,.01);
+    llog('autoMorseLog','MorseDot() · '+DOT+'мс');
+  } else if(step.t==='dash'){led.className='led-sim on-y';buz.className='bz on';tape.textContent='—';
+    if(osc&&gainN) gainN.gain.setTargetAtTime(.06,audioCtx.currentTime,.01);
+    llog('autoMorseLog','MorseDash() — '+DASH+'мс');
+  } else {
+    led.className='led-sim';buz.className='bz';tape.textContent=' ';
+    if(gainN) gainN.gain.setTargetAtTime(0,audioCtx.currentTime,.01);
+    if(step.end) symEl.textContent=step.end.toUpperCase();
+  }
+  // Update progress
+  const prog=document.getElementById('autoMorseProgress');
+  const remaining=autoMorseQueue.length;
+  prog.textContent='['+remaining+' кроків залишилось]';
+  autoMorseTimer=setTimeout(runMorseQueue,step.d);
+}
+
+function startAutoMorse(){
+  if(autoMorseRunning)return;
+  initAudio();
+  autoMorseRunning=true;
+  const text=document.getElementById('morseTextInput').value||'SOS';
+  document.getElementById('autoMorseStat').textContent='● Передача: "'+text+'"';
+  document.getElementById('autoMorseStat').className='sstat run';
+  autoMorseQueue=buildMorseQueue(text);
+  llog('autoMorseLog','MorseCode("'+text+'") started','info');
+  runMorseQueue();
+}
+function stopAutoMorse(){
+  autoMorseRunning=false;clearTimeout(autoMorseTimer);
+  document.getElementById('autoMorseLed').className='led-sim';
+  document.getElementById('autoMorseBuzz').className='bz';
+  if(gainN) gainN.gain.setTargetAtTime(0,audioCtx?audioCtx.currentTime:0,.01);
+  document.getElementById('autoMorseStat').textContent='● Зупинено';
+  document.getElementById('autoMorseStat').className='sstat';
+}
+function resetAutoMorse(){
+  stopAutoMorse();
+  document.getElementById('autoMorseLog').innerHTML='<div class="ll info">> Скинуто</div>';
+  document.getElementById('autoMorseTape').textContent='─';
+  document.getElementById('autoMorseSymbol').textContent='─';
+  document.getElementById('autoMorseProgress').textContent='─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─';
+}
+
+// ─── SIM 3: WEATHER STATION ──────────────
+let wsRunning=false,wsTimer=null,wsAlarmActive=false,wsPirDetect=false;
+let wsMillis=0,wsMillisTimer=null;
+
+function updateWS(){
+  const light=+document.getElementById('wsLight').value;
+  const temp=+document.getElementById('wsTemp').value;
+  document.getElementById('wsLightV').textContent=light;
+  document.getElementById('wsTempV').textContent=temp;
+  if(wsRunning) renderWS(light,temp);
+}
+
+function renderWS(light,temp){
+  // Red LED (temperature)
+  const redOn=temp>27;
+  document.getElementById('wsRedLed').className='led-sim '+(redOn?'on-r':'');
+  document.getElementById('wsRedLabel').textContent=redOn?'HIGH (>27°C)':'LOW';
+  // Green LED (alarm with millis blink)
+  if(wsAlarmActive){
+    const blink=Math.floor(wsMillis/300)%2===0;
+    document.getElementById('wsGreenLed').className='led-sim '+(blink?'on-g':'');
+    document.getElementById('wsGreenLabel').textContent='millis()→'+wsMillis+'ms';
+    document.getElementById('wsAlarmBadge').textContent='🔔 БУДИЛЬНИК!';
+    document.getElementById('wsAlarmBadge').style.color='#4ade80';
+  } else {
+    document.getElementById('wsGreenLed').className='led-sim';
+    document.getElementById('wsGreenLabel').textContent='OFF';
+    document.getElementById('wsAlarmBadge').textContent='';
+  }
+}
+
+function wsLoop(){
+  if(!wsRunning)return;
+  wsMillis+=100;
+  const light=+document.getElementById('wsLight').value;
+  const temp=+document.getElementById('wsTemp').value;
+  const voltage=temp*0.01+0.5;
+  const tempC=((voltage-0.5)*100).toFixed(1);
+  if(light>600&&wsPirDetect) wsAlarmActive=true;
+  renderWS(light,temp);
+  slog('wsSmon',`Температура: ${tempC} °C | Світло: ${light} | Рух: ${wsPirDetect?1:0}`, temp>27?'warn':'val');
+  if(wsPirDetect) wsPirDetect=false;
+  wsTimer=setTimeout(wsLoop,100);
+}
+
+function startWeather(){
+  if(wsRunning)return;
+  wsRunning=true;wsMillis=0;
+  document.getElementById('wsStat').textContent='● Виконується...';
+  document.getElementById('wsStat').className='sstat run';
+  slog('wsSmon','setup() → pinMode, Serial.begin(9600)','info');
+  slog('wsSmon','loop() запущено (100мс цикл)','info');
+  wsLoop();
+}
+function stopWeather(){
+  wsRunning=false;clearTimeout(wsTimer);
+  document.getElementById('wsStat').textContent='● Зупинено';
+  document.getElementById('wsStat').className='sstat';
+}
+function resetWeather(){
+  stopWeather();wsAlarmActive=false;wsPirDetect=false;wsMillis=0;
+  document.getElementById('wsRedLed').className='led-sim';
+  document.getElementById('wsGreenLed').className='led-sim';
+  document.getElementById('wsRedLabel').textContent='OFF';
+  document.getElementById('wsGreenLabel').textContent='OFF';
+  document.getElementById('wsAlarmBadge').textContent='';
+  document.getElementById('wsSmon').innerHTML='<div class="sl2 info">Скинуто</div>';
+}
+function pirTrigger(){
+  if(!wsRunning)return;
+  wsPirDetect=true;
+  slog('wsSmon','PIR: digitalRead(7) → HIGH → motionDetected=1','warn');
+}
+function wsButtonPress(){
+  wsAlarmActive=false;
+  document.getElementById('wsGreenLed').className='led-sim';
+  document.getElementById('wsGreenLabel').textContent='OFF (скинуто)';
+  document.getElementById('wsAlarmBadge').textContent='';
+  if(wsRunning) slog('wsSmon','buttonState==LOW → alarmActive=false (скидання)','info');
+}
+
+// ─── QUIZ ────────────────────────────────
+const quizData=[
+  {q:'У Лістингу 6-1 змінна morse зберігає результат digitalRead(button). Яке значення вона матиме при натисненні, якщо кнопка підключена між 5V та D2 (+ резистор до GND)?',
+   opts:['0 (LOW)','1 (HIGH)','512','255'],
+   ans:1,expl:'Кнопка між 5V і D2: при натисненні пін з\'єднується з 5V → digitalRead() = HIGH = 1. При відпусканні резистор 220Ом тягне пін до GND → LOW = 0.'},
+  {q:'В якому порядку мають йти функції в MorseDot() для генерації крапки?',
+   opts:['noTone → delay → digitalWrite','digitalWrite HIGH → tone → delay','delay → tone → digitalWrite','tone → digitalWrite → delay'],
+   ans:1,expl:'Спочатку вмикаємо LED: digitalWrite(led, HIGH). Потім запускаємо звук: tone(audio, note, dotLen). Потім чекаємо: delay(dotLen). Потім LightsOff().'},
+  {q:'Навіщо в Лістингу 6-2 використовується toLowerCase(tmpChar)?',
+   opts:['Для економії пам\'яті','Щоб switch/case порівнював символи в одному регістрі і не дублювати case A: case a:','Для збільшення швидкості передачі','toLowerCase() конвертує літери у числа'],
+   ans:1,expl:'switch/case чутливий до регістру. toLowerCase() зводить символ до нижнього регістру, тож достатньо написати case \'a\': замість обох case \'a\': і case \'A\':'},
+  {q:'Рядок char stringToMorseCode[] = "SOS"; Скільки байт займає цей масив?',
+   opts:['3','4 (включаючи \\0 термінатор)','6','2'],
+   ans:1,expl:'Рядок "SOS" = символи S, O, S + нульовий термінатор \\0 = 4 байти. Тому в циклі: for(i=0; i < sizeof(str)-1; i++) — мінус 1, щоб не передавати \\0.'},
+  {q:'Чому в Project 6-3 для миготіння зеленого LED використовується millis() замість delay()?',
+   opts:['millis() точніший','delay() блокує весь МК — кнопка не зреагує під час паузи. millis() не блокує','millis() не займає SRAM','delay() несумісний з analogRead'],
+   ans:1,expl:'delay() зупиняє виконання всього коду. Якщо delay(500) для миготіння — кнопка скидання не відпрацює 500мс. millis()/T%2 виконується миттєво, loop() продовжується.'},
+  {q:'Яке значення поверне ((millis() / 300) % 2) через 750 мс від старту?',
+   opts:['0','1','2','3'],
+   ans:1,expl:'750/300 = 2 (ціле). 2 % 2 = 0. Через 900мс: 900/300=3, 3%2=1. Чергування 0 і 1 кожні 300мс = миготіння.'},
+  {q:'У схемі Метеостанції кнопка підключена з INPUT_PULLUP. Яке значення digitalRead() при натисненні?',
+   opts:['HIGH (1)','LOW (0)','512','-1'],
+   ans:1,expl:'INPUT_PULLUP: внутрішній резистор утримує пін HIGH. Кнопка підключена між D2 і GND. При натисненні пін з\'єднується з GND → LOW (0).'},
+  {q:'TMP36 повертає 0.75В при 25°C. Яка температура при напрузі 0.5В?',
+   opts:['25°C','0°C','5°C','50°C'],
+   ans:1,expl:'tempC = (V - 0.5) * 100 = (0.5 - 0.5) * 100 = 0 * 100 = 0°C. При 0.5В TMP36 показує 0°C — це зміщення (offset) датчика.'},
+  {q:'Яка тривалість тире (dash) у Лістингу 6-2, якщо dotLen = 150 мс?',
+   opts:['150 мс','300 мс','450 мс','600 мс'],
+   ans:2,expl:'dashLen = dotLen * 3 = 150 * 3 = 450 мс. Співвідношення Морзе: крапка:тире:пауза = 1:3:1.'},
+  {q:'Яке слово є «SOS» азбукою Морзе?',
+   opts:['— · · · — — — · · ·','· · · — — — · · ·','· · — — · ·','— — — · · ·'],
+   ans:1,expl:'S = · · · (три крапки), O = — — — (три тире). SOS = · · · / — — — / · · · Це міжнародний сигнал лиха, обраний за простоту передачі.'},
+];
+
+let qA=0,qC=0;
+function buildQuiz(){
+  const c=document.getElementById('quizC');c.innerHTML='';qA=0;qC=0;
+  document.getElementById('scoreBar').style.display='none';
+  quizData.forEach((q,qi)=>{
+    const card=document.createElement('div');card.className='qcard';
+    let opts=q.opts.map((o,oi)=>`<div class="qopt" onclick="ansQ(${qi},${oi})"><div class="qr"></div><span>${o}</span></div>`).join('');
+    card.innerHTML=`<div class="qqn">Питання ${qi+1} / ${quizData.length}</div>
+      <div class="qqt">${q.q}</div>
+      <div class="qopts" id="qopts${qi}">${opts}</div>
+      <div class="qfb" id="qfb${qi}"></div>`;
+    c.appendChild(card);
+  });
+}
+function ansQ(qi,oi){
+  const opts=document.querySelectorAll(`#qopts${qi} .qopt`);
+  opts.forEach(o=>o.classList.add('disabled'));
+  const fb=document.getElementById('qfb'+qi);
+  const correct=quizData[qi].ans;
+  opts[correct].classList.add('correct');
+  if(oi===correct){qC++;fb.textContent='✓ Правильно! '+quizData[qi].expl;fb.className='qfb show ok';}
+  else{opts[oi].classList.add('wrong');fb.textContent='✗ Неправильно. '+quizData[qi].expl;fb.className='qfb show err';}
+  qA++;if(qA===quizData.length)showScore();
+}
+function showScore(){
+  const bar=document.getElementById('scoreBar');bar.style.display='flex';
+  const pct=Math.round(qC/quizData.length*100);
+  document.getElementById('scoreNum').textContent=qC;
+  document.getElementById('scoreTot').textContent=quizData.length;
+  document.getElementById('scoreF').style.width=pct+'%';
+  const msg=pct>=90?'🏆 Відмінно! Телеграфіст першого класу!':
+            pct>=70?'👍 Добре! Перевірте формули та millis()':
+            pct>=50?'📚 Непогано, повторіть практику.':'🔄 Рекомендуємо пройти завдання знову.';
+  document.getElementById('scoreMsg').textContent=msg;
+  bar.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function resetQuiz(){buildQuiz();}
+buildQuiz();
+</script>
+</body>
+</html>
