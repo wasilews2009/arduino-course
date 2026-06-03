@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arduino Тема 10-11 — Масиви & Множинне використання LED</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f4f8;--bg2:#e8eef5;--bg3:#dde6f0;
+  --surface:#fff;--surface2:#f7fafd;
+  --border:#c5d5e8;--border2:#a8c0d8;
+  --grid:rgba(100,160,220,.12);
+  --accent:#0a7fc4;--accent2:#00b4d8;--accent3:#0052a3;
+  --green:#0b9e5f;--orange:#e07b00;--red:#c0392b;--yellow:#c9960a;
+  --purple:#7c3aed;--teal:#0d9488;--pink:#db2777;
+  --text:#1a2a3a;--text2:#3a5068;--text3:#6a8099;
+  --mono:'Share Tech Mono',monospace;--sans:'Exo 2',sans-serif;--display:'Russo One',sans-serif;
+  --shadow:0 2px 16px rgba(10,80,160,.10),0 1px 4px rgba(10,80,160,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);overflow-x:hidden;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:32px 32px;background-attachment:fixed}
+header{background:linear-gradient(135deg,#0a3d6b 0%,#0a6fa8 55%,#00b4d8 100%);position:relative;overflow:hidden;box-shadow:0 4px 32px rgba(0,60,120,.25)}
+header::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:24px 24px;pointer-events:none}
+.hi{max-width:1100px;margin:0 auto;padding:36px 32px 28px;position:relative;z-index:1}
+.hchip{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:#a8ddff;font-family:var(--mono);font-size:11px;letter-spacing:.12em;padding:4px 12px;border-radius:2px;margin-bottom:16px;text-transform:uppercase}
+.hchip::before{content:'◆';font-size:8px;color:#00e5ff}
+header h1{font-family:var(--display);font-size:clamp(24px,5vw,48px);color:#fff;line-height:1.1;text-shadow:0 2px 20px rgba(0,0,0,.3);margin-bottom:8px}
+header h1 span{color:#00e5ff}
+.hsub{font-family:var(--mono);color:rgba(200,230,255,.8);font-size:13px;letter-spacing:.05em;margin-bottom:24px}
+.hnav{display:flex;flex-wrap:wrap;gap:8px}
+.nb{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:rgba(200,235,255,.9);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:7px 16px;cursor:pointer;border-radius:2px;transition:all .2s;text-transform:uppercase}
+.nb:hover,.nb.active{background:rgba(0,229,255,.15);border-color:#00e5ff;color:#00e5ff;box-shadow:0 0 12px rgba(0,229,255,.2)}
+.sch-deco{position:absolute;right:28px;top:50%;transform:translateY(-50%);opacity:.18;pointer-events:none}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 64px}
+.sec{display:none;animation:fi .4s ease}.sec.visible{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.stitle{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.sbadge{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;background:var(--accent);color:#fff;padding:4px 10px;border-radius:2px}
+.stitle h2{font-family:var(--display);font-size:22px;color:var(--accent3);letter-spacing:.03em}
+.sline{flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:4px;box-shadow:var(--shadow);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent2)}
+.card.green::before{background:var(--green)}.card.purple::before{background:var(--purple)}
+.card.orange::before{background:var(--orange)}.card.teal::before{background:var(--teal)}
+.card.red::before{background:var(--red)}
+.ctitle{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ctitle::before{content:'';display:inline-block;width:6px;height:6px;background:var(--accent2);border-radius:50%;box-shadow:0 0 6px var(--accent2)}
+.ctitle.g::before{background:var(--green);box-shadow:0 0 6px var(--green)}
+.ctitle.o::before{background:var(--orange);box-shadow:0 0 6px var(--orange)}
+.ctitle.p::before{background:var(--purple);box-shadow:0 0 6px var(--purple)}
+.ctitle.t::before{background:var(--teal);box-shadow:0 0 6px var(--teal)}
+.ctitle.r::before{background:var(--red);box-shadow:0 0 6px var(--red)}
+.card p{font-size:15px;line-height:1.75;color:var(--text2)}
+.card h3{font-family:var(--sans);font-weight:700;font-size:16px;color:var(--text);margin:16px 0 8px}
+.card h3:first-child{margin-top:0}
+.tc{background:var(--surface);border:1px solid var(--border);border-radius:4px;box-shadow:var(--shadow);margin-bottom:28px;overflow:hidden}
+.th{padding:14px 20px;display:flex;align-items:center;gap:14px}
+.th.blue{background:linear-gradient(90deg,#0052a3,#0a7fc4)}.th.green{background:linear-gradient(90deg,#065f46,#059669)}
+.th.orange{background:linear-gradient(90deg,#92400e,#d97706)}.th.purple{background:linear-gradient(90deg,#5b21b6,#7c3aed)}
+.th.red{background:linear-gradient(90deg,#7f1d1d,#dc2626)}.th.teal{background:linear-gradient(90deg,#134e4a,#0d9488)}
+.tnum{font-family:var(--mono);font-size:22px;font-weight:700;color:rgba(255,255,255,.3)}
+.tlabel{font-family:var(--mono);font-size:10px;letter-spacing:.15em;color:rgba(200,230,255,.7);text-transform:uppercase;margin-bottom:2px}
+.ttitle{font-family:var(--display);font-size:16px;color:#fff;letter-spacing:.03em}
+.tbody{padding:20px}
+.mats{background:var(--bg2);border:1px dashed var(--border2);border-radius:3px;padding:14px 18px;margin-bottom:16px}
+.mats-t{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.ml{display:flex;flex-wrap:wrap;gap:6px}
+.mc{background:var(--surface);border:1px solid var(--border2);border-radius:2px;padding:4px 10px;font-family:var(--mono);font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.mc::before{content:'⬡';color:var(--accent2);font-size:9px}
+.sl{list-style:none}
+.sl li{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--bg3);font-size:14.5px;color:var(--text2);line-height:1.6;align-items:flex-start}
+.sl li:last-child{border-bottom:none}
+.sn{font-family:var(--mono);font-size:11px;color:#fff;background:var(--accent);min-width:24px;height:24px;border-radius:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.sn.g{background:var(--green)}.sn.o{background:var(--orange)}.sn.p{background:var(--purple)}.sn.t{background:var(--teal)}.sn.r{background:var(--red)}
+.cb{background:#0d1f33;border:1px solid #1a4a6a;border-radius:4px;margin:16px 0;overflow:hidden}
+.ch{background:#0a1827;border-bottom:1px solid #1a4a6a;padding:8px 16px;display:flex;align-items:center;justify-content:space-between}
+.chl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#4a9aba;text-transform:uppercase}
+.dots{display:flex;gap:5px}.dot{width:8px;height:8px;border-radius:50%}
+.dot:nth-child(1){background:#c0392b}.dot:nth-child(2){background:#e07b00}.dot:nth-child(3){background:#0b9e5f}
+.cp{padding:18px 20px;font-family:var(--mono);font-size:12px;line-height:1.8;color:#c8dff0;overflow-x:auto;white-space:pre}
+.cm{color:#6a8f5a}.ck{color:#569cd6}.cf{color:#dcdcaa}.cn{color:#b5cea8}.cs{color:#ce9178}.cd{color:#c586c0}.ct{color:#4ec9b0}
+.circ{background:#f7fbff;border:1px solid var(--border);border-radius:4px;padding:20px;margin:16px 0;text-align:center}
+.circt{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);margin-bottom:14px}
+.st{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:12px}
+.st th{background:linear-gradient(90deg,var(--accent3),var(--accent));color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:9px 14px;text-align:left}
+.st td{padding:8px 14px;border-bottom:1px solid var(--bg3);color:var(--text2);font-family:var(--mono);font-size:12.5px}
+.st tr:nth-child(even) td{background:var(--bg2)}.st tr:hover td{background:#e0effa}
+.st td:first-child{color:var(--accent3);font-weight:600}
+.hbox{background:linear-gradient(90deg,rgba(0,180,220,.06),rgba(0,180,220,.02));border-left:3px solid var(--accent2);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.tip{background:linear-gradient(90deg,rgba(11,158,95,.07),rgba(11,158,95,.02));border-left:3px solid var(--green);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.tip::before{content:'💡 '}
+.warn{background:linear-gradient(90deg,rgba(192,57,43,.07),rgba(192,57,43,.02));border-left:3px solid var(--red);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.warn::before{content:'⚠ ';color:var(--red)}
+.info{background:linear-gradient(90deg,rgba(124,58,237,.07),rgba(124,58,237,.02));border-left:3px solid var(--purple);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.info::before{content:'🔬 '}
+.star{background:linear-gradient(90deg,rgba(201,150,10,.07),rgba(201,150,10,.02));border-left:3px solid var(--yellow);padding:12px 16px;margin:12px 0;border-radius:0 3px 3px 0;font-size:14px;color:var(--text2);line-height:1.7}
+.star::before{content:'⭐ Завдання на «зірочку»: ';font-weight:700;color:var(--yellow)}
+.acc{margin-bottom:10px}
+.ah{background:var(--surface2);border:1px solid var(--border);padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-radius:3px;transition:all .2s;font-size:14px;font-weight:600;color:var(--text)}
+.ah:hover{border-color:var(--accent2);background:#e8f4fb}
+.ah.open{background:#e0effa;border-color:var(--accent);border-radius:3px 3px 0 0}
+.ai{font-family:var(--mono);font-size:16px;color:var(--accent);transition:transform .2s}
+.ah.open .ai{transform:rotate(45deg)}
+.ab{display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 3px 3px;padding:16px;font-size:14px;color:var(--text2);line-height:1.7}
+.ab.open{display:block}
+/* SIMULATIONS */
+.sim{background:#0d1f33;border:1px solid #1a4a6a;border-radius:4px;padding:24px;margin:16px 0}
+.simt{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#00b4d8;margin-bottom:16px}
+.simctrl{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.sbtn{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 18px;border:1px solid;border-radius:2px;cursor:pointer;transition:all .2s;user-select:none}
+.sbtn.run{background:rgba(11,158,95,.15);border-color:#0b9e5f;color:#4ade80}.sbtn.run:hover{background:rgba(11,158,95,.3)}
+.sbtn.stop{background:rgba(192,57,43,.15);border-color:#c0392b;color:#fc8181}.sbtn.stop:hover{background:rgba(192,57,43,.3)}
+.sbtn.reset{background:rgba(10,127,196,.15);border-color:#0a7fc4;color:#90cdf4}.sbtn.reset:hover{background:rgba(10,127,196,.3)}
+.sbtn.game{background:rgba(201,150,10,.15);border-color:#c9960a;color:#fbbf24}.sbtn.game:hover{background:rgba(201,150,10,.3)}
+.slog{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:3px;padding:12px;font-family:var(--mono);font-size:11px;color:#4ade80;height:120px;overflow-y:auto;flex:1;min-width:160px}
+.ll{margin-bottom:3px;color:#a8d8f0}.ll.ok{color:#4ade80}.ll.warn{color:#f6ad55}.ll.info{color:#63b3ed}
+.sstat{font-family:var(--mono);font-size:11px;color:#718096;margin-top:10px}
+.sstat.run{color:#4ade80}
+/* LED BAR */
+.led-bar{display:flex;gap:5px;align-items:flex-end}
+.led-seg{width:28px;height:36px;border-radius:3px 3px 0 0;background:#1a1a1a;border:1px solid rgba(255,255,255,.08);transition:all .15s;position:relative;flex-shrink:0}
+.led-seg.on-r{background:#dc2626;box-shadow:0 0 12px rgba(220,38,38,.8),0 -4px 16px rgba(220,38,38,.4);border-color:#f87171}
+.led-seg.on-g{background:#16a34a;box-shadow:0 0 12px rgba(22,163,74,.8);border-color:#4ade80}
+.led-seg.on-y{background:#ca8a04;box-shadow:0 0 12px rgba(202,138,4,.8);border-color:#fbbf24}
+.led-seg.on-b{background:#2563eb;box-shadow:0 0 12px rgba(37,99,235,.8);border-color:#60a5fa}
+.led-seg.on-w{background:#e2e8f0;box-shadow:0 0 12px rgba(226,232,240,.8);border-color:#fff}
+.led-seg.rainbow0{background:#f00}.led-seg.rainbow1{background:#f80}.led-seg.rainbow2{background:#ff0}
+.led-seg.rainbow3{background:#0f0}.led-seg.rainbow4{background:#0ff}.led-seg.rainbow5{background:#00f}
+.led-seg.rainbow6{background:#80f}.led-seg.rainbow7{background:#f0f}.led-seg.rainbow8{background:#f08}.led-seg.rainbow9{background:#f04}
+.led-pin{font-family:var(--mono);font-size:9px;color:#4a9aba;text-align:center;margin-top:3px}
+/* ADC BAR */
+.adc-bar{height:10px;background:#0a1827;border:1px solid #1a4a6a;border-radius:2px;overflow:hidden}
+.adc-fill{height:100%;transition:width .2s;background:linear-gradient(90deg,#0052a3,#00b4d8)}
+/* ARRAY VISUALIZER */
+.arr-vis{display:flex;gap:3px;flex-wrap:wrap;margin:10px 0}
+.arr-cell{min-width:40px;height:44px;background:#0a1827;border:1px solid #1a4a6a;border-radius:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;transition:all .25s}
+.arr-cell.active{background:#0a7fc4;border-color:#00e5ff;box-shadow:0 0 10px rgba(0,180,220,.4)}
+.arr-cell .idx{font-size:9px;color:#4a9aba;margin-bottom:2px}
+.arr-cell .val{color:#00e5ff;font-size:12px}
+.arr-cell.active .val{color:#fff}
+/* GAME */
+.game-status{font-family:var(--display);font-size:20px;text-align:center;padding:8px;border-radius:3px;margin-top:8px;transition:all .3s}
+.game-status.win{background:rgba(11,158,95,.2);color:#4ade80;border:1px solid var(--green)}
+.game-status.lose{background:rgba(192,57,43,.2);color:#fc8181;border:1px solid var(--red)}
+.game-status.idle{color:#718096}
+/* QUIZ */
+.qcard{background:var(--surface);border:1px solid var(--border);border-radius:4px;box-shadow:var(--shadow);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.qcard::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--orange)}
+.qqn{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+.qqt{font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px;line-height:1.5}
+.qopts{display:flex;flex-direction:column;gap:8px}
+.qopt{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:3px;cursor:pointer;transition:all .2s;font-size:14px;color:var(--text2);background:var(--surface2);user-select:none}
+.qopt:hover{border-color:var(--accent2);background:#e8f4fb}
+.qopt.correct{background:#e6f7ef;border-color:var(--green);color:var(--green)}
+.qopt.wrong{background:#fde8e8;border-color:var(--red);color:var(--red)}
+.qopt.disabled{pointer-events:none}
+.qr{width:14px;height:14px;border:2px solid var(--border2);border-radius:50%;flex-shrink:0}
+.qopt.correct .qr{background:var(--green);border-color:var(--green)}.qopt.wrong .qr{background:var(--red);border-color:var(--red)}
+.qfb{margin-top:10px;font-size:13px;padding:8px 12px;border-radius:3px;display:none;font-family:var(--mono)}
+.qfb.show{display:block}.qfb.ok{background:#e6f7ef;color:var(--green)}.qfb.err{background:#fde8e8;color:var(--red)}
+.qscore{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 24px;margin-top:24px;display:flex;align-items:center;gap:20px;box-shadow:var(--shadow)}
+.scn{font-family:var(--display);font-size:40px;color:var(--accent);line-height:1}
+.scl{font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.scbw{flex:1}.scb{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:8px}
+.scbf{height:100%;background:linear-gradient(90deg,var(--accent2),var(--green));border-radius:4px;transition:width .8s}
+.qreset{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:2px;cursor:pointer}
+.qreset:hover{background:var(--accent3)}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:16px}
+.rc{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:18px;box-shadow:var(--shadow)}
+.rct{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.rct::before{content:'#';color:var(--accent2);font-size:14px}
+.ri{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px dashed var(--bg3);font-size:13px}
+.ri:last-child{border-bottom:none}
+.rk{color:var(--text2);font-family:var(--mono);font-size:12px}.rv{color:var(--accent3);font-family:var(--mono);font-size:12px;font-weight:600}
+ul.ul{padding-left:0;list-style:none}
+ul.ul li{padding:5px 0 5px 18px;position:relative;font-size:14px;color:var(--text2);line-height:1.6}
+ul.ul li::before{content:'▸';position:absolute;left:0;color:var(--accent2);font-size:11px;top:7px}
+.tag{display:inline-block;background:var(--bg3);border:1px solid var(--border2);border-radius:2px;padding:1px 7px;font-family:var(--mono);font-size:11px;color:var(--accent3);margin:2px}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--accent2)}
+@media(max-width:640px){.hi{padding:24px 16px 20px}main{padding:20px 12px 48px}.cp{font-size:11px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hi">
+    <div class="hchip">PUET · STEAM-HUB · Тема 10-11 + Практична робота №10-11</div>
+    <h1>Масиви <span>&amp; LED-шкала</span></h1>
+    <p class="hsub">// Масиви · Біжучий вогник · Потенціометр-шкала · Термометр · Гра на реакцію</p>
+    <nav class="hnav">
+      <button class="nb active" onclick="showSec('theory')">① Теорія</button>
+      <button class="nb" onclick="showSec('practice')">② Практика</button>
+      <button class="nb" onclick="showSec('simulation')">③ Симуляція</button>
+      <button class="nb" onclick="showSec('quiz')">④ Контроль</button>
+      <button class="nb" onclick="showSec('reference')">⑤ Довідник</button>
+    </nav>
+  </div>
+  <!-- Array visualization deco -->
+  <svg class="sch-deco" width="220" height="120" viewBox="0 0 220 120">
+    <g transform="translate(10,30)">
+      <rect x="0" y="0" width="30" height="36" rx="2" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+      <text x="15" y="14" text-anchor="middle" font-size="7" fill="rgba(255,255,255,.4)" font-family="monospace">[0]</text>
+      <text x="15" y="26" text-anchor="middle" font-size="9" fill="#00e5ff" font-family="monospace">2</text>
+      <rect x="34" y="0" width="30" height="36" rx="2" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+      <text x="49" y="14" text-anchor="middle" font-size="7" fill="rgba(255,255,255,.4)" font-family="monospace">[1]</text>
+      <text x="49" y="26" text-anchor="middle" font-size="9" fill="#00e5ff" font-family="monospace">3</text>
+      <rect x="68" y="0" width="30" height="36" rx="2" fill="rgba(0,229,255,.15)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="83" y="14" text-anchor="middle" font-size="7" fill="#00e5ff" font-family="monospace">[2]</text>
+      <text x="83" y="26" text-anchor="middle" font-size="10" fill="#fff" font-family="monospace">5</text>
+      <rect x="102" y="0" width="30" height="36" rx="2" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+      <text x="117" y="14" text-anchor="middle" font-size="7" fill="rgba(255,255,255,.4)" font-family="monospace">[3]</text>
+      <text x="117" y="26" text-anchor="middle" font-size="9" fill="#00e5ff" font-family="monospace">7</text>
+      <rect x="136" y="0" width="30" height="36" rx="2" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+      <text x="151" y="14" text-anchor="middle" font-size="7" fill="rgba(255,255,255,.4)" font-family="monospace">[4]</text>
+      <text x="151" y="26" text-anchor="middle" font-size="9" fill="#00e5ff" font-family="monospace">9</text>
+      <text x="0" y="56" font-size="8" fill="rgba(255,255,255,.5)" font-family="monospace">int ledPins[] = {2,3,5,7,9};</text>
+      <text x="0" y="70" font-size="8" fill="rgba(255,255,255,.3)" font-family="monospace">ledPins[2]  →  5</text>
+    </g>
+  </svg>
+</header>
+<main>
+
+<!-- ═══════════ THEORY ═══════════ -->
+<section class="sec visible" id="sec-theory">
+  <div class="stitle"><span class="sbadge">01</span><h2>Теоретичний матеріал — Масиви</h2><div class="sline"></div></div>
+
+  <!-- Array basics -->
+  <div class="card">
+    <div class="ctitle">Що таке масив?</div>
+    <p>Масив — це <strong>набір змінних одного типу</strong>, які звуться одним іменем і мають власні <strong>порядкові номери (індекси)</strong>. Уявіть ящик з пронумерованими клітинками — кожна зберігає одне значення.</p>
+    <div style="margin:16px 0">
+      <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:6px;letter-spacing:.08em">МАСИВ ledPins[5] у пам'яті:</div>
+      <div class="arr-vis" id="theoryArrVis"></div>
+      <div style="font-family:var(--mono);font-size:11px;color:#718096;margin-top:4px">Нумерація ЗАВЖДИ починається з нуля! Перший елемент = [0], останній = [N-1]</div>
+    </div>
+    <h3>Оголошення масивів — три способи</h3>
+    <div class="cb"><div class="ch"><span class="chl">Оголошення масивів</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+    <div class="cp"><span class="cm">// Спосіб 1: вказуємо розмір, значення порожні (=0 для глобальних)</span>
+<span class="ct">int</span> myInts[<span class="cn">6</span>];
+
+<span class="cm">// Спосіб 2: компілятор рахує розмір самостійно</span>
+<span class="ct">int</span> myPins[] = {<span class="cn">2</span>, <span class="cn">4</span>, <span class="cn">8</span>, <span class="cn">3</span>, <span class="cn">6</span>};   <span class="cm">// розмір = 5</span>
+
+<span class="cm">// Спосіб 3: і розмір і значення (розмір >= кількості елементів)</span>
+<span class="ct">float</span> Sens[<span class="cn">3</span>] = {<span class="cn">0.2</span>, <span class="cn">0.4</span>, <span class="cn">-8.5</span>};
+
+<span class="cm">// Символьний масив (рядок)</span>
+<span class="ct">char</span> message[<span class="cn">6</span>] = <span class="cs">"hello"</span>;         <span class="cm">// 5 символів + \0</span></div></div>
+
+    <div class="acc"><div class="ah" onclick="toggleAcc(this)"><span>⚙ Розмір масиву: константа vs змінна — важлива різниця</span><span class="ai">+</span></div>
+    <div class="ab">
+      <div class="cb"><div class="ch"><span class="chl">Глобальний vs Локальний масив</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+      <div class="cp"><span class="cm">// ─── ГЛОБАЛЬНІ масиви (поза функціями) ─────────────────</span>
+<span class="cd">#define</span>  arr1_size <span class="cn">10</span>  <span class="cm">// ✓ #define — константа</span>
+<span class="ck">const</span> <span class="ct">byte</span> arr2_size = <span class="cn">20</span>; <span class="cm">// ✓ const — константа</span>
+<span class="ct">byte</span>       arr3_size = <span class="cn">30</span>; <span class="cm">// ✗ звичайна змінна</span>
+
+<span class="ct">int</span> arr0[<span class="cn">5</span>];                <span class="cm">// ✓ literal число</span>
+<span class="ct">int</span> arr1[arr1_size];        <span class="cm">// ✓</span>
+<span class="ct">int</span> arr2[arr2_size];        <span class="cm">// ✓</span>
+<span class="cm">//int arr3[arr3_size];       // ✗ ПОМИЛКА! Глобальний розмір = константа</span>
+
+<span class="cm">// ─── ЛОКАЛЬНІ масиви (всередині функцій) ────────────────</span>
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="ct">byte</span> localSize = <span class="cn">10</span>;      <span class="cm">// ✓ локально — змінна OK!</span>
+  <span class="ct">int</span>  arrLocal[localSize];  <span class="cm">// ✓ динамічна пам'ять</span>
+}</div></div>
+      <div class="tip">Глобальні масиви виділяються до запуску програми → розмір повинен бути відомим заздалегідь → тільки константи. Локальні масиви — динамічні → можна змінну.</div>
+    </div></div>
+
+    <h3>Звернення до елементів масиву</h3>
+    <div class="cb"><div class="ch"><span class="chl">Читання та запис елементів</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+    <div class="cp"><span class="ct">int</span> myPins[] = {<span class="cn">2</span>, <span class="cn">4</span>, <span class="cn">8</span>, <span class="cn">3</span>, <span class="cn">6</span>};
+
+<span class="cm">// Читання: myPins[0] = 2, myPins[4] = 6</span>
+<span class="cf">pinMode</span>(myPins[<span class="cn">0</span>], OUTPUT);  <span class="cm">// pinMode(2, OUTPUT)</span>
+<span class="cf">pinMode</span>(myPins[<span class="cn">4</span>], OUTPUT);  <span class="cm">// pinMode(6, OUTPUT)</span>
+
+<span class="cm">// Запис: myPins[2] = 7; — змінюємо значення</span>
+myPins[<span class="cn">3</span>] = myPins[<span class="cn">0</span>];     <span class="cm">// myPins[3] = 2</span>
+
+<span class="cm">// Масив + for = потужна комбінація!</span>
+<span class="ck">for</span> (<span class="ct">int</span> i = <span class="cn">0</span>; i &lt; <span class="cn">5</span>; i++) {
+  <span class="cf">pinMode</span>(myPins[i], OUTPUT);  <span class="cm">// 5 пінів одним рядком!</span>
+}</div></div>
+
+    <div class="warn"><strong>Небезпека виходу за межі:</strong> якщо масив має 5 елементів (індекси 0–4), звернення до myPins[5] або myPins[-1] викличе непередбачувану поведінку. Arduino не генерує помилку, а читає/пише випадкову комірку пам'яті!</div>
+  </div>
+
+  <!-- Array + for pattern -->
+  <div class="card green">
+    <div class="ctitle g">Масив + for = класичний шаблон Arduino</div>
+    <p>Найпоширеніший патерн: масив пінів + цикл for для одночасного налаштування або керування групою LED.</p>
+    <div class="cb"><div class="ch"><span class="chl">Патерн: масив пінів LED + for</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+    <div class="cp"><span class="ck">const</span> <span class="ct">int</span> ledPins[<span class="cn">10</span>] = {<span class="cn">2</span>,<span class="cn">3</span>,<span class="cn">4</span>,<span class="cn">5</span>,<span class="cn">6</span>,<span class="cn">7</span>,<span class="cn">8</span>,<span class="cn">9</span>,<span class="cn">10</span>,<span class="cn">11</span>};
+
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="ck">for</span> (<span class="ct">int</span> i = <span class="cn">0</span>; i &lt; <span class="cn">10</span>; i++) {  <span class="cm">// 10 рядків → 3 рядки!</span>
+    <span class="cf">pinMode</span>(ledPins[i], OUTPUT);
+    <span class="cf">digitalWrite</span>(ledPins[i], LOW);   <span class="cm">// всі вимикаємо</span>
+  }
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ck">for</span> (<span class="ct">int</span> i = <span class="cn">0</span>; i &lt; <span class="cn">10</span>; i++) {
+    <span class="cf">digitalWrite</span>(ledPins[i], HIGH); <span class="cf">delay</span>(<span class="cn">100</span>);
+    <span class="cf">digitalWrite</span>(ledPins[i], LOW);
+  }
+}</div></div>
+    <div class="hbox"><strong>Переваги масиву перед окремими змінними:</strong><br>
+      ✓ Менше коду (10 пінів ≠ 10 змінних pin0..pin9)<br>
+      ✓ Легко змінити порядок — лише в одному місці<br>
+      ✓ Можна використовувати довільний порядок пінів: <span class="tag">{5,3,8,2,11,...}</span>
+    </div>
+  </div>
+
+  <!-- constrain -->
+  <div class="card teal">
+    <div class="ctitle t">constrain() — обмеження значення</div>
+    <p>Функція <strong>constrain(x, a, b)</strong> повертає x, якщо він у межах [a, b]. Якщо менший — повертає a. Якщо більший — повертає b. Ідеальна для захисту від виходу за межі масиву.</p>
+    <div class="cb"><div class="ch"><span class="chl">constrain() — синтаксис та приклади</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+    <div class="cp"><span class="cm">// constrain(значення, мінімум, максимум)</span>
+<span class="ct">int</span> x = <span class="cn">15</span>;
+<span class="ct">int</span> safe = <span class="cf">constrain</span>(x, <span class="cn">0</span>, <span class="cn">10</span>); <span class="cm">// safe = 10 (обмежено)</span>
+
+<span class="cm">// Використання з LED-шкалою:</span>
+<span class="ct">int</span> ledLevel = <span class="cf">map</span>(temperature, <span class="cn">20.0</span>, <span class="cn">30.0</span>, <span class="cn">0</span>, <span class="cn">10</span>);
+ledLevel = <span class="cf">constrain</span>(ledLevel, <span class="cn">0</span>, <span class="cn">10</span>); <span class="cm">// захист від -1 і 11</span></div></div>
+  </div>
+</section>
+
+<!-- ═══════════ PRACTICE ═══════════ -->
+<section class="sec" id="sec-practice">
+  <div class="stitle"><span class="sbadge">02</span><h2>Практичні завдання</h2><div class="sline"></div></div>
+
+  <!-- TASK 1: RUNNING LIGHT -->
+  <div class="tc">
+    <div class="th blue">
+      <div class="tnum">01</div>
+      <div><div class="tlabel">Project 9-3 · for · 10 LED · Новорічний декор</div>
+        <div class="ttitle">Біжучий вогник — ланцюгове свічення LED</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        Десять різнокольорових LED послідовно вмикаються один за одним через цикл <code>for</code>, де параметром є <strong>номер піна</strong>. Потім так само послідовно вимикаються — ефект новорічної гірлянди.
+      </p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">10 LED (різні кольори)</div>
+          <div class="mc">10 резисторів 220 Ом</div><div class="mc">Макетна плата</div>
+          <div class="mc">12 дротів «тато-тато»</div>
+        </div>
+      </div>
+      <div class="circ">
+        <div class="circt">// Принципова схема · 10 LED · піни D2–D11</div>
+        <svg viewBox="0 0 520 140" width="100%" style="max-width:520px">
+          <rect x="10" y="15" width="75" height="110" rx="3" fill="#e8f4fb" stroke="#0a7fc4" stroke-width="1.5"/>
+          <text x="47" y="38" text-anchor="middle" font-size="9" fill="#0a3d6b" font-weight="bold">Arduino</text>
+          <text x="47" y="50" text-anchor="middle" font-size="8" fill="#0a7fc4">D2–D11</text>
+          <text x="47" y="65" text-anchor="middle" font-size="7" fill="#3a5068">OUTPUT</text>
+          <text x="85" y="118" font-size="8" fill="#2c3e50">GND</text>
+          <line x1="85" y1="120" x2="510" y2="120" stroke="#2c3e50" stroke-width="1.5"/>
+          <!-- 10 LEDs -->
+          <script type="text/plain" id="ledPositions">40,55,70,85,100,115,130,145,160,175</script>
+          <!-- LEDs at x positions starting 100 -->
+          <g id="ledGroup10">
+          <!-- LED 1 -->
+          <line x1="85" y1="35" x2="100" y2="35" stroke="#f87171" stroke-width="1.3"/>
+          <rect x="100" y="28" width="18" height="14" rx="2" fill="#fff9e0" stroke="#c9960a" stroke-width="1"/>
+          <line x1="118" y1="35" x2="130" y2="35" stroke="#f87171" stroke-width="1.3"/>
+          <polygon points="130,29 130,41 142,35" fill="#fef2f2" stroke="#f87171" stroke-width="1.2"/>
+          <line x1="142" y1="29" x2="142" y2="41" stroke="#f87171" stroke-width="1.5"/>
+          <line x1="142" y1="35" x2="150" y2="35" stroke="#f87171" stroke-width="1.3"/>
+          <line x1="150" y1="35" x2="150" y2="120" stroke="#2c3e50" stroke-width="1.2"/>
+          <!-- LED 2 - 10 repeated pattern (abbreviated) -->
+          <line x1="85" y1="50" x2="165" y2="50" stroke="#f97316" stroke-width="1.3"/>
+          <polygon points="168,44 168,56 180,50" fill="#fff7ed" stroke="#f97316" stroke-width="1.2"/>
+          <line x1="180" y1="44" x2="180" y2="56" stroke="#f97316" stroke-width="1.5"/>
+          <line x1="180" y1="50" x2="188" y2="50" stroke="#f97316" stroke-width="1.3"/><line x1="188" y1="50" x2="188" y2="120" stroke="#2c3e50" stroke-width="1.2"/>
+          <line x1="85" y1="65" x2="200" y2="65" stroke="#fbbf24" stroke-width="1.3"/><polygon points="203,59 203,71 215,65" fill="#fffbeb" stroke="#fbbf24" stroke-width="1.2"/>
+          <line x1="215" y1="59" x2="215" y2="71" stroke="#fbbf24" stroke-width="1.5"/><line x1="215" y1="65" x2="223" y2="65" stroke="#fbbf24" stroke-width="1.3"/><line x1="223" y1="65" x2="223" y2="120" stroke="#2c3e50" stroke-width="1.2"/>
+          <line x1="85" y1="80" x2="238" y2="80" stroke="#4ade80" stroke-width="1.3"/><polygon points="241,74 241,86 253,80" fill="#f0fdf4" stroke="#4ade80" stroke-width="1.2"/>
+          <line x1="253" y1="74" x2="253" y2="86" stroke="#4ade80" stroke-width="1.5"/><line x1="253" y1="80" x2="261" y2="80" stroke="#4ade80" stroke-width="1.3"/><line x1="261" y1="80" x2="261" y2="120" stroke="#2c3e50" stroke-width="1.2"/>
+          <line x1="85" y1="95" x2="276" y2="95" stroke="#60a5fa" stroke-width="1.3"/><polygon points="279,89 279,101 291,95" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.2"/>
+          <line x1="291" y1="89" x2="291" y2="101" stroke="#60a5fa" stroke-width="1.5"/><line x1="291" y1="95" x2="299" y2="95" stroke="#60a5fa" stroke-width="1.3"/><line x1="299" y1="95" x2="299" y2="120" stroke="#2c3e50" stroke-width="1.2"/>
+          <!-- 5 more abbreviated -->
+          <line x1="85" y1="108" x2="314" y2="108" stroke="#a78bfa" stroke-width="1.3"/><polygon points="317,102 317,114 329,108" fill="#f5f3ff" stroke="#a78bfa" stroke-width="1.2"/>
+          <line x1="329" y1="102" x2="329" y2="114" stroke="#a78bfa" stroke-width="1.5"/><line x1="329" y1="108" x2="337" y2="108" stroke="#a78bfa" stroke-width="1.3"/><line x1="337" y1="108" x2="337" y2="120" stroke="#2c3e50" stroke-width="1.2"/>
+          </g>
+          <!-- Labels -->
+          <text x="100" y="27" font-size="7" fill="#c9960a">220Ω</text>
+          <text x="10" y="135" font-size="8" fill="#718096">Кожен LED: Анод→220Ом→пін (D2..D11) · Катод→GND · Різні кольори — різні піни</text>
+        </svg>
+      </div>
+      <div class="hbox"><strong>Ключова ідея Лістингу 9-3:</strong> замість 10 рядків <code>digitalWrite(2, HIGH)</code> ... <code>digitalWrite(11, HIGH)</code> — один цикл <code>for(int pin=2; pin&lt;=11; pin++)</code>. Номер піна є одночасно лічильником циклу!</div>
+      <ul class="sl">
+        <li><div class="sn">1</div><div>Підключіть 10 LED через резистори 220 Ом до пінів D2–D11. Всі катоди — до GND.</div></li>
+        <li><div class="sn">2</div><div>Введіть Лістинг 9-3. Зверніть увагу: в <code>setup()</code> 10 рядків <code>pinMode()</code>. Спробуйте переписати їх одним циклом <code>for(int pin=2; pin&lt;=11; pin++) pinMode(pin, OUTPUT);</code></div></li>
+        <li><div class="sn">3</div><div>Завантажте. LED послідовно вмикаються (D2→D11), потім так само послідовно вимикаються. Змініть <code>delay(300)</code> на <code>delay(100)</code> для прискорення.</div></li>
+      </ul>
+      <div class="cb">
+        <div class="ch"><span class="chl">Лістинг 9-3 · Біжучий вогник</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="cf">pinMode</span>(<span class="cn">2</span>, OUTPUT); <span class="cf">pinMode</span>(<span class="cn">3</span>, OUTPUT); <span class="cf">pinMode</span>(<span class="cn">4</span>, OUTPUT);
+  <span class="cf">pinMode</span>(<span class="cn">5</span>, OUTPUT); <span class="cf">pinMode</span>(<span class="cn">6</span>, OUTPUT); <span class="cf">pinMode</span>(<span class="cn">7</span>, OUTPUT);
+  <span class="cf">pinMode</span>(<span class="cn">8</span>, OUTPUT); <span class="cf">pinMode</span>(<span class="cn">9</span>, OUTPUT); <span class="cf">pinMode</span>(<span class="cn">10</span>, OUTPUT);
+  <span class="cf">pinMode</span>(<span class="cn">11</span>, OUTPUT);
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="cm">// Вмикаємо поступово D2 → D11</span>
+  <span class="ck">for</span> (<span class="ct">int</span> pin = <span class="cn">2</span>; pin &lt;= <span class="cn">11</span>; pin++) {
+    <span class="cf">digitalWrite</span>(pin, HIGH);
+    <span class="cf">delay</span>(<span class="cn">300</span>);
+  }
+  <span class="cm">// Вимикаємо поступово D2 → D11</span>
+  <span class="ck">for</span> (<span class="ct">int</span> pin = <span class="cn">2</span>; pin &lt;= <span class="cn">11</span>; pin++) {
+    <span class="cf">digitalWrite</span>(pin, LOW);
+    <span class="cf">delay</span>(<span class="cn">300</span>);
+  }
+}</div>
+      </div>
+      <div class="tip">Вдосконалення: спочатку вмикайте LED не вимикаючи попередній — ефект заповнення. Або запускайте зворотній цикл <code>for(pin=11; pin>=2; pin--)</code> для ефекту відбиття.</div>
+    </div>
+  </div>
+
+  <!-- TASK 2: POT SCALE -->
+  <div class="tc">
+    <div class="th orange">
+      <div class="tnum">02</div>
+      <div><div class="tlabel">Project 9-4 · analogRead · 8 LED · Потенціометр</div>
+        <div class="ttitle">Шкала LED — рівень від потенціометра</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        8 LED утворюють аналогову шкалу. Значення потенціометра (A0, 0–1023) ділиться на 113, отримуємо 0–9 — кількість засвічених LED. Керування без масиву — через арифметику адрес пінів.
+      </p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">8 LED різних кольорів</div>
+          <div class="mc">8 резисторів 220 Ом</div>
+          <div class="mc">Потенціометр 10 кОм</div>
+          <div class="mc">Макетна плата + дроти</div>
+        </div>
+      </div>
+      <div class="hbox"><strong>Ключова логіка:</strong> <code>value_pot = value_pot / 113</code> — ділення 1023/113 ≈ 9.05 → 0–9 рівнів. Потім <code>if(port_current_num &lt; value_pot)</code> вмикає LED, якщо поточна позиція нижча рівня.</div>
+      <ul class="sl">
+        <li><div class="sn o">1</div><div>Підключіть 8 LED через 220 Ом до D2–D9. Потенціометр: ліва→GND, права→5V, середня→A0.</div></li>
+        <li><div class="sn o">2</div><div>Введіть Лістинг 9-4. Зверніть увагу: замість масиву — трюк з <code>port_led_line0 + port_current_num</code>. Адреса пінів йде підряд (D2,D3,...), тому додавання = наступний пін.</div></li>
+        <li><div class="sn o">3</div><div>Завантажте і повертайте потенціометр. Шкала наповнюється при повороті вправо.</div></li>
+      </ul>
+      <div class="cb">
+        <div class="ch"><span class="chl">Лістинг 9-4 · Шкала LED (потенціометр)</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">const</span> <span class="ct">byte</span> port_led_line0 = <span class="cn">2</span>; <span class="cm">// базовий пін шкали</span>
+<span class="ck">const</span> <span class="ct">byte</span> port_pot = A0;
+<span class="ct">int</span> port_current_num = <span class="cn">0</span>;
+
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="ck">for</span>(<span class="ct">int</span> i=<span class="cn">0</span>; i&lt;<span class="cn">8</span>; i++) <span class="cf">pinMode</span>(port_led_line0+i, OUTPUT);
+  <span class="cf">pinMode</span>(port_pot, INPUT);
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ct">int</span> value_pot = <span class="cf">analogRead</span>(port_pot);
+  value_pot = value_pot / <span class="cn">113</span>; <span class="cm">// 0-1023 → 0-9</span>
+
+  <span class="ck">if</span> (port_current_num &lt; value_pot)
+    <span class="cf">digitalWrite</span>(port_led_line0 + port_current_num, HIGH);
+  <span class="ck">else</span>
+    <span class="cf">digitalWrite</span>(port_led_line0 + port_current_num, LOW);
+
+  <span class="ck">if</span> (port_current_num == <span class="cn">7</span>) port_current_num = <span class="cn">0</span>;
+  <span class="ck">else</span>                         port_current_num++;
+}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASK 3: 10-SEG SCALE -->
+  <div class="tc">
+    <div class="th teal">
+      <div class="tnum">03</div>
+      <div><div class="tlabel">Project 9-5 · 10-сегментна шкала · map() · Масив пінів</div>
+        <div class="ttitle">10-сегментна LED-шкала з потенціометром</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        Використовуємо спеціальний елемент — <strong>10-сегментну LED-шкалу (Bar Graph)</strong>. Масив <code>pinsled[10]</code> зберігає піни. Значення потенціометра масштабується через <code>map()</code> (0–10), потім цикл <code>for</code> вмикає відповідну кількість сегментів.
+      </p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">10-сегментна LED-шкала</div>
+          <div class="mc">10 резисторів 220 Ом</div>
+          <div class="mc">Потенціометр 2 кОм</div>
+          <div class="mc">6 дротів «тато-тато»</div>
+          <div class="mc">Макетна плата</div>
+        </div>
+      </div>
+      <div class="hbox"><strong>Перевага масиву тут:</strong> піни шкали не обов'язково йдуть підряд — масив <code>pinsled[] = {2,3,4,5,6,7,8,9,10,11}</code> дозволяє вказати будь-який порядок.</div>
+      <ul class="sl">
+        <li><div class="sn t">1</div><div>Підключіть аноди шкали до D3–D12 (кожен через 220 Ом). Катоди — до шини GND. Потенціометр: середня ніжка → A3.</div></li>
+        <li><div class="sn t">2</div><div>Введіть Лістинг 9-5. Функція <code>map(valpot, 0, 1023, 0, 10)</code> конвертує 0–1023 у 0–10 сегментів.</div></li>
+        <li><div class="sn t">3</div><div>Цикл <code>for(int i=0; i&lt;10; i++)</code> перебирає всі сегменти: якщо <code>i &lt; countleds</code> — вмикає, інакше — вимикає.</div></li>
+      </ul>
+      <div class="cb">
+        <div class="ch"><span class="chl">Лістинг 9-5 · 10-сегментна шкала</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">const</span> <span class="ct">int</span> POT = <span class="cn">3</span>;              <span class="cm">// A3 — потенціометр</span>
+<span class="ck">const</span> <span class="ct">int</span> pinsled[<span class="cn">10</span>] = {<span class="cn">2</span>,<span class="cn">3</span>,<span class="cn">4</span>,<span class="cn">5</span>,<span class="cn">6</span>,<span class="cn">7</span>,<span class="cn">8</span>,<span class="cn">9</span>,<span class="cn">10</span>,<span class="cn">11</span>};
+<span class="ct">int</span> countleds = <span class="cn">0</span>;
+
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="ck">for</span>(<span class="ct">int</span> i=<span class="cn">0</span>; i&lt;<span class="cn">10</span>; i++) {
+    <span class="cf">pinMode</span>(pinsled[i], OUTPUT);
+    <span class="cf">digitalWrite</span>(pinsled[i], LOW);
+  }
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ct">int</span> valpot = <span class="cf">analogRead</span>(POT);        <span class="cm">// 0–1023</span>
+  countleds = <span class="cf">map</span>(valpot,<span class="cn">0</span>,<span class="cn">1023</span>,<span class="cn">0</span>,<span class="cn">10</span>);  <span class="cm">// → 0–10</span>
+  <span class="ck">for</span>(<span class="ct">int</span> i=<span class="cn">0</span>; i&lt;<span class="cn">10</span>; i++) {
+    <span class="ck">if</span>(i &lt; countleds) <span class="cf">digitalWrite</span>(pinsled[i], HIGH);
+    <span class="ck">else</span>              <span class="cf">digitalWrite</span>(pinsled[i], LOW);
+  }
+}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASK 4: LIGHT THERMOMETER -->
+  <div class="tc">
+    <div class="th purple">
+      <div class="tnum">04</div>
+      <div><div class="tlabel">Project 9-6 · TMP36 · constrain() · 10-SEG шкала</div>
+        <div class="ttitle">Світловий термометр — температура на LED-шкалі</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        TMP36 вимірює температуру, яка відображається на 10-сегментній шкалі. Налаштований діапазон: 20°C → 1 сегмент, 30°C → 10 сегментів. <code>constrain()</code> захищає від виходу за межі шкали.
+      </p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">Давач TMP36 (або LM35)</div>
+          <div class="mc">10-сегментна LED-шкала</div>
+          <div class="mc">10 резисторів 220 Ом</div>
+          <div class="mc">Макетна плата + дроти</div>
+        </div>
+      </div>
+      <table class="st">
+        <tr><th>Підключення</th><th>TMP36</th><th>LED-шкала</th></tr>
+        <tr><td>Живлення</td><td>Ліва ніжка → 5V</td><td>Аноди → D2–D11 через 220Ом</td></tr>
+        <tr><td>Сигнал</td><td>Середня → A0</td><td>—</td></tr>
+        <tr><td>Земля</td><td>Права → GND</td><td>Катоди → GND</td></tr>
+      </table>
+      <div class="cb">
+        <div class="ch"><span class="chl">Лістинг 9-6 · Світловий термометр</span><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="cp"><span class="ck">const</span> <span class="ct">int</span> sensorPin = A0;
+<span class="ck">const</span> <span class="ct">int</span> ledCount = <span class="cn">10</span>;
+<span class="ct">int</span> ledPins[] = {<span class="cn">2</span>,<span class="cn">3</span>,<span class="cn">4</span>,<span class="cn">5</span>,<span class="cn">6</span>,<span class="cn">7</span>,<span class="cn">8</span>,<span class="cn">9</span>,<span class="cn">10</span>,<span class="cn">11</span>};
+<span class="ck">const</span> <span class="ct">float</span> lowerLimit = <span class="cn">20.0</span>; <span class="cm">// °C → 1 сегмент</span>
+<span class="ck">const</span> <span class="ct">float</span> upperLimit = <span class="cn">30.0</span>; <span class="cm">// °C → 10 сегментів</span>
+
+<span class="ck">void</span> <span class="cf">setup</span>() {
+  <span class="ck">for</span>(<span class="ct">int</span> i=<span class="cn">0</span>; i&lt;ledCount; i++) <span class="cf">pinMode</span>(ledPins[i], OUTPUT);
+  Serial.<span class="cf">begin</span>(<span class="cn">9600</span>);
+}
+<span class="ck">void</span> <span class="cf">loop</span>() {
+  <span class="ct">int</span>   sr  = <span class="cf">analogRead</span>(sensorPin);         <span class="cm">// 0–1023</span>
+  <span class="ct">float</span> v   = sr * (<span class="cn">5.0</span> / <span class="cn">1023.0</span>);           <span class="cm">// → Вольти</span>
+  <span class="ct">float</span> t   = (v - <span class="cn">0.5</span>) * <span class="cn">100</span>;              <span class="cm">// → °C</span>
+  <span class="ct">int</span>   lev = <span class="cf">map</span>(t, lowerLimit, upperLimit, <span class="cn">0</span>, ledCount);
+  lev = <span class="cf">constrain</span>(lev, <span class="cn">0</span>, ledCount);          <span class="cm">// захист!</span>
+  Serial.<span class="cf">print</span>(<span class="cs">"T: "</span>); Serial.<span class="cf">println</span>(t);
+  <span class="ck">for</span>(<span class="ct">int</span> i=<span class="cn">0</span>; i&lt;ledCount; i++) {
+    <span class="ck">if</span>(i &lt; lev) <span class="cf">digitalWrite</span>(ledPins[i], HIGH);
+    <span class="ck">else</span>        <span class="cf">digitalWrite</span>(ledPins[i], LOW);
+  }
+  <span class="cf">delay</span>(<span class="cn">200</span>);
+}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASK 5: REACTION GAME -->
+  <div class="tc">
+    <div class="th red">
+      <div class="tnum">05</div>
+      <div><div class="tlabel">Project 9-7 · millis() · Гра · checkWin()</div>
+        <div class="ttitle">«Перевірка реакції» — інтерактивна гра на LED-шкалі</div></div>
+    </div>
+    <div class="tbody">
+      <p style="margin-bottom:14px;color:var(--text2);font-size:14.5px">
+        Біжучий вогонь по LED-шкалі. Завдання гравця — натиснути кнопку <strong>точно на останньому (10-му) сегменті</strong>. Перемога → шкала блимає + гра прискорюється. Програш → 2 секунди підсвічування помилкового сегмента.
+      </p>
+      <div class="mats">
+        <div class="mats-t">Необхідне обладнання</div>
+        <div class="ml">
+          <div class="mc">Arduino UNO</div><div class="mc">10-сегментна LED-шкала</div>
+          <div class="mc">10 резисторів 220 Ом</div>
+          <div class="mc">Тактова кнопка</div>
+          <div class="mc">Резистор 10 кОм (pull-down)</div>
+          <div class="mc">Макетна плата + дроти</div>
+        </div>
+      </div>
+      <div class="hbox"><strong>Алгоритм перемоги:</strong> <code>checkWin(i)</code> перевіряє <code>if(currentLed == 9)</code> — індекс останнього сегмента. При перемозі — <code>delayTime -= 10</code> (прискорення). Мінімальна швидкість: 20мс → потім скид до 100мс.</div>
+      <table class="st">
+        <tr><th>Підключення</th><th>Пін</th><th>Режим</th></tr>
+        <tr><td>LED-шкала (аноди)</td><td>D2–D11</td><td>OUTPUT</td></tr>
+        <tr><td>Кнопка</td><td>D12</td><td>INPUT</td></tr>
+        <tr><td>Кнопка (pull-down)</td><td>D12 + 10кОм → GND</td><td>—</td></tr>
+      </table>
+      <div class="warn"><strong>Pull-down резистор 10 кОм</strong>: один контакт кнопки → 5V, інший → D12. Між D12 та GND — резистор 10 кОм. Без нього пін «плаває» і викликає хибні спрацювання.</div>
+      <div class="star">Додайте buzzer на D13 — перемога = мелодія (3 ноти), програш = один низький звук.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SIMULATION ═══════════ -->
+<section class="sec" id="sec-simulation">
+  <div class="stitle"><span class="sbadge">03</span><h2>Симуляція роботи проєктів</h2><div class="sline"></div></div>
+
+  <!-- SIM 1: ARRAY VISUALIZER -->
+  <div class="card">
+    <div class="ctitle">Симуляція 1 — Масив пінів: інтерактивний візуалізатор</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · int ledPins[] = {2,3,4,5,6,7,8,9,10,11} · ledPins[i]</div>
+      <div style="margin-bottom:12px;font-family:var(--mono);font-size:12px;color:#c8dff0">
+        <span style="color:#4ec9b0">int</span> ledPins[] = {<span style="color:#b5cea8">2,3,4,5,6,7,8,9,10,11</span>};<br>
+        Клікніть на клітинку щоб звернутись до елементу:
+      </div>
+      <div class="arr-vis" id="arrVis"></div>
+      <div style="font-family:var(--mono);font-size:13px;color:#a8d8f0;margin-top:10px">
+        ledPins[<span id="arrClickIdx" style="color:#00e5ff">─</span>] = <span id="arrClickVal" style="color:#4ade80">─</span>
+        <span style="color:#718096;font-size:11px;margin-left:12px">→ digitalWrite(pin, HIGH)</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="sbtn run" onclick="arrLoopFwd()">▶ for(i=0→9) ітерація</button>
+        <button class="sbtn reset" onclick="arrReset()">↺ Скинути</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIM 2: RUNNING LIGHT -->
+  <div class="card">
+    <div class="ctitle">Симуляція 2 — Біжучий вогник (Project 9-3)</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · for(pin=2;pin&lt;=11;pin++) · 10 LED</div>
+      <div class="simctrl">
+        <button class="sbtn run" onclick="startRunning()">▶ Запустити</button>
+        <button class="sbtn stop" onclick="stopRunning()">■ Зупинити</button>
+        <button class="sbtn reset" onclick="resetRunning()">↺ Скинути</button>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+        <div>
+          <div class="led-bar" id="runBar"></div>
+          <div style="display:flex;gap:5px;margin-top:4px" id="runPinLabels"></div>
+        </div>
+        <div class="slog" id="runLog"><div class="ll info">&gt; for(pin=2;pin&lt;=11;pin++)</div></div>
+      </div>
+      <div class="sstat" id="runStat">● Зупинено</div>
+    </div>
+  </div>
+
+  <!-- SIM 3: POT SCALE -->
+  <div class="card orange">
+    <div class="ctitle o">Симуляція 3 — LED-шкала + Потенціометр (Project 9-5)</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · analogRead → map() → for(i&lt;countleds)</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+        <div style="min-width:180px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:4px">Потенціометр (A0):</div>
+          <input type="range" id="potSlider" min="0" max="1023" value="512" style="width:100%;margin-bottom:8px" oninput="updatePotScale()">
+          <div style="font-family:var(--mono);font-size:11px;color:#a8d8f0">analogRead = <span id="potAdcVal" style="color:#00e5ff">512</span></div>
+          <div style="font-family:var(--mono);font-size:11px;color:#a8d8f0;margin-top:2px">map → countleds = <span id="potLedCount" style="color:#4ade80">5</span></div>
+          <div class="adc-bar" style="margin-top:6px"><div class="adc-fill" id="potAdcFill" style="width:50%"></div></div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:6px">10-сегментна шкала:</div>
+          <div class="led-bar" id="potBar"></div>
+          <div style="display:flex;gap:5px;margin-top:4px" id="potPinLabels"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIM 4: THERMOMETER -->
+  <div class="card purple">
+    <div class="ctitle p">Симуляція 4 — Світловий термометр (Project 9-6)</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · TMP36 → map() → constrain() → LED-шкала</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+        <div style="min-width:180px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:4px">Температура (TMP36):</div>
+          <input type="range" id="tempSlider" min="15" max="35" value="22" step="0.5" style="width:100%;margin-bottom:8px" oninput="updateThermo()">
+          <div style="font-family:var(--mono);font-size:18px;color:#4ade80"><span id="tempCVal">22.0</span>°C</div>
+          <div style="font-family:var(--mono);font-size:11px;color:#718096;margin-top:4px">voltage: <span id="tempVolt">0.720</span> В</div>
+          <div style="font-family:var(--mono);font-size:11px;color:#718096">ledLevel = <span id="tempLedLevel" style="color:#f6ad55">2</span></div>
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-top:8px">Діапазон: 20°C=1 → 30°C=10</div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:6px">LED-шкала (constrain захищає):</div>
+          <div class="led-bar" id="thermoBar"></div>
+          <div style="display:flex;gap:5px;margin-top:4px" id="thermoPinLabels"></div>
+          <div id="thermoStatus" style="font-family:var(--mono);font-size:11px;color:#718096;margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIM 5: REACTION GAME -->
+  <div class="card red">
+    <div class="ctitle r">Симуляція 5 — Гра «Перевірка реакції» (Project 9-7)</div>
+    <div class="sim">
+      <div class="simt">// СИМУЛЯТОР · checkWin(i) · Натисніть кнопку на останньому сегменті!</div>
+      <div class="simctrl">
+        <button class="sbtn game" onclick="startGame()">🎮 Нова гра</button>
+        <button class="sbtn stop" onclick="stopGame()">■ Зупинити</button>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <div class="led-bar" id="gameBar"></div>
+          <div style="display:flex;gap:5px;margin-top:4px" id="gamePinLabels"></div>
+        </div>
+        <div style="min-width:140px">
+          <div style="font-family:var(--mono);font-size:10px;color:#4a9aba;margin-bottom:8px">КНОПКА (D12)</div>
+          <div id="gameBtnWrap" style="display:flex;justify-content:center">
+            <div id="gameBtn" onclick="gamePress()"
+              style="width:64px;height:64px;background:linear-gradient(135deg,#2d3748,#4a5568);border:3px solid #718096;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#a0aec0;user-select:none;transition:all .1s;box-shadow:0 5px 0 #1a202c;letter-spacing:.08em;text-align:center">
+              НАТИСНИ
+            </div>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:#718096;text-align:center;margin-top:6px">
+            Швидкість: <span id="gameSpeed" style="color:#fbbf24">100</span> мс
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:#718096;text-align:center">
+            Рівень: <span id="gameLevel" style="color:#4ade80">1</span>
+          </div>
+        </div>
+        <div class="slog" id="gameLog"><div class="ll info">&gt; Натисніть 🎮 Нова гра</div></div>
+      </div>
+      <div class="game-status idle" id="gameStatus">Очікую старту...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ QUIZ ═══════════ -->
+<section class="sec" id="sec-quiz">
+  <div class="stitle"><span class="sbadge">04</span><h2>Контрольні питання</h2><div class="sline"></div></div>
+  <div id="quizC"></div>
+  <div class="qscore" id="scoreBar" style="display:none">
+    <div><div class="scn" id="scoreNum">0</div><div class="scl">/ <span id="scoreTot">0</span> балів</div></div>
+    <div class="scbw"><div class="scl" id="scoreMsg"></div><div class="scb"><div class="scbf" id="scoreF" style="width:0%"></div></div></div>
+    <button class="qreset" onclick="resetQuiz()">Пройти знову</button>
+  </div>
+</section>
+
+<!-- ═══════════ REFERENCE ═══════════ -->
+<section class="sec" id="sec-reference">
+  <div class="stitle"><span class="sbadge">05</span><h2>Довідкові матеріали</h2><div class="sline"></div></div>
+  <div class="rgrid">
+    <div class="rc"><div class="rct">Масиви — Синтаксис</div>
+      <div class="ri"><span class="rk">Оголошення</span><span class="rv">int arr[N];</span></div>
+      <div class="ri"><span class="rk">Із значеннями</span><span class="rv">int a[]={1,2,3};</span></div>
+      <div class="ri"><span class="rk">Індексація</span><span class="rv">з нуля: 0..N-1</span></div>
+      <div class="ri"><span class="rk">Звернення</span><span class="rv">arr[i]</span></div>
+      <div class="ri"><span class="rk">Розмір (байти)</span><span class="rv">sizeof(arr)</span></div>
+      <div class="ri"><span class="rk">Кількість елем.</span><span class="rv">sizeof(arr)/sizeof(arr[0])</span></div>
+    </div>
+    <div class="rc"><div class="rct">Масив + for</div>
+      <div style="background:#0d1f33;border:1px solid #1a4a6a;border-radius:2px;padding:10px;font-family:var(--mono);font-size:11px;color:#c8dff0;line-height:1.8;margin-top:6px">
+        <span style="color:#4ec9b0">int</span> pins[] = {<span style="color:#b5cea8">2,5,8,11</span>};<br>
+        <span style="color:#569cd6">for</span>(<span style="color:#4ec9b0">int</span> i=<span style="color:#b5cea8">0</span>; i&lt;<span style="color:#b5cea8">4</span>; i++)<br>
+        &nbsp;&nbsp;pinMode(pins[i], OUTPUT);
+      </div>
+    </div>
+    <div class="rc"><div class="rct">constrain()</div>
+      <div class="ri"><span class="rk">Синтаксис</span><span class="rv">constrain(x,a,b)</span></div>
+      <div class="ri"><span class="rk">x &lt; a</span><span class="rv">повертає a</span></div>
+      <div class="ri"><span class="rk">a &lt;= x &lt;= b</span><span class="rv">повертає x</span></div>
+      <div class="ri"><span class="rk">x &gt; b</span><span class="rv">повертає b</span></div>
+      <div class="ri"><span class="rk">Захист масиву</span><span class="rv">constrain(i,0,N-1)</span></div>
+    </div>
+    <div class="rc"><div class="rct">LED-шкала (Bar Graph)</div>
+      <div class="ri"><span class="rk">Сегментів</span><span class="rv">10</span></div>
+      <div class="ri"><span class="rk">Піни</span><span class="rv">D2–D11 (аноди)</span></div>
+      <div class="ri"><span class="rk">Резистор</span><span class="rv">220 Ом на катод</span></div>
+      <div class="ri"><span class="rk">Масштаб</span><span class="rv">map(x,0,1023,0,10)</span></div>
+      <div class="ri"><span class="rk">Захист</span><span class="rv">constrain(lev,0,10)</span></div>
+    </div>
+    <div class="rc"><div class="rct">Проєкт 9-4 · Логіка</div>
+      <div class="ri"><span class="rk">8 LED, A0=0..1023</span><span class="rv">/113 → 0..9</span></div>
+      <div class="ri"><span class="rk">port_current_num</span><span class="rv">0..7 (циклічно)</span></div>
+      <div class="ri"><span class="rk">if(num&lt;value)</span><span class="rv">HIGH → вмикаємо</span></div>
+      <div class="ri"><span class="rk">else</span><span class="rv">LOW → вимикаємо</span></div>
+    </div>
+    <div class="rc"><div class="rct">Гра 9-7 · Логіка</div>
+      <div class="ri"><span class="rk">Перемога</span><span class="rv">кнопка на index=9</span></div>
+      <div class="ri"><span class="rk">Програш</span><span class="rv">кнопка на index≠9</span></div>
+      <div class="ri"><span class="rk">Прискорення</span><span class="rv">delayTime-=10</span></div>
+      <div class="ri"><span class="rk">Мін. швидкість</span><span class="rv">20 мс</span></div>
+      <div class="ri"><span class="rk">Скид швидкості</span><span class="rv">→ 100 мс</span></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+// ─── NAV ──────────────────────────────
+function showSec(n){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('visible'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+n).classList.add('visible');
+  const m={theory:0,practice:1,simulation:2,quiz:3,reference:4};
+  document.querySelectorAll('.nb')[m[n]]?.classList.add('active');
+}
+function toggleAcc(h){const b=h.nextElementSibling,o=h.classList.contains('open');h.classList.toggle('open',!o);b.classList.toggle('open',!o)}
+
+const PIN_COLORS=['on-r','on-y','on-y','on-g','on-g','on-g','on-b','on-b','on-b','on-b'];
+const LED_PINS=[2,3,4,5,6,7,8,9,10,11];
+
+// ─── THEORY ARRAY VIS ──────────────────
+const THEORY_VALS=[2,3,4,5,6,7,8,9,10,11];
+function buildTheoryArr(){
+  const wrap=document.getElementById('theoryArrVis');
+  THEORY_VALS.forEach((v,i)=>{
+    const c=document.createElement('div');c.className='arr-cell';
+    c.innerHTML=`<div class="idx">[${i}]</div><div class="val">${v}</div>`;
+    wrap.appendChild(c);
+  });
+}
+buildTheoryArr();
+
+// ─── SIM 1: ARRAY VISUALIZER ───────────
+function buildArrVis(){
+  const wrap=document.getElementById('arrVis');
+  THEORY_VALS.forEach((v,i)=>{
+    const c=document.createElement('div');c.className='arr-cell';c.id='acell'+i;
+    c.innerHTML=`<div class="idx">[${i}]</div><div class="val">${v}</div>`;
+    c.onclick=()=>arrClick(i,v);wrap.appendChild(c);
+  });
+}
+buildArrVis();
+function arrClick(i,v){
+  document.querySelectorAll('#arrVis .arr-cell').forEach(c=>c.classList.remove('active'));
+  document.getElementById('acell'+i).classList.add('active');
+  document.getElementById('arrClickIdx').textContent=i;
+  document.getElementById('arrClickVal').textContent=v;
+}
+let arrLoopTimer=null,arrLoopIdx=0;
+function arrLoopFwd(){
+  clearTimeout(arrLoopTimer);arrLoopIdx=0;
+  function step(){
+    document.querySelectorAll('#arrVis .arr-cell').forEach(c=>c.classList.remove('active'));
+    if(arrLoopIdx<10){
+      document.getElementById('acell'+arrLoopIdx).classList.add('active');
+      arrClickSync(arrLoopIdx,THEORY_VALS[arrLoopIdx]);
+      arrLoopIdx++;arrLoopTimer=setTimeout(step,300);
+    }
+  }
+  step();
+}
+function arrClickSync(i,v){
+  document.getElementById('arrClickIdx').textContent=i;
+  document.getElementById('arrClickVal').textContent=v;
+}
+function arrReset(){clearTimeout(arrLoopTimer);document.querySelectorAll('#arrVis .arr-cell').forEach(c=>c.classList.remove('active'));document.getElementById('arrClickIdx').textContent='─';document.getElementById('arrClickVal').textContent='─';}
+
+// ─── BUILD LED BAR HELPER ──────────────
+function buildBar(barId, pinLabId, n, pinStart){
+  const bar=document.getElementById(barId);const pl=document.getElementById(pinLabId);
+  if(!bar)return;bar.innerHTML='';if(pl)pl.innerHTML='';
+  for(let i=0;i<n;i++){
+    const seg=document.createElement('div');seg.className='led-seg';seg.id=barId+'_'+i;bar.appendChild(seg);
+    if(pl){const lbl=document.createElement('div');lbl.style='font-family:var(--mono);font-size:8px;color:#4a9aba;width:28px;text-align:center';lbl.textContent='D'+(pinStart+i);pl.appendChild(lbl);}
+  }
+}
+function setBarSeg(barId,i,cls){
+  const seg=document.getElementById(barId+'_'+i);if(seg){seg.className='led-seg '+(cls||'');}
+}
+function clearBar(barId,n){for(let i=0;i<n;i++)setBarSeg(barId,i,'');}
+
+buildBar('runBar','runPinLabels',10,2);
+buildBar('potBar','potPinLabels',10,2);
+buildBar('thermoBar','thermoPinLabels',10,2);
+buildBar('gameBar','gamePinLabels',10,2);
+
+function llog(id,msg,cls=''){
+  const m=document.getElementById(id);if(!m)return;
+  const d=document.createElement('div');d.className='ll'+(cls?' '+cls:'');
+  d.textContent='> '+msg;m.appendChild(d);while(m.children.length>30)m.removeChild(m.firstChild);m.scrollTop=m.scrollHeight;
+}
+
+// ─── SIM 2: RUNNING LIGHT ─────────────
+let runTimer=null,runRunning=false,runPhase=0,runPin=2;
+function startRunning(){
+  if(runRunning)return;runRunning=true;
+  document.getElementById('runStat').textContent='● for(pin=2;pin<=11;...)';
+  document.getElementById('runStat').className='sstat run';
+  llog('runLog','void loop() {','info');
+  runStep();
+}
+function runStep(){
+  clearBar('runBar',10);
+  const i=runPin-2;
+  const cls=PIN_COLORS[i]||'on-g';
+  setBarSeg('runBar',i,cls);
+  const phase=runPhase===0?'HIGH':'LOW';
+  llog('runLog',`digitalWrite(${runPin}, ${phase}); delay(300)`,(phase==='HIGH')?'ok':'');
+  runPin++;
+  if(runPin>11){runPin=2;runPhase=runPhase===0?1:0;}
+  runTimer=setTimeout(runStep,350);
+}
+function stopRunning(){clearTimeout(runTimer);runRunning=false;clearBar('runBar',10);document.getElementById('runStat').textContent='● Зупинено';document.getElementById('runStat').className='sstat';}
+function resetRunning(){stopRunning();runPin=2;runPhase=0;document.getElementById('runLog').innerHTML='<div class="ll info">> Скинуто</div>';}
+
+// ─── SIM 3: POT SCALE ─────────────────
+function updatePotScale(){
+  const v=+document.getElementById('potSlider').value;
+  document.getElementById('potAdcVal').textContent=v;
+  document.getElementById('potAdcFill').style.width=(v/1023*100)+'%';
+  const count=Math.round(v/1023*10);
+  document.getElementById('potLedCount').textContent=count;
+  clearBar('potBar',10);
+  for(let i=0;i<10;i++) if(i<count) setBarSeg('potBar',i,PIN_COLORS[i]||'on-g');
+}
+updatePotScale();
+document.getElementById('potSlider').addEventListener('input',updatePotScale);
+
+// ─── SIM 4: THERMOMETER ───────────────
+function updateThermo(){
+  const t=+document.getElementById('tempSlider').value;
+  const v=t*0.01+0.5;
+  document.getElementById('tempCVal').textContent=t.toFixed(1);
+  document.getElementById('tempVolt').textContent=v.toFixed(3);
+  let lev=Math.round((t-20)/(30-20)*10);
+  const raw=lev;lev=Math.max(0,Math.min(10,lev));
+  document.getElementById('tempLedLevel').textContent=lev;
+  clearBar('thermoBar',10);
+  for(let i=0;i<10;i++) if(i<lev) setBarSeg('thermoBar',i,t>28?'on-r':t>24?'on-y':'on-g');
+  const status=document.getElementById('thermoStatus');
+  if(raw<0)status.textContent='constrain: '+raw+' → 0 (захист!)';
+  else if(raw>10)status.textContent='constrain: '+raw+' → 10 (захист!)';
+  else status.textContent='ledLevel='+lev+' (у нормі)';
+  status.style.color=Math.abs(raw-lev)>0?'#f6ad55':'#4ade80';
+}
+updateThermo();
+document.getElementById('tempSlider').addEventListener('input',updateThermo);
+
+// ─── SIM 5: REACTION GAME ─────────────
+let gameTimer=null,gameRunning=false,gamePos=0,gameSpeed=100,gameLevel=1,gamePressing=false;
+function startGame(){
+  if(gameRunning)return;
+  gameRunning=true;gamePos=0;
+  document.getElementById('gameStatus').textContent='Натисни на ОСТАННІЙ сегмент!';
+  document.getElementById('gameStatus').className='game-status idle';
+  document.getElementById('gameSpeed').textContent=gameSpeed;
+  document.getElementById('gameLevel').textContent=gameLevel;
+  llog('gameLog','Гра розпочата! Швидкість: '+gameSpeed+'мс','info');
+  llog('gameLog','Натисни кнопку коли горить 10-й (D11)','info');
+  gameTick();
+}
+function gameTick(){
+  if(!gameRunning)return;
+  clearBar('gameBar',10);
+  setBarSeg('gameBar',gamePos,gamePos===9?'on-r':'on-g');
+  gamePos=(gamePos+1)%10;
+  gameTimer=setTimeout(gameTick,gameSpeed);
+}
+function gamePress(){
+  if(!gameRunning)return;
+  clearTimeout(gameTimer);gameRunning=false;
+  const btn=document.getElementById('gameBtn');
+  btn.style.transform='translateY(4px)';btn.style.boxShadow='0 1px 0 #1a202c';
+  setTimeout(()=>{btn.style.transform='';btn.style.boxShadow='';},150);
+  const hitPos=(gamePos-1+10)%10;
+  clearBar('gameBar',10);
+  if(hitPos===9){
+    // WIN
+    for(let i=0;i<10;i++) setBarSeg('gameBar',i,'on-g');
+    document.getElementById('gameStatus').textContent='🏆 ПЕРЕМОГА! Рівень '+(gameLevel+1);
+    document.getElementById('gameStatus').className='game-status win';
+    llog('gameLog','Winner! hitPos=9 ✓','ok');
+    gameSpeed=Math.max(20,gameSpeed-10);
+    gameLevel++;
+    document.getElementById('gameSpeed').textContent=gameSpeed;
+    document.getElementById('gameLevel').textContent=gameLevel;
+    setTimeout(()=>{if(!gameRunning){gameRunning=false;clearBar('gameBar',10);}},1500);
+  } else {
+    // LOSE
+    setBarSeg('gameBar',hitPos,'on-r');
+    document.getElementById('gameStatus').textContent='💥 ПРОГРАШ! Ти натиснув на сегменті '+(hitPos+1);
+    document.getElementById('gameStatus').className='game-status lose';
+    llog('gameLog','Game Over! hitPos='+hitPos+' (потрібно 9)','warn');
+    gameSpeed=100;gameLevel=1;
+    document.getElementById('gameSpeed').textContent=gameSpeed;
+    document.getElementById('gameLevel').textContent=gameLevel;
+    setTimeout(()=>clearBar('gameBar',10),2000);
+  }
+}
+function stopGame(){clearTimeout(gameTimer);gameRunning=false;clearBar('gameBar',10);document.getElementById('gameStatus').textContent='Гра зупинена';document.getElementById('gameStatus').className='game-status idle';}
+
+// ─── QUIZ ─────────────────────────────
+const quizData=[
+  {q:'Масив int myPins[] = {2,4,8,3,6}; Яке значення myPins[3]?',
+   opts:['8','3','4','6'],
+   ans:1,expl:'Нумерація з нуля: myPins[0]=2, [1]=4, [2]=8, [3]=3, [4]=6. Четвертий елемент (індекс 3) = 3.'},
+  {q:'Яка умова виходить за межі масиву int arr[5]?',
+   opts:['arr[0]','arr[4]','arr[5]','arr[2]'],
+   ans:2,expl:'Масив arr[5] має індекси 0..4. arr[5] — це 6-й елемент, якого не існує. Arduino не генерує помилку, а читає/пише довільну пам\'ять!'},
+  {q:'Навіщо потрібна функція constrain(ledLevel, 0, 10) після map() у термометрі?',
+   opts:['Прискорює map()','Захищає від виходу за межі масиву, якщо температура за межами діапазону','Округлює до цілого','Конвертує float в int'],
+   ans:1,expl:'При t<20°C map() поверне від\'ємне. При t>30°C — більше 10. constrain(x,0,10) обмежує до допустимого діапазону — жоден LED не перевищить межу масиву.'},
+  {q:'Яка ключова перевага масиву над окремими змінними pin0, pin1, ..., pin9?',
+   opts:['Масив займає менше SRAM','Можна перебрати всі піни одним циклом for, значно скорочуючи код','Масив швидше зчитується','Масив ніколи не переповнюється'],
+   ans:1,expl:'10 окремих змінних = 10 рядків setupу та 10 рядків у кожній операції. Масив + for = 3 рядки для будь-якої кількості елементів.'},
+  {q:'У Лістингу 9-5 map(valpot, 0, 1023, 0, 10) при valpot=512 поверне:',
+   opts:['5','4','6','510'],
+   ans:0,expl:'512/1023×10 ≈ 5.01 → відкидаємо дріб → 5. При потенціометрі на половині — рівно 5 сегментів шкали.'},
+  {q:'У грі «Перевірка реакції» яка умова означає перемогу?',
+   opts:['currentLed == 0 (перший сегмент)','currentLed == 5 (середній)','currentLed == 9 (останній, індекс 9)','Будь-який сегмент'],
+   ans:2,expl:'if(currentLed == 9) — масив pinsled[10], індекс 9 = останній (десятий) сегмент = пін D11. Потрібно натиснути саме тоді.'},
+  {q:'Чому розмір глобального масиву int arr[arr_size] вимагає константи arr_size?',
+   opts:['Це обмеження компілятора AVR','Глобальний масив виділяється до запуску — розмір відомий заздалегідь; звичайна змінна невідома до старту','Константи швидші при зверненні','Для економії Flash-пам\'яті'],
+   ans:1,expl:'Глобальна пам\'ять виділяється статично перед запуском. Розмір повинен бути відомим під час компіляції → тільки #define або const. Локальні масиви (в функціях) — можна звичайну змінну.'},
+  {q:'Формула value_pot = value_pot / 113 у Лістингу 9-4 перетворює діапазон 0-1023 у:',
+   opts:['0–1','0–255','0–9 (≈0 до 9.05)','0–10'],
+   ans:2,expl:'1023/113 ≈ 9.05. Ціле ділення в Arduino → 0..9. Це 10 можливих рівнів (0,1,2,...9) для 8 LED-індикаторів.'},
+  {q:'У Лістингу 9-7 рядок delayTime -= 10 виконується при:',
+   opts:['Кожному запуску loop()','Натисканні кнопки на будь-якому сегменті','Перемозі (кнопка на індексі 9)','Запуску setup()'],
+   ans:2,expl:'В функції checkWin(currentLed): тільки при if(currentLed==9) виконується delayTime-=10 — прискорення гри. При програші — скидання до 100.'},
+  {q:'Що відбудеться з масивом int arr[3] = {1, 2, 3}, якщо записати arr[3] = 99?',
+   opts:['Компілятор видасть помилку','Масив автоматично розшириться до 4 елементів','Запишеться у довільну комірку пам\'яті (undefined behavior)','Нічого, ця операція ігнорується'],
+   ans:2,expl:'Arduino/C++ не перевіряє межі масиву під час виконання. arr[3] вийде за межі і запише 99 у сусідню комірку SRAM, що може пошкодити інші змінні або викликати збій.'},
+];
+
+let qA=0,qC=0;
+function buildQuiz(){
+  const c=document.getElementById('quizC');c.innerHTML='';qA=0;qC=0;document.getElementById('scoreBar').style.display='none';
+  quizData.forEach((q,qi)=>{
+    const card=document.createElement('div');card.className='qcard';
+    let opts=q.opts.map((o,oi)=>`<div class="qopt" onclick="ansQ(${qi},${oi})"><div class="qr"></div><span>${o}</span></div>`).join('');
+    card.innerHTML=`<div class="qqn">Питання ${qi+1} / ${quizData.length}</div><div class="qqt">${q.q}</div><div class="qopts" id="qopts${qi}">${opts}</div><div class="qfb" id="qfb${qi}"></div>`;
+    c.appendChild(card);
+  });
+}
+function ansQ(qi,oi){
+  const opts=document.querySelectorAll(`#qopts${qi} .qopt`);opts.forEach(o=>o.classList.add('disabled'));
+  const fb=document.getElementById('qfb'+qi),correct=quizData[qi].ans;
+  opts[correct].classList.add('correct');
+  if(oi===correct){qC++;fb.textContent='✓ Правильно! '+quizData[qi].expl;fb.className='qfb show ok';}
+  else{opts[oi].classList.add('wrong');fb.textContent='✗ Неправильно. '+quizData[qi].expl;fb.className='qfb show err';}
+  qA++;if(qA===quizData.length)showScore();
+}
+function showScore(){
+  const bar=document.getElementById('scoreBar');bar.style.display='flex';
+  const pct=Math.round(qC/quizData.length*100);
+  document.getElementById('scoreNum').textContent=qC;document.getElementById('scoreTot').textContent=quizData.length;
+  document.getElementById('scoreF').style.width=pct+'%';
+  const msg=pct>=90?'🏆 Відмінно! Ви майстер масивів та LED-шкал!':pct>=70?'👍 Добре! Перевірте нюанси індексації.':pct>=50?'📚 Непогано, повторіть теорію.':'🔄 Рекомендуємо пройти матеріал ще раз.';
+  document.getElementById('scoreMsg').textContent=msg;bar.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function resetQuiz(){buildQuiz();}
+buildQuiz();
+</script>
+</body>
+</html>
