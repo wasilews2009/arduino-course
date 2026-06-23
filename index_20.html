@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тема 20 · Матричні індикатори на Arduino</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8eef5;
+    --surface3: #dde6f0;
+    --grid: #c8d8e8;
+    --trace: #a0b8cc;
+    --accent: #1a6fa8;
+    --accent2: #0d8c6e;
+    --accent3: #d4580a;
+    --led-on: #ff4500;
+    --led-off: #8a2000;
+    --led-glow: rgba(255,69,0,0.4);
+    --text: #1a2535;
+    --text2: #3d5166;
+    --text3: #6b8299;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Space Grotesk', 'Inter', sans-serif;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(26,111,168,0.10);
+    --shadow-lg: 0 6px 32px rgba(26,111,168,0.14);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.65;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 28px 28px;
+    min-height: 100vh;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(240,244,248,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid var(--trace);
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 24px; overflow-x: auto;
+  }
+  .nav-logo {
+    font-family: var(--mono); font-size: 13px; color: var(--accent);
+    margin-right: 18px; white-space: nowrap;
+    border: 1px solid var(--accent); border-radius: 4px; padding: 3px 8px;
+  }
+  nav a {
+    text-decoration: none; color: var(--text2); font-size: 13px; font-weight: 500;
+    padding: 5px 12px; border-radius: 6px; white-space: nowrap; transition: all 0.2s;
+  }
+  nav a:hover, nav a.active { background: var(--accent); color: #fff; }
+
+  /* ─── HERO ─── */
+  .hero {
+    max-width: 960px; margin: 40px auto 0; padding: 0 24px;
+    display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center;
+  }
+  .hero-label {
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .hero h1 {
+    font-family: var(--sans); font-size: clamp(26px, 4vw, 40px); font-weight: 700;
+    color: var(--text); line-height: 1.18; margin-bottom: 14px;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero-sub {
+    color: var(--text2); font-size: 15px; max-width: 520px;
+    border-left: 3px solid var(--accent2); padding-left: 14px;
+  }
+  .hero-matrix { position: relative; }
+
+  /* ─── SECTION WRAPPER ─── */
+  .main { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+  section { margin-top: 52px; }
+  .section-tag {
+    font-family: var(--mono); font-size: 11px; color: var(--accent3);
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+  }
+  section > h2 {
+    font-size: 22px; font-weight: 700; color: var(--text);
+    margin-bottom: 20px; padding-bottom: 10px;
+    border-bottom: 2px solid var(--trace);
+    display: flex; align-items: center; gap: 10px;
+  }
+  section > h2::before {
+    content: '//'; font-family: var(--mono); color: var(--trace); font-size: 16px;
+  }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--surface); border: 1px solid var(--surface3);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 22px 26px; margin-bottom: 16px;
+  }
+  .card h3 {
+    font-size: 15px; font-weight: 600; color: var(--accent);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .card h3::before {
+    content: ''; display: inline-block; width: 8px; height: 8px;
+    background: var(--accent2); border-radius: 50%;
+  }
+
+  /* ─── INFO GRID ─── */
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 6px; }
+
+  /* ─── ACCORDION ─── */
+  .accordion { border: 1px solid var(--surface3); border-radius: var(--radius); overflow: hidden; margin-bottom: 10px; }
+  .accordion-header {
+    background: var(--surface2); padding: 14px 18px;
+    cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    font-weight: 600; font-size: 14px; color: var(--text); user-select: none; transition: background 0.2s;
+  }
+  .accordion-header:hover { background: var(--surface3); }
+  .accordion-header .arrow { transition: transform 0.3s; font-size: 12px; color: var(--accent); }
+  .accordion-header.open .arrow { transform: rotate(180deg); }
+  .accordion-body { display: none; background: var(--surface); padding: 16px 18px; font-size: 14px; color: var(--text2); line-height: 1.7; }
+  .accordion-body.open { display: block; }
+  .accordion-body p { margin-bottom: 10px; }
+  .accordion-body ul { padding-left: 18px; }
+  .accordion-body li { margin-bottom: 5px; }
+
+  /* ─── CODE BLOCK ─── */
+  .code-block {
+    background: #0f1923; border-radius: 8px; padding: 18px 22px;
+    font-family: var(--mono); font-size: 13px; color: #c9d8e8;
+    line-height: 1.7; overflow-x: auto; position: relative;
+    border: 1px solid #1e3448;
+  }
+  .code-block .kw { color: #57c7ff; }
+  .code-block .ty { color: #ffd479; }
+  .code-block .cm { color: #637a8e; font-style: italic; }
+  .code-block .st { color: #a8ff78; }
+  .code-block .nb { color: #ff9d79; }
+  .code-block .fn { color: #c5e3ff; }
+  .code-block .copy-btn {
+    position: absolute; top: 10px; right: 12px;
+    background: #1e3448; border: 1px solid #2d4a62; color: #7fa8c4;
+    font-family: var(--mono); font-size: 11px; padding: 4px 10px;
+    border-radius: 4px; cursor: pointer; transition: all 0.2s;
+  }
+  .code-block .copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ─── LED MATRIX SIMULATOR ─── */
+  .sim-wrap {
+    background: var(--surface); border: 1px solid var(--surface3);
+    border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    padding: 24px; margin-top: 10px;
+  }
+  .sim-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
+  .btn {
+    padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #1558a0; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--trace); }
+  .btn-secondary:hover { background: var(--surface3); }
+  .btn-green { background: var(--accent2); color: #fff; }
+  .btn-green:hover { background: #0a7259; }
+
+  .sim-area { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+
+  .matrix-container {
+    background: #1a0a00; border-radius: 10px; padding: 18px;
+    border: 2px solid #3a1a00; box-shadow: 0 0 30px rgba(255,69,0,0.15);
+    position: relative;
+  }
+  .matrix-label {
+    font-family: var(--mono); font-size: 10px; color: #6b4020;
+    text-align: center; margin-bottom: 10px; letter-spacing: 2px;
+  }
+  .led-grid {
+    display: grid; grid-template-columns: repeat(8, 28px);
+    grid-template-rows: repeat(8, 28px); gap: 4px;
+  }
+  .led {
+    width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+    background: var(--led-off); transition: all 0.12s;
+    border: 1px solid #3a1200; position: relative;
+  }
+  .led.on {
+    background: var(--led-on);
+    box-shadow: 0 0 8px var(--led-glow), 0 0 18px rgba(255,69,0,0.25);
+    border-color: #ff7040;
+  }
+  .led:hover { transform: scale(1.1); opacity: 0.9; }
+
+  .sim-panel { flex: 1; min-width: 240px; }
+  .sim-panel h4 { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 10px; }
+
+  .pattern-btn {
+    display: inline-block; margin: 4px; padding: 6px 14px;
+    border-radius: 5px; border: 1px solid var(--trace);
+    background: var(--surface2); color: var(--text); cursor: pointer;
+    font-size: 12px; font-weight: 500; transition: all 0.2s; font-family: var(--sans);
+  }
+  .pattern-btn:hover, .pattern-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .binary-display {
+    background: #0f1923; border-radius: 6px; padding: 12px 14px;
+    font-family: var(--mono); font-size: 11px; color: #7fa8c4;
+    line-height: 1.8; margin-top: 12px; border: 1px solid #1e3448;
+  }
+  .binary-display .row-label { color: #637a8e; }
+  .binary-display .row-val { color: #57c7ff; }
+  .binary-display .row-hex { color: #ffd479; }
+
+  .anim-status {
+    font-family: var(--mono); font-size: 12px; color: var(--accent2);
+    margin-top: 10px; padding: 8px 12px;
+    background: #edfaf5; border: 1px solid #b2e8d4; border-radius: 6px;
+  }
+
+  /* ─── WIRING DIAGRAM ─── */
+  .wiring-svg-wrap {
+    background: var(--surface); border: 1px solid var(--surface3);
+    border-radius: var(--radius); padding: 20px; overflow-x: auto;
+    box-shadow: var(--shadow);
+  }
+
+  /* ─── STEPS ─── */
+  .steps { display: flex; flex-direction: column; gap: 16px; }
+  .step {
+    display: grid; grid-template-columns: 48px 1fr; gap: 16px; align-items: start;
+    background: var(--surface); border: 1px solid var(--surface3);
+    border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow);
+  }
+  .step-num {
+    width: 40px; height: 40px; background: var(--accent); color: #fff;
+    border-radius: 8px; font-family: var(--mono); font-size: 16px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step-content h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .step-content p { font-size: 13px; color: var(--text2); }
+
+  /* ─── COMPONENTS LIST ─── */
+  .comp-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .comp-item {
+    background: var(--surface); border: 1px solid var(--surface3);
+    border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 500; color: var(--text2);
+  }
+  .comp-icon { font-size: 20px; }
+
+  /* ─── QUIZ ─── */
+  .quiz-wrap { display: flex; flex-direction: column; gap: 18px; }
+  .quiz-q {
+    background: var(--surface); border: 1px solid var(--surface3);
+    border-radius: var(--radius); padding: 18px 22px; box-shadow: var(--shadow);
+  }
+  .quiz-q .q-text { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+  .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+  .quiz-opt {
+    padding: 9px 14px; border-radius: 6px; cursor: pointer;
+    border: 1.5px solid var(--surface3); font-size: 13px; color: var(--text2);
+    background: var(--surface2); transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+  }
+  .quiz-opt:hover { border-color: var(--accent); background: #e8f1f9; }
+  .quiz-opt.correct { background: #edfaf5; border-color: var(--accent2); color: #0a5c48; }
+  .quiz-opt.wrong { background: #fff0ec; border-color: #d44; color: #8b2000; }
+  .quiz-opt .opt-letter {
+    width: 22px; height: 22px; border-radius: 4px;
+    background: var(--trace); color: var(--surface); font-family: var(--mono); font-size: 11px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700;
+  }
+  .quiz-explanation {
+    display: none; margin-top: 10px; padding: 10px 14px;
+    background: #e8f1f9; border-radius: 6px; font-size: 13px; color: var(--text2);
+    border-left: 3px solid var(--accent);
+  }
+  .quiz-score-box {
+    background: var(--surface); border: 1px solid var(--surface3);
+    border-radius: var(--radius); padding: 20px 24px; text-align: center;
+    box-shadow: var(--shadow); display: none;
+  }
+  .quiz-score-box .score-num {
+    font-size: 48px; font-weight: 700; color: var(--accent); font-family: var(--mono);
+  }
+  .quiz-score-box .score-text { color: var(--text2); font-size: 14px; margin-top: 6px; }
+
+  /* ─── REFERENCE ─── */
+  .ref-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .ref-table th {
+    background: var(--accent); color: #fff; padding: 10px 14px;
+    text-align: left; font-weight: 600; font-size: 12px; letter-spacing: 0.5px;
+  }
+  .ref-table td {
+    padding: 9px 14px; border-bottom: 1px solid var(--surface3);
+    color: var(--text2); vertical-align: top;
+  }
+  .ref-table tr:nth-child(even) td { background: var(--surface2); }
+  .ref-table code {
+    font-family: var(--mono); background: #e0eaf4; color: var(--accent);
+    padding: 1px 5px; border-radius: 3px; font-size: 12px;
+  }
+
+  .chip-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #dde6f0; color: var(--accent); border-radius: 4px;
+    font-family: var(--mono); font-size: 11px; padding: 2px 8px;
+    border: 1px solid var(--trace);
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: var(--surface2); border-top: 2px solid var(--trace);
+    text-align: center; padding: 18px 24px;
+    font-family: var(--mono); font-size: 11px; color: var(--text3);
+  }
+
+  /* ─── MISC ─── */
+  .highlight-box {
+    background: linear-gradient(135deg, #e8f4ff, #edfaf5);
+    border: 1px solid #b2d4f0; border-radius: 8px; padding: 14px 18px;
+    margin: 12px 0; font-size: 13px; color: var(--text2);
+    border-left: 4px solid var(--accent);
+  }
+  .warn-box {
+    background: #fff8e8; border: 1px solid #f0d080; border-radius: 8px;
+    padding: 14px 18px; margin: 12px 0; font-size: 13px; color: #7a5a00;
+    border-left: 4px solid #e8a800;
+  }
+  .warn-box strong { color: #5a4000; }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .tag {
+    font-family: var(--mono); font-size: 11px; padding: 3px 9px;
+    border-radius: 4px; background: var(--surface2); color: var(--text3);
+    border: 1px solid var(--trace);
+  }
+
+  /* connector trace decoration */
+  .trace-line {
+    height: 2px; background: repeating-linear-gradient(90deg, var(--trace) 0, var(--trace) 12px, transparent 12px, transparent 18px);
+    margin: 28px 0;
+  }
+
+  @media (max-width: 640px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-matrix { display: none; }
+    .sim-area { flex-direction: column; }
+    nav { padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">STEAM-HUB · Arduino</div>
+  <a href="#theory" class="active">Теорія</a>
+  <a href="#sim">Симулятор</a>
+  <a href="#practice">Практика</a>
+  <a href="#max7219">MAX7219</a>
+  <a href="#quiz">Тест</a>
+  <a href="#ref">Довідник</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <div class="hero-label">// Тема 20 · Arduino + LED Matrix</div>
+    <h1>Матричні<br><span>індикатори</span><br>на Arduino</h1>
+    <p class="hero-sub">Від одного пікселя до анімованого екрана: зсувні регістри, динамічна індикація та мікросхема MAX7219</p>
+    <div class="tag-row" style="margin-top:16px;">
+      <span class="tag">8×8 LED Matrix</span>
+      <span class="tag">74HC595</span>
+      <span class="tag">MAX7219</span>
+      <span class="tag">shiftOut()</span>
+      <span class="tag">динамічна індикація</span>
+    </div>
+  </div>
+  <div class="hero-matrix">
+    <!-- Mini decorative matrix -->
+    <svg width="120" height="120" viewBox="0 0 120 120">
+      <rect width="120" height="120" rx="10" fill="#1a0a00" stroke="#3a1a00" stroke-width="2"/>
+      <defs>
+        <radialGradient id="ledg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ff4500"/>
+          <stop offset="100%" stop-color="#8a2000"/>
+        </radialGradient>
+        <radialGradient id="ledoff" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#4a1500"/>
+          <stop offset="100%" stop-color="#2a0800"/>
+        </radialGradient>
+      </defs>
+      <g id="hmled"></g>
+    </svg>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ══════════ THEORY ══════════ -->
+<section id="theory">
+  <div class="section-tag">01 · ТЕОРІЯ</div>
+  <h2>Що таке матричний індикатор</h2>
+
+  <div class="info-grid">
+    <div class="card">
+      <h3>Принцип побудови</h3>
+      <p>Матричний індикатор — це сітка з 64 світлодіодів (8×8). Кожен піксель задається перетином <b>рядка (R)</b> і <b>стовпця (C)</b>. Роздільна здатність — кількість точок по горизонталі та вертикалі.</p>
+    </div>
+    <div class="card">
+      <h3>З'єднання всередині</h3>
+      <p>Усі 64 LED не мають окремих виводів. Катоди об'єднані по 8 у стовпцях, аноди — по рядках. Так 64 контакти скорочуються до <b>16 виводів</b>.</p>
+    </div>
+    <div class="card">
+      <h3>Проблема «привидів»</h3>
+      <p>Якщо одночасно подати сигнал на R6 та C3, а також R3 та C7 — засвітяться всі 4 перетини! Вирішення — <b>динамічна індикація</b>.</p>
+    </div>
+    <div class="card">
+      <h3>Персистентність зору</h3>
+      <p>Людське ока не помічає мигання швидше за 50–60 Гц. Тому рядки перемикаються настільки швидко, що ми бачимо цілісне зображення.</p>
+    </div>
+  </div>
+
+  <div class="trace-line"></div>
+
+  <div class="accordion">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      🔌 Внутрішня схема 8×8 матриці — як це влаштовано
+      <span class="arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+      <p>Нумерація виводів матриці починається з <b>нижнього лівого кута</b>, але <b>ніяк не відповідає</b> логіці рядків/стовпців C і R. Це важливо при підключенні!</p>
+      <p>Для запалення пікселя <b>R6C3</b> потрібно: HIGH → R6, LOW (земля) → C3.<br>
+      Другий піксель R3C7: HIGH → R3, LOW → C7.</p>
+      <p>Якщо увімкнути обидва одночасно, через перехрестя струм потече й через R6C7 та R3C3 — це «привиди». <b>Тому матриця перемикається рядково через мікросекунди.</b></p>
+    </div>
+  </div>
+
+  <div class="accordion">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      ⚡ Зсувні регістри 74HC595 — навіщо вони тут
+      <span class="arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+      <p>Без регістрів Arduino потребував би 16 цифрових виводів. З двома <b>74HC595</b> достатньо 3 виводів:</p>
+      <ul>
+        <li><b>data_pin (DS)</b> — послідовна передача даних</li>
+        <li><b>sh_pin (SH_CP / SRCLK)</b> — тактовий імпульс</li>
+        <li><b>st_pin (ST_CP / RCLK)</b> — засувка (latch) — оновлює виходи</li>
+      </ul>
+      <p><b>Перший регістр</b> керує стовпцями (через резистори обмеження струму).<br>
+      <b>Другий регістр</b> керує рядками (через ULN2003 або напряму).</p>
+      <div class="warn-box">
+        <strong>⚠ Важливо:</strong> резистори мають бути <b>на лініях стовпців</b> (1-й регістр), а не рядків. Інакше яскравість LED відрізнятиметься в залежності від кількості активних пікселів.
+      </div>
+    </div>
+  </div>
+
+  <div class="accordion">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      🎬 Динамічна індикація — алгоритм покроково
+      <span class="arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+      <p>Алгоритм виконується у функції <code>loop()</code> із перевіркою таймера через <code>micros()</code>:</p>
+      <ol style="padding-left:18px; line-height:2;">
+        <li>Збільшити лічильник рядка <code>line</code> від 0 до 7 (циклічно)</li>
+        <li>Надіслати в 1-й регістр <b>код стовпців</b> для поточного рядка (масив <code>data[]</code>)</li>
+        <li>Надіслати в 2-й регістр <b>код активного рядка</b> — один біт LOW з 8 (інвертований)</li>
+        <li>Відкрити <b>засувку latch</b> — мікросхема виводить дані на піни</li>
+        <li>Затримка ~500 мкс → перейти до наступного рядка</li>
+      </ol>
+      <p>Весь цикл із 8 рядків завершується за <b>4 мс</b> → частота оновлення 250 Гц — без мерехтіння.</p>
+    </div>
+  </div>
+
+  <div class="accordion">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      📐 digitalWriteFast — чому не звичайний digitalWrite?
+      <span class="arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+      <p>Стандартна функція <code>digitalWrite()</code> займає ~3–4 мкс через перевірки та захист. При 64 операціях на кадр це ~256 мкс — помітне мерехтіння.</p>
+      <p>Прискорена версія через пряму роботу з регістрами порту:</p>
+      <div class="code-block" style="margin-top:8px;">
+<span class="cm">// HIGH</span>
+<span class="kw">PORTD</span> |= <span class="fn">_BV</span>(pin);
+<span class="cm">// LOW</span>
+<span class="kw">PORTD</span> &= ~<span class="fn">_BV</span>(pin);
+      </div>
+      <p style="margin-top:10px;">Це займає <b>1–2 тактові цикли</b> (~62–125 нс на 16 МГц) — у 30–60 разів швидше.</p>
+    </div>
+  </div>
+
+  <div class="accordion">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      🏗 Масштабування матриці: 16×16 і більше
+      <span class="arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+      <p>Матриця 8×8 показує 2 цифри або простий символ. Для складніших зображень матриці <b>каскадуються</b> — додаються нові зсувні регістри по вертикалі та горизонталі.</p>
+      <p>Arduino Uno зі зсувними регістрами впорається з <b>16×16</b>. Збільшення понад це призводить до помітного мерехтіння через обмежену швидкість <code>shiftOut()</code>. Для більших дисплеїв — <b>SPI</b> або мікросхема <b>MAX7219</b>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ SIMULATOR ══════════ -->
+<section id="sim">
+  <div class="section-tag">02 · СИМУЛЯЦІЯ</div>
+  <h2>Інтерактивний симулятор матриці 8×8</h2>
+
+  <div class="sim-wrap">
+    <div class="sim-controls">
+      <button class="btn btn-primary" onclick="clearMatrix()">🗑 Очистити</button>
+      <button class="btn btn-green" onclick="startAnim()" id="animBtn">▶ Анімація смайлів</button>
+      <button class="btn btn-secondary" onclick="invertMatrix()">⇔ Інвертувати</button>
+      <button class="btn btn-secondary" onclick="loadPattern('heart')">♥ Серце</button>
+      <button class="btn btn-secondary" onclick="loadPattern('arrow')">↑ Стрілка</button>
+    </div>
+
+    <div class="sim-area">
+      <div>
+        <div class="matrix-container">
+          <div class="matrix-label">LED MATRIX 8×8</div>
+          <div class="led-grid" id="ledGrid"></div>
+        </div>
+        <div id="animStatus" class="anim-status" style="display:none;"></div>
+      </div>
+
+      <div class="sim-panel">
+        <h4>📋 Готові патерни</h4>
+        <div>
+          <span class="pattern-btn" onclick="loadPattern('smile')">😊 Смайл</span>
+          <span class="pattern-btn" onclick="loadPattern('sad')">😞 Сумний</span>
+          <span class="pattern-btn" onclick="loadPattern('heart')">♥ Серце</span>
+          <span class="pattern-btn" onclick="loadPattern('arrow')">↑ Стрілка</span>
+          <span class="pattern-btn" onclick="loadPattern('checkmark')">✓ Галочка</span>
+          <span class="pattern-btn" onclick="loadPattern('letter_A')">A Буква</span>
+          <span class="pattern-btn" onclick="loadPattern('cross')">✕ Хрест</span>
+          <span class="pattern-btn" onclick="loadPattern('border')">□ Рамка</span>
+        </div>
+
+        <div class="binary-display" id="binaryDisplay">
+          <div style="color:#637a8e; margin-bottom:6px;">// масив data[8] для Arduino:</div>
+          <div id="binaryRows"></div>
+        </div>
+
+        <div class="highlight-box" style="margin-top:12px;">
+          <b>💡 Підказка:</b> Клацайте на пікселі щоб малювати! Двійкове представлення оновлюється автоматично — скопіюйте його у скетч.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ WIRING ══════════ -->
+<section id="wiring">
+  <div class="section-tag">03 · СХЕМА ПІДКЛЮЧЕННЯ</div>
+  <h2>Принципова схема з 74HC595</h2>
+
+  <div class="wiring-svg-wrap">
+    <svg viewBox="0 0 820 460" width="100%" xmlns="http://www.w3.org/2000/svg" style="max-height:480px;">
+      <!-- Background -->
+      <rect width="820" height="460" fill="#f8fafc" rx="8"/>
+      <!-- Grid dots -->
+      <defs>
+        <pattern id="gdot" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+          <circle cx="10" cy="10" r="1" fill="#c8d8e8"/>
+        </pattern>
+        <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#1a6fa8"/>
+        </marker>
+      </defs>
+      <rect width="820" height="460" fill="url(#gdot)" rx="8"/>
+
+      <!-- Arduino UNO -->
+      <rect x="20" y="150" width="110" height="180" rx="6" fill="#1a6fa8" stroke="#0d4a7a" stroke-width="2"/>
+      <text x="75" y="175" text-anchor="middle" fill="white" font-family="Space Grotesk" font-size="10" font-weight="700">Arduino</text>
+      <text x="75" y="188" text-anchor="middle" fill="#a0d0f0" font-family="Share Tech Mono" font-size="9">UNO</text>
+      <!-- Pins on Arduino -->
+      <g font-family="Share Tech Mono" font-size="9" fill="#a0d0f0">
+        <rect x="130" y="200" width="12" height="6" rx="2" fill="#ffd479"/>
+        <text x="125" y="207" text-anchor="end" fill="white">D2</text>
+        <rect x="130" y="215" width="12" height="6" rx="2" fill="#ffd479"/>
+        <text x="125" y="222" text-anchor="end" fill="white">D3</text>
+        <rect x="130" y="230" width="12" height="6" rx="2" fill="#ffd479"/>
+        <text x="125" y="237" text-anchor="end" fill="white">D4</text>
+        <rect x="130" y="270" width="12" height="6" rx="2" fill="#ff7777"/>
+        <text x="125" y="277" text-anchor="end" fill="white">5V</text>
+        <rect x="130" y="285" width="12" height="6" rx="2" fill="#7fc8a8"/>
+        <text x="125" y="292" text-anchor="end" fill="white">GND</text>
+      </g>
+
+      <!-- Reg 1 (columns) -->
+      <rect x="280" y="130" width="80" height="140" rx="5" fill="#2a3a4a" stroke="#4a6a8a" stroke-width="1.5"/>
+      <text x="320" y="152" text-anchor="middle" fill="#57c7ff" font-family="Share Tech Mono" font-size="9">74HC595</text>
+      <text x="320" y="163" text-anchor="middle" fill="#a0b8cc" font-family="Share Tech Mono" font-size="8">Регістр #1</text>
+      <text x="320" y="174" text-anchor="middle" fill="#6b8a9a" font-family="Share Tech Mono" font-size="7">(СТОВПЦІ)</text>
+      <!-- Pins -->
+      <g font-family="Share Tech Mono" font-size="7" fill="#7fa8c4">
+        <text x="270" y="192">DS</text>
+        <text x="270" y="207">SH</text>
+        <text x="270" y="222">ST</text>
+        <text x="270" y="237">VCC</text>
+        <text x="270" y="252">GND</text>
+        <!-- outputs Q0-Q7 on right -->
+        <text x="362" y="185">Q0→R</text>
+        <text x="362" y="198">Q1→R</text>
+        <text x="362" y="211">Q2→R</text>
+        <text x="362" y="224">Q3→R</text>
+        <text x="362" y="237">Q4→R</text>
+        <text x="362" y="250">Q5→R</text>
+        <text x="362" y="263">Q6→R</text>
+      </g>
+      <rect x="268" y="186" width="12" height="5" rx="2" fill="#ffd479"/>
+      <rect x="268" y="201" width="12" height="5" rx="2" fill="#ffd479"/>
+      <rect x="268" y="216" width="12" height="5" rx="2" fill="#ffd479"/>
+      <rect x="268" y="231" width="12" height="5" rx="2" fill="#ff7777"/>
+      <rect x="268" y="246" width="12" height="5" rx="2" fill="#7fc8a8"/>
+      <rect x="358" y="181" width="12" height="5" rx="2" fill="#ffd479"/>
+      <rect x="358" y="194" width="12" height="5" rx="2" fill="#ffd479"/>
+      <rect x="358" y="207" width="12" height="5" rx="2" fill="#ffd479"/>
+      <rect x="358" y="220" width="12" height="5" rx="2" fill="#ffd479"/>
+      <rect x="358" y="233" width="12" height="5" rx="2" fill="#ffd479"/>
+      <rect x="358" y="246" width="12" height="5" rx="2" fill="#ffd479"/>
+      <rect x="358" y="259" width="12" height="5" rx="2" fill="#ffd479"/>
+
+      <!-- Reg 2 (rows) -->
+      <rect x="280" y="310" width="80" height="120" rx="5" fill="#1a3a2a" stroke="#2a6a4a" stroke-width="1.5"/>
+      <text x="320" y="330" text-anchor="middle" fill="#78f0a8" font-family="Share Tech Mono" font-size="9">74HC595</text>
+      <text x="320" y="341" text-anchor="middle" fill="#90c8a8" font-family="Share Tech Mono" font-size="8">Регістр #2</text>
+      <text x="320" y="352" text-anchor="middle" fill="#5a8a6a" font-family="Share Tech Mono" font-size="7">(РЯДКИ)</text>
+      <g font-family="Share Tech Mono" font-size="7" fill="#90c8a8">
+        <text x="270" y="372">DS</text><rect x="268" y="367" width="12" height="5" rx="2" fill="#ffd479"/>
+        <text x="270" y="387">SH</text><rect x="268" y="382" width="12" height="5" rx="2" fill="#ffd479"/>
+        <text x="270" y="402">ST</text><rect x="268" y="397" width="12" height="5" rx="2" fill="#ffd479"/>
+        <text x="362" y="372">Q→C</text><rect x="358" y="367" width="12" height="5" rx="2" fill="#78f0a8"/>
+        <text x="362" y="385">Q→C</text><rect x="358" y="380" width="12" height="5" rx="2" fill="#78f0a8"/>
+        <text x="362" y="398">Q→C</text><rect x="358" y="393" width="12" height="5" rx="2" fill="#78f0a8"/>
+        <text x="362" y="411">Q→C</text><rect x="358" y="406" width="12" height="5" rx="2" fill="#78f0a8"/>
+      </g>
+
+      <!-- LED Matrix -->
+      <rect x="520" y="120" width="160" height="160" rx="8" fill="#1a0a00" stroke="#3a1a00" stroke-width="2"/>
+      <text x="600" y="142" text-anchor="middle" fill="#ff4500" font-family="Share Tech Mono" font-size="9">8×8 LED MATRIX</text>
+      <!-- small leds -->
+      <g>
+        <script type="text/javascript">/* drawn by JS below */</script>
+      </g>
+
+      <!-- Resistors -->
+      <rect x="440" y="178" width="50" height="22" rx="4" fill="#e8d8b0" stroke="#b0a060" stroke-width="1.5"/>
+      <text x="465" y="193" text-anchor="middle" fill="#5a4000" font-family="Share Tech Mono" font-size="8">8× 220Ω</text>
+
+      <!-- Traces -->
+      <!-- D2 → DS Reg1 -->
+      <line x1="142" y1="203" x2="200" y2="203" stroke="#ffd479" stroke-width="1.5"/>
+      <line x1="200" y1="203" x2="200" y2="189" stroke="#ffd479" stroke-width="1.5"/>
+      <line x1="200" y1="189" x2="268" y2="189" stroke="#ffd479" stroke-width="1.5"/>
+      <text x="215" y="199" fill="#ffd479" font-family="Share Tech Mono" font-size="8">DATA</text>
+
+      <!-- D3 → SH both regs -->
+      <line x1="142" y1="218" x2="220" y2="218" stroke="#57c7ff" stroke-width="1.5"/>
+      <line x1="220" y1="218" x2="220" y2="204" stroke="#57c7ff" stroke-width="1.5"/>
+      <line x1="220" y1="204" x2="268" y2="204" stroke="#57c7ff" stroke-width="1.5"/>
+      <line x1="220" y1="218" x2="220" y2="385" stroke="#57c7ff" stroke-width="1.5"/>
+      <line x1="220" y1="385" x2="268" y2="385" stroke="#57c7ff" stroke-width="1.5"/>
+      <text x="175" y="214" fill="#57c7ff" font-family="Share Tech Mono" font-size="8">CLK</text>
+
+      <!-- D4 → ST both regs -->
+      <line x1="142" y1="233" x2="232" y2="233" stroke="#a8ff78" stroke-width="1.5"/>
+      <line x1="232" y1="233" x2="232" y2="219" stroke="#a8ff78" stroke-width="1.5"/>
+      <line x1="232" y1="219" x2="268" y2="219" stroke="#a8ff78" stroke-width="1.5"/>
+      <line x1="232" y1="233" x2="232" y2="400" stroke="#a8ff78" stroke-width="1.5"/>
+      <line x1="232" y1="400" x2="268" y2="400" stroke="#a8ff78" stroke-width="1.5"/>
+      <text x="160" y="245" fill="#a8ff78" font-family="Share Tech Mono" font-size="8">LATCH</text>
+
+      <!-- DS chain: Reg1 QS → DS Reg2 -->
+      <line x1="360" y1="275" x2="420" y2="275" stroke="#ffd479" stroke-width="1.2" stroke-dasharray="4,2"/>
+      <line x1="420" y1="275" x2="420" y2="370" stroke="#ffd479" stroke-width="1.2" stroke-dasharray="4,2"/>
+      <line x1="420" y1="370" x2="268" y2="370" stroke="#ffd479" stroke-width="1.2" stroke-dasharray="4,2"/>
+      <text x="425" y="320" fill="#ffd479" font-family="Share Tech Mono" font-size="7">CASCADE</text>
+
+      <!-- Reg1 → Resistors → Matrix (rows) -->
+      <line x1="370" y1="189" x2="440" y2="189" stroke="#ff7777" stroke-width="1.5"/>
+      <line x1="490" y1="189" x2="520" y2="189" stroke="#ff7777" stroke-width="1.5"/>
+      <text x="500" y="185" fill="#ff7777" font-family="Share Tech Mono" font-size="7">ROWS</text>
+
+      <!-- Reg2 → Matrix (cols) -->
+      <line x1="370" y1="370" x2="500" y2="370" stroke="#78f0a8" stroke-width="1.5"/>
+      <line x1="500" y1="370" x2="500" y2="260" stroke="#78f0a8" stroke-width="1.5"/>
+      <line x1="500" y1="260" x2="520" y2="260" stroke="#78f0a8" stroke-width="1.5"/>
+      <text x="472" y="310" fill="#78f0a8" font-family="Share Tech Mono" font-size="7">COLS</text>
+
+      <!-- Small LED grid inside matrix box -->
+      <g>
+        <rect x="535" y="152" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="548" y="152" width="9" height="9" rx="4" fill="#ff4500" opacity="0.9"/>
+        <rect x="561" y="152" width="9" height="9" rx="4" fill="#ff4500" opacity="0.9"/>
+        <rect x="574" y="152" width="9" height="9" rx="4" fill="#ff4500" opacity="0.9"/>
+        <rect x="587" y="152" width="9" height="9" rx="4" fill="#ff4500" opacity="0.9"/>
+        <rect x="600" y="152" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="613" y="152" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="626" y="152" width="9" height="9" rx="4" fill="#8a2000"/>
+
+        <rect x="535" y="166" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="548" y="166" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="561" y="166" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="574" y="166" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="587" y="166" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="600" y="166" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="613" y="166" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="626" y="166" width="9" height="9" rx="4" fill="#8a2000"/>
+
+        <rect x="535" y="180" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="548" y="180" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="561" y="180" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="574" y="180" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="587" y="180" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="600" y="180" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="613" y="180" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="626" y="180" width="9" height="9" rx="4" fill="#8a2000"/>
+
+        <rect x="535" y="194" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="548" y="194" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="561" y="194" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="574" y="194" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="587" y="194" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="600" y="194" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="613" y="194" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="626" y="194" width="9" height="9" rx="4" fill="#8a2000"/>
+
+        <rect x="535" y="208" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="548" y="208" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="561" y="208" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="574" y="208" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="587" y="208" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="600" y="208" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="613" y="208" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="626" y="208" width="9" height="9" rx="4" fill="#8a2000"/>
+
+        <rect x="535" y="222" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="548" y="222" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="561" y="222" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="574" y="222" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="587" y="222" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="600" y="222" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="613" y="222" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="626" y="222" width="9" height="9" rx="4" fill="#8a2000"/>
+
+        <rect x="535" y="236" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="548" y="236" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="561" y="236" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="574" y="236" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="587" y="236" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="600" y="236" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="613" y="236" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="626" y="236" width="9" height="9" rx="4" fill="#8a2000"/>
+
+        <rect x="535" y="250" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="548" y="250" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="561" y="250" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="574" y="250" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="587" y="250" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="600" y="250" width="9" height="9" rx="4" fill="#ff4500"/>
+        <rect x="613" y="250" width="9" height="9" rx="4" fill="#8a2000"/>
+        <rect x="626" y="250" width="9" height="9" rx="4" fill="#8a2000"/>
+      </g>
+
+      <!-- labels -->
+      <text x="600" y="302" text-anchor="middle" fill="#ff4500" font-family="Share Tech Mono" font-size="8">😊 смайлик</text>
+
+      <!-- Legend -->
+      <rect x="20" y="355" width="210" height="90" rx="6" fill="white" stroke="#c8d8e8" stroke-width="1"/>
+      <text x="125" y="372" text-anchor="middle" fill="#1a2535" font-family="Space Grotesk" font-size="10" font-weight="600">Легенда сигналів</text>
+      <line x1="35" y1="385" x2="65" y2="385" stroke="#ffd479" stroke-width="2"/><text x="70" y="389" fill="#5a4000" font-family="Share Tech Mono" font-size="9">DATA (D2)</text>
+      <line x1="35" y1="400" x2="65" y2="400" stroke="#57c7ff" stroke-width="2"/><text x="70" y="404" fill="#003a5a" font-family="Share Tech Mono" font-size="9">CLK (D3)</text>
+      <line x1="35" y1="415" x2="65" y2="415" stroke="#a8ff78" stroke-width="2"/><text x="70" y="419" fill="#1a4a00" font-family="Share Tech Mono" font-size="9">LATCH (D4)</text>
+      <line x1="35" y1="430" x2="65" y2="430" stroke="#ffd479" stroke-width="1.5" stroke-dasharray="4,2"/><text x="70" y="434" fill="#5a4000" font-family="Share Tech Mono" font-size="9">CASCADE (QS→DS)</text>
+
+      <!-- Title -->
+      <text x="700" y="430" text-anchor="middle" fill="#a0b8cc" font-family="Share Tech Mono" font-size="8">STEAM-HUB · Тема 20</text>
+    </svg>
+  </div>
+
+  <div class="warn-box" style="margin-top:14px;">
+    <strong>⚠ Примітка:</strong> Схема має ознайомлювальний характер. У реальному пристрої між другим регістром і рядками матриці рекомендується підключати <b>транзисторну збірку ULN2003</b> для захисту виходів мікросхеми від перевантаження.
+  </div>
+</section>
+
+<!-- ══════════ PRACTICE ══════════ -->
+<section id="practice">
+  <div class="section-tag">04 · ПРАКТИЧНЕ ЗАВДАННЯ</div>
+  <h2>Завдання 1 — Підключення матриці з 74HC595</h2>
+
+  <div class="card" style="margin-bottom:20px;">
+    <h3>Компоненти</h3>
+    <div class="comp-list">
+      <div class="comp-item"><span class="comp-icon">🟦</span>Arduino UNO</div>
+      <div class="comp-item"><span class="comp-icon">🔲</span>Макетна плата</div>
+      <div class="comp-item"><span class="comp-icon">🔴</span>Матриця 8×8 LED</div>
+      <div class="comp-item"><span class="comp-icon">⬛</span>74HC595 × 2</div>
+      <div class="comp-item"><span class="comp-icon">🟡</span>Резистори 220Ω × 8</div>
+      <div class="comp-item"><span class="comp-icon">🔌</span>Дроти тато-тато × 29</div>
+      <div class="comp-item"><span class="comp-icon">💻</span>Arduino IDE</div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-content">
+        <h4>Збірка схеми</h4>
+        <p>Розмістіть на макетній платі два зсувних регістри 74HC595. Перший — для стовпців (з резисторами 220Ω на виходах Q0–Q7), другий — для рядків. Виходи QS (pin 9) першого регістра з'єднайте з DS (pin 14) другого — це <b>каскадний ланцюг</b>.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-content">
+        <h4>Підключення до Arduino</h4>
+        <p>D2 → DS (pin 14) першого регістра. D3 → SH_CP (pin 11) обох регістрів. D4 → ST_CP (pin 12) обох регістрів. 5V → VCC обох регістрів (pin 16). GND → GND обох регістрів (pin 8).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-content">
+        <h4>Підключення матриці</h4>
+        <p>Виходи першого регістра (через резистори) → виводи рядків матриці (R1–R8). Виходи другого регістра → виводи стовпців матриці (C1–C8). Увага: нумерація виводів матриці починається з нижнього лівого кута і <b>не відповідає</b> порядку R/C!</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-content">
+        <h4>Завантаження скетча</h4>
+        <p>Відкрийте Arduino IDE, введіть Лістинг 7-6 (нижче), скомпілюйте та завантажте. На матриці має з'явитися слово "Adept" у вигляді прокрутки. Поясніть викладачу роботу кожного блоку коду.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">05</div>
+      <div class="step-content">
+        <h4>Аналіз та модифікація</h4>
+        <p>Спробуйте намалювати власний символ у симуляторі вище, скопіюйте масив <code>data[]</code> та замініть у скетчі. Поекспериментуйте зі значенням <code>to_flick</code> — що відбувається при збільшенні/зменшенні?</p>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px; font-size:16px; color:var(--text);">Лістинг 7-6 — прокрутка тексту</h3>
+  <div class="code-block" style="margin-top:12px;">
+    <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="kw">const</span> <span class="ty">int</span> latchPin = <span class="nb">12</span>; <span class="cm">// ST_CP зсувного регістра</span>
+<span class="kw">const</span> <span class="ty">int</span> clockPin = <span class="nb">8</span>;  <span class="cm">// SH_CP зсувного регістра</span>
+<span class="kw">const</span> <span class="ty">int</span> dataPin  = <span class="nb">11</span>; <span class="cm">// DS зсувного регістра</span>
+
+<span class="cm">// Стовпці — бітові маски символів (A, d, e, e, p, t)</span>
+<span class="ty">int</span> data[] = {
+  <span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>, <span class="cm">// пусто</span>
+  <span class="nb">0x00</span>,<span class="nb">0x3E</span>,<span class="nb">0x48</span>,<span class="nb">0x88</span>,<span class="nb">0x88</span>,<span class="nb">0x48</span>,<span class="nb">0x3E</span>,<span class="nb">0x00</span>, <span class="cm">// A</span>
+  <span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x0C</span>,<span class="nb">0x12</span>,<span class="nb">0x12</span>,<span class="nb">0xFE</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>, <span class="cm">// d</span>
+  <span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x7C</span>,<span class="nb">0x92</span>,<span class="nb">0x92</span>,<span class="nb">0x92</span>,<span class="nb">0x70</span>,<span class="nb">0x00</span>, <span class="cm">// e</span>
+  <span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x7C</span>,<span class="nb">0x92</span>,<span class="nb">0x92</span>,<span class="nb">0x92</span>,<span class="nb">0x70</span>,<span class="nb">0x00</span>, <span class="cm">// e</span>
+  <span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0xFE</span>,<span class="nb">0x90</span>,<span class="nb">0x90</span>,<span class="nb">0x60</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>, <span class="cm">// p</span>
+  <span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x10</span>,<span class="nb">0x10</span>,<span class="nb">0x7E</span>,<span class="nb">0x12</span>,<span class="nb">0x10</span>,<span class="nb">0x00</span>, <span class="cm">// t</span>
+  <span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>,<span class="nb">0x00</span>  <span class="cm">// пусто</span>
+};
+
+<span class="cm">// Рядки — один активний рядок на кроці</span>
+<span class="ty">unsigned char</span> tab[] = {<span class="nb">0x7f</span>,<span class="nb">0xbf</span>,<span class="nb">0xdf</span>,<span class="nb">0xef</span>,<span class="nb">0xf7</span>,<span class="nb">0xfb</span>,<span class="nb">0xfd</span>,<span class="nb">0xfe</span>};
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  <span class="fn">pinMode</span>(latchPin, OUTPUT);
+  <span class="fn">pinMode</span>(clockPin, OUTPUT);
+  <span class="fn">pinMode</span>(dataPin,  OUTPUT);
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="kw">for</span>(<span class="ty">int</span> n = <span class="nb">0</span>; n &lt; <span class="nb">56</span>; n++) {         <span class="cm">// зміщення (прокрутка)</span>
+    <span class="kw">for</span>(<span class="ty">int</span> t = <span class="nb">0</span>; t &lt; <span class="nb">100</span>; t++) {        <span class="cm">// повторень на позицію</span>
+      <span class="kw">for</span>(<span class="ty">int</span> num = n; num &lt; <span class="nb">8</span>+n; num++) { <span class="cm">// 8 рядків кадру</span>
+        <span class="fn">shiftOut</span>(dataPin, clockPin, MSBFIRST, data[num]);   <span class="cm">// стовпці</span>
+        <span class="fn">shiftOut</span>(dataPin, clockPin, MSBFIRST, tab[num-n]);  <span class="cm">// рядки</span>
+        <span class="fn">digitalWrite</span>(latchPin, HIGH);
+        <span class="fn">digitalWrite</span>(latchPin, LOW);
+      }
+    }
+  }
+}
+  </div>
+
+  <div class="trace-line"></div>
+
+  <h2 style="margin-top:0;">Завдання 5* — Матриця на MAX7219</h2>
+
+  <div class="card">
+    <h3>Спрощене підключення</h3>
+    <p>Замість двох зсувних регістрів і 29 дротів — лише <b>5 дротів</b>! Модуль MAX7219 сам керує мультиплексуванням, яскравістю та зберіганням кадру.</p>
+  </div>
+
+  <div class="steps" style="margin-top:16px;">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-content">
+        <h4>Встановлення бібліотек</h4>
+        <p>В Arduino IDE: Sketch → Include Library → Manage Libraries. Встановіть <b>Adafruit GFX Library</b> та <b>Max72xxPanel</b>. Після встановлення перезапустіть IDE.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-content">
+        <h4>Підключення модуля</h4>
+        <p>VCC → 5V, GND → GND, DIN → D11 (MOSI), CLK → D13 (SCK), CS → D9. Всього 5 дротів!</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-content">
+        <h4>Завантаження скетча та тестування</h4>
+        <p>Введіть Лістинг 7-7 (нижче). Метод <code>drawPixel()</code> вмикає/вимикає конкретний піксель, <code>write()</code> передає кадр на матрицю. Поекспериментуйте з координатами та яскравістю.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="code-block" style="margin-top:14px;">
+    <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="kw">#include</span> <span class="st">&lt;SPI.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;Adafruit_GFX.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;Max72xxPanel.h&gt;</span>
+
+<span class="ty">int</span> pinCS = <span class="nb">9</span>;
+<span class="ty">int</span> numberOfHorizontalDisplays = <span class="nb">1</span>; <span class="cm">// к-сть матриць по горизонталі</span>
+<span class="ty">int</span> numberOfVerticalDisplays   = <span class="nb">1</span>; <span class="cm">// к-сть матриць по вертикалі</span>
+
+Max72xxPanel matrix = <span class="fn">Max72xxPanel</span>(pinCS, numberOfHorizontalDisplays,
+                                    numberOfVerticalDisplays);
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  matrix.<span class="fn">setIntensity</span>(<span class="nb">4</span>); <span class="cm">// яскравість 0–15</span>
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  matrix.<span class="fn">drawPixel</span>(<span class="nb">3</span>, <span class="nb">4</span>, HIGH); <span class="cm">// запалити піксель {3, 4}</span>
+  matrix.<span class="fn">write</span>();               <span class="cm">// вивести кадр на матрицю</span>
+  <span class="fn">delay</span>(<span class="nb">300</span>);
+  matrix.<span class="fn">drawPixel</span>(<span class="nb">3</span>, <span class="nb">4</span>, LOW);  <span class="cm">// погасити</span>
+  matrix.<span class="fn">write</span>();
+  <span class="fn">delay</span>(<span class="nb">300</span>);
+}
+  </div>
+</section>
+
+<!-- ══════════ MAX7219 ══════════ -->
+<section id="max7219">
+  <div class="section-tag">05 · MAX7219</div>
+  <h2>Порівняння підходів</h2>
+
+  <div class="info-grid">
+    <div class="card">
+      <h3>74HC595 + ручний код</h3>
+      <ul style="font-size:13px; color:var(--text2); padding-left:16px; line-height:2;">
+        <li>29 дротів підключення</li>
+        <li>2 мікросхеми + 8 резисторів</li>
+        <li>Ручна динамічна індикація</li>
+        <li>Потребує <code>digitalWriteFast</code></li>
+        <li>✅ Повне розуміння принципів</li>
+        <li>❌ Складна схема</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>MAX7219 + бібліотека</h3>
+      <ul style="font-size:13px; color:var(--text2); padding-left:16px; line-height:2;">
+        <li>5 дротів підключення</li>
+        <li>1 модуль, все вбудовано</li>
+        <li>Автоматичне мультиплексування</li>
+        <li>Вбудоване регулювання яскравості</li>
+        <li>✅ Простота та надійність</li>
+        <li>✅ Легко каскадується</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Коли каскадувати?</h3>
+      <p style="font-size:13px; color:var(--text2);">З 74HC595: Uno тягне до <b>16×16</b> без мерехтіння. MAX7219: модулі легко з'єднуються в ланцюжок через DIN→DOUT, адресуються за індексом. Для великих екранів — SPI.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ QUIZ ══════════ -->
+<section id="quiz">
+  <div class="section-tag">06 · КОНТРОЛЬ ЗНАНЬ</div>
+  <h2>Тест — 10 питань</h2>
+
+  <div class="quiz-wrap" id="quizWrap">
+
+    <div class="quiz-q" data-q="0">
+      <div class="q-text">1. Яка роздільна здатність найпоширенішого матричного індикатора?</div>
+      <div class="quiz-options">
+        <div class="quiz-opt" onclick="answer(this,0,false)"><span class="opt-letter">A</span>4×4 точки</div>
+        <div class="quiz-opt" onclick="answer(this,0,true)"><span class="opt-letter">B</span>8×8 точок</div>
+        <div class="quiz-opt" onclick="answer(this,0,false)"><span class="opt-letter">C</span>16×16 точок</div>
+        <div class="quiz-opt" onclick="answer(this,0,false)"><span class="opt-letter">D</span>32×32 точки</div>
+      </div>
+      <div class="quiz-explanation">Найпоширеніший матричний індикатор має роздільну здатність <b>8×8</b> — 64 пікселі, що ідеально підходить для відображення символів і простих зображень.</div>
+    </div>
+
+    <div class="quiz-q" data-q="1">
+      <div class="q-text">2. Скільки виводів має стандартний 8×8 матричний індикатор назовні?</div>
+      <div class="quiz-options">
+        <div class="quiz-opt" onclick="answer(this,1,false)"><span class="opt-letter">A</span>64 виводи</div>
+        <div class="quiz-opt" onclick="answer(this,1,false)"><span class="opt-letter">B</span>8 виводів</div>
+        <div class="quiz-opt" onclick="answer(this,1,true)"><span class="opt-letter">C</span>16 виводів</div>
+        <div class="quiz-opt" onclick="answer(this,1,false)"><span class="opt-letter">D</span>32 виводи</div>
+      </div>
+      <div class="quiz-explanation">Завдяки матричному з'єднанню (8 рядків + 8 стовпців) 64 світлодіоди мають лише <b>16 виводів</b>, що значно спрощує підключення.</div>
+    </div>
+
+    <div class="quiz-q" data-q="2">
+      <div class="q-text">3. Чому при одночасному запаленні двох пікселів виникає ефект «привидів»?</div>
+      <div class="quiz-options">
+        <div class="quiz-opt" onclick="answer(this,2,false)"><span class="opt-letter">A</span>Через завелику напругу живлення</div>
+        <div class="quiz-opt" onclick="answer(this,2,true)"><span class="opt-letter">B</span>Струм тече через усі перетини активних рядків і стовпців</div>
+        <div class="quiz-opt" onclick="answer(this,2,false)"><span class="opt-letter">C</span>Через відсутність резисторів</div>
+        <div class="quiz-opt" onclick="answer(this,2,false)"><span class="opt-letter">D</span>Через помилку в програмі</div>
+      </div>
+      <div class="quiz-explanation">Якщо активні рядки R6 і R3 та стовпці C3 і C7, струм тече через усі 4 перетини (R6C3, R6C7, R3C3, R3C7) — засвічуються «зайві» пікселі.</div>
+    </div>
+
+    <div class="quiz-q" data-q="3">
+      <div class="q-text">4. Що таке «персистентність зору» у контексті матриць?</div>
+      <div class="quiz-options">
+        <div class="quiz-opt" onclick="answer(this,3,false)"><span class="opt-letter">A</span>Здатність матриці зберігати зображення без живлення</div>
+        <div class="quiz-opt" onclick="answer(this,3,false)"><span class="opt-letter">B</span>Метод стиснення даних для зображень</div>
+        <div class="quiz-opt" onclick="answer(this,3,true)"><span class="opt-letter">C</span>Здатність ока сприймати швидко змінювані кадри як одне ціле</div>
+        <div class="quiz-opt" onclick="answer(this,3,false)"><span class="opt-letter">D</span>Вбудована пам'ять мікросхеми 74HC595</div>
+      </div>
+      <div class="quiz-explanation"><b>Персистентність зору</b> — фізіологічна властивість зорової системи сприймати зображення, що змінюються частіше 50–60 разів на секунду, як одне статичне.</div>
+    </div>
+
+    <div class="quiz-q" data-q="4">
+      <div class="q-text">5. Скільки виводів Arduino потрібно для керування матрицею через два 74HC595?</div>
+      <div class="quiz-options">
+        <div class="quiz-opt" onclick="answer(this,4,false)"><span class="opt-letter">A</span>16</div>
+        <div class="quiz-opt" onclick="answer(this,4,true)"><span class="opt-letter">B</span>3</div>
+        <div class="quiz-opt" onclick="answer(this,4,false)"><span class="opt-letter">C</span>8</div>
+        <div class="quiz-opt" onclick="answer(this,4,false)"><span class="opt-letter">D</span>5</div>
+      </div>
+      <div class="quiz-explanation">Три виводи: <b>DATA</b> (послідовні дані), <b>CLK</b> (тактовий сигнал), <b>LATCH</b> (засувка). Обидва регістри підключаються паралельно до CLK і LATCH, а DATA каскадується.</div>
+    </div>
+
+    <div class="quiz-q" data-q="5">
+      <div class="q-text">6. На яких лініях мають стояти резистори обмеження струму?</div>
+      <div class="quiz-options">
+        <div class="quiz-opt" onclick="answer(this,5,false)"><span class="opt-letter">A</span>На лініях рядків (другий регістр)</div>
+        <div class="quiz-opt" onclick="answer(this,5,true)"><span class="opt-letter">B</span>На лініях стовпців (перший регістр)</div>
+        <div class="quiz-opt" onclick="answer(this,5,false)"><span class="opt-letter">C</span>На лініях живлення 5V</div>
+        <div class="quiz-opt" onclick="answer(this,5,false)"><span class="opt-letter">D</span>Між двома регістрами</div>
+      </div>
+      <div class="quiz-explanation">Резистори на <b>стовпцях</b> (перший регістр) забезпечують рівномірне обмеження струму для кожного LED незалежно від кількості активних пікселів у рядку.</div>
+    </div>
+
+    <div class="quiz-q" data-q="6">
+      <div class="q-text">7. Що робить функція latchOn() у програмі?</div>
+      <div class="quiz-options">
+        <div class="quiz-opt" onclick="answer(this,6,false)"><span class="opt-letter">A</span>Вмикає перший рядок матриці</div>
+        <div class="quiz-opt" onclick="answer(this,6,false)"><span class="opt-letter">B</span>Скидає всі регістри до нуля</div>
+        <div class="quiz-opt" onclick="answer(this,6,true)"><span class="opt-letter">C</span>Відкриває засувку регістра, оновлюючи виходи Q0–Q7</div>
+        <div class="quiz-opt" onclick="answer(this,6,false)"><span class="opt-letter">D</span>Починає передачу даних по SPI</div>
+      </div>
+      <div class="quiz-explanation"><b>latchOn()</b> подає імпульс HIGH→LOW на ST_CP (RCLK). Це «відкриває» засувку: дані з внутрішнього зсувного регістра передаються на виходи Q0–Q7.</div>
+    </div>
+
+    <div class="quiz-q" data-q="7">
+      <div class="q-text">8. Скільки дротів потрібно для підключення модуля MAX7219?</div>
+      <div class="quiz-options">
+        <div class="quiz-opt" onclick="answer(this,7,false)"><span class="opt-letter">A</span>29</div>
+        <div class="quiz-opt" onclick="answer(this,7,false)"><span class="opt-letter">B</span>16</div>
+        <div class="quiz-opt" onclick="answer(this,7,true)"><span class="opt-letter">C</span>5</div>
+        <div class="quiz-opt" onclick="answer(this,7,false)"><span class="opt-letter">D</span>8</div>
+      </div>
+      <div class="quiz-explanation">MAX7219 підключається через <b>SPI</b>: VCC, GND, DIN, CLK, CS — лише 5 дротів. Сама мікросхема керує всією індикацією та яскравістю.</div>
+    </div>
+
+    <div class="quiz-q" data-q="8">
+      <div class="q-text">9. Яка максимальна розмірність матриці рекомендується для Arduino Uno зі зсувними регістрами?</div>
+      <div class="quiz-options">
+        <div class="quiz-opt" onclick="answer(this,8,false)"><span class="opt-letter">A</span>8×8</div>
+        <div class="quiz-opt" onclick="answer(this,8,true)"><span class="opt-letter">B</span>16×16</div>
+        <div class="quiz-opt" onclick="answer(this,8,false)"><span class="opt-letter">C</span>32×32</div>
+        <div class="quiz-opt" onclick="answer(this,8,false)"><span class="opt-letter">D</span>64×64</div>
+      </div>
+      <div class="quiz-explanation">При збільшенні понад <b>16×16</b> швидкодія Arduino Uno зі зсувними регістрами недостатня — виникає помітне мерехтіння. Для більших матриць потрібен SPI або MAX7219.</div>
+    </div>
+
+    <div class="quiz-q" data-q="9">
+      <div class="q-text">10. Чому у програмі використовується digitalWriteFast замість digitalWrite?</div>
+      <div class="quiz-options">
+        <div class="quiz-opt" onclick="answer(this,9,false)"><span class="opt-letter">A</span>Вона підтримує більше пінів</div>
+        <div class="quiz-opt" onclick="answer(this,9,false)"><span class="opt-letter">B</span>Вона не потребує підключення бібліотек</div>
+        <div class="quiz-opt" onclick="answer(this,9,true)"><span class="opt-letter">C</span>Пряма робота з регістрами порту значно швидше — щоб уникнути мерехтіння</div>
+        <div class="quiz-opt" onclick="answer(this,9,false)"><span class="opt-letter">D</span>Це вимога мікросхеми 74HC595</div>
+      </div>
+      <div class="quiz-explanation">Стандартна <code>digitalWrite()</code> займає ~4 мкс, пряма запис у порт — ~100 нс. При 64 операціях/кадр різниця критична для динамічної індикації без мерехтіння.</div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:20px; display:flex; gap:12px; flex-wrap:wrap;">
+    <button class="btn btn-primary" onclick="checkQuiz()">Перевірити відповіді</button>
+    <button class="btn btn-secondary" onclick="resetQuiz()">🔄 Повторити тест</button>
+  </div>
+
+  <div class="quiz-score-box" id="scoreBox">
+    <div class="score-num" id="scoreNum">0/10</div>
+    <div class="score-text" id="scoreText"></div>
+  </div>
+</section>
+
+<!-- ══════════ REFERENCE ══════════ -->
+<section id="ref">
+  <div class="section-tag">07 · ДОВІДНИК</div>
+  <h2>Шпаргалка та довідкові матеріали</h2>
+
+  <div class="card" style="margin-bottom:20px;">
+    <h3>Функції керування матрицею</h3>
+    <div style="overflow-x:auto;">
+      <table class="ref-table">
+        <thead>
+          <tr><th>Функція</th><th>Опис</th><th>Бібліотека</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>shiftOut(data, clk, order, value)</code></td><td>Послідовна передача 8 біт у регістр. MSBFIRST — зі старшого біта</td><td>Arduino core</td></tr>
+          <tr><td><code>digitalWrite(pin, HIGH/LOW)</code></td><td>Встановлює рівень сигналу на піні. ~3–4 мкс</td><td>Arduino core</td></tr>
+          <tr><td><code>PORTD |= _BV(pin)</code></td><td>Швидке встановлення HIGH через регістр порту. ~100 нс</td><td>AVR (вбуд.)</td></tr>
+          <tr><td><code>micros()</code></td><td>Повертає час у мікросекундах від початку роботи</td><td>Arduino core</td></tr>
+          <tr><td><code>matrix.drawPixel(x, y, val)</code></td><td>Встановлює піксель (x,y) в HIGH/LOW</td><td>Max72xxPanel</td></tr>
+          <tr><td><code>matrix.write()</code></td><td>Передає буфер пікселів на матрицю</td><td>Max72xxPanel</td></tr>
+          <tr><td><code>matrix.setIntensity(n)</code></td><td>Яскравість 0–15</td><td>Max72xxPanel</td></tr>
+          <tr><td><code>matrix.fillScreen(val)</code></td><td>Заповнити весь екран значенням</td><td>Adafruit GFX</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <h3>Піни 74HC595</h3>
+    <div style="overflow-x:auto;">
+      <table class="ref-table">
+        <thead>
+          <tr><th>Пін</th><th>Назва</th><th>Функція</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>14</td><td><code>DS (SER)</code></td><td>Вхід послідовних даних</td></tr>
+          <tr><td>11</td><td><code>SH_CP (SRCLK)</code></td><td>Тактовий сигнал зсуву</td></tr>
+          <tr><td>12</td><td><code>ST_CP (RCLK)</code></td><td>Засувка (latch) — оновлює виходи</td></tr>
+          <tr><td>10</td><td><code>MR (SRCLR)</code></td><td>Скидання (активний LOW) — підтяти до VCC</td></tr>
+          <tr><td>13</td><td><code>OE</code></td><td>Дозвіл виходів (активний LOW) — підтяти до GND</td></tr>
+          <tr><td>9</td><td><code>QS (Q7')</code></td><td>Послідовний вихід — для каскадування</td></tr>
+          <tr><td>15, 1–7</td><td><code>Q0–Q7</code></td><td>Паралельні виходи (8 біт)</td></tr>
+          <tr><td>16</td><td><code>VCC</code></td><td>Живлення 2–6В</td></tr>
+          <tr><td>8</td><td><code>GND</code></td><td>Земля</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Бінарне кодування зображення</h3>
+    <div class="highlight-box">
+      Кожен рядок матриці — це один байт (8 біт). Біт 1 = піксель увімкнено, 0 = вимкнено.<br>
+      Лівий піксель = старший біт (MSB, bit 7). Правий = молодший (LSB, bit 0).<br><br>
+      Приклад рядка смайлика: <code>0b00111100</code> → <span style="font-family:var(--mono);">○○●●●●○○</span><br>
+      У hex: <code>0x3C</code>
+    </div>
+    <div class="code-block" style="margin-top:12px; font-size:12px;">
+<span class="cm">// Смайлик — масив data[8]:</span>
+<span class="kw">const</span> <span class="ty">byte</span> data[<span class="nb">8</span>] = {
+  <span class="nb">0b00111100</span>,  <span class="cm">// ○○●●●●○○  рядок 0 (верх)</span>
+  <span class="nb">0b01000010</span>,  <span class="cm">// ○●○○○○●○</span>
+  <span class="nb">0b10100101</span>,  <span class="cm">// ●○●○○●○●</span>
+  <span class="nb">0b10000001</span>,  <span class="cm">// ●○○○○○○●</span>
+  <span class="nb">0b10100101</span>,  <span class="cm">// ●○●○○●○●</span>
+  <span class="nb">0b10011001</span>,  <span class="cm">// ●○○●●○○●</span>
+  <span class="nb">0b01000010</span>,  <span class="cm">// ○●○○○○●○</span>
+  <span class="nb">0b00111100</span>   <span class="cm">// ○○●●●●○○  рядок 7 (низ)</span>
+};
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  STEAM-HUB · ПУЕТ · Тема 20 — Матричні індикатори Arduino //
+  Інтерактивний посібник · 2025
+</footer>
+
+<script>
+// ──────────────────────────────────
+//  LED Matrix state
+// ──────────────────────────────────
+let matrixState = Array(8).fill(null).map(() => Array(8).fill(0));
+let animInterval = null;
+let animFrame = 0;
+
+const PATTERNS = {
+  smile: [
+    [0,0,1,1,1,1,0,0],
+    [0,1,0,0,0,0,1,0],
+    [1,0,1,0,0,1,0,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,1,0,0,1,0,1],
+    [1,0,0,1,1,0,0,1],
+    [0,1,0,0,0,0,1,0],
+    [0,0,1,1,1,1,0,0]
+  ],
+  sad: [
+    [0,0,1,1,1,1,0,0],
+    [0,1,0,0,0,0,1,0],
+    [1,0,1,0,0,1,0,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,0,1],
+    [0,1,0,0,0,0,1,0],
+    [0,0,1,1,1,1,0,0]
+  ],
+  heart: [
+    [0,1,1,0,0,1,1,0],
+    [1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1],
+    [0,1,1,1,1,1,1,0],
+    [0,0,1,1,1,1,0,0],
+    [0,0,0,1,1,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0]
+  ],
+  arrow: [
+    [0,0,0,1,0,0,0,0],
+    [0,0,1,1,0,0,0,0],
+    [0,1,0,1,0,0,0,0],
+    [1,0,0,1,0,0,0,0],
+    [0,0,0,1,0,0,0,0],
+    [0,0,0,1,0,0,0,0],
+    [0,0,0,1,0,0,0,0],
+    [0,0,0,1,0,0,0,0]
+  ],
+  checkmark: [
+    [0,0,0,0,0,0,0,1],
+    [0,0,0,0,0,0,1,0],
+    [0,0,0,0,0,1,0,0],
+    [0,0,0,0,1,0,0,0],
+    [1,0,0,1,0,0,0,0],
+    [0,1,1,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0]
+  ],
+  letter_A: [
+    [0,0,1,1,1,1,0,0],
+    [0,1,0,0,0,0,1,0],
+    [1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1],
+    [0,0,0,0,0,0,0,0]
+  ],
+  cross: [
+    [1,0,0,0,0,0,0,1],
+    [0,1,0,0,0,0,1,0],
+    [0,0,1,0,0,1,0,0],
+    [0,0,0,1,1,0,0,0],
+    [0,0,0,1,1,0,0,0],
+    [0,0,1,0,0,1,0,0],
+    [0,1,0,0,0,0,1,0],
+    [1,0,0,0,0,0,0,1]
+  ],
+  border: [
+    [1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1]
+  ]
+};
+
+const ANIM_FRAMES = [PATTERNS.smile, PATTERNS.sad];
+
+function buildGrid() {
+  const grid = document.getElementById('ledGrid');
+  grid.innerHTML = '';
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const led = document.createElement('div');
+      led.className = 'led' + (matrixState[r][c] ? ' on' : '');
+      led.dataset.r = r; led.dataset.c = c;
+      led.addEventListener('click', () => toggleLed(r, c));
+      grid.appendChild(led);
+    }
+  }
+  updateBinary();
+}
+
+function toggleLed(r, c) {
+  matrixState[r][c] = matrixState[r][c] ? 0 : 1;
+  renderGrid();
+}
+
+function renderGrid() {
+  document.querySelectorAll('.led').forEach(led => {
+    const r = +led.dataset.r, c = +led.dataset.c;
+    led.className = 'led' + (matrixState[r][c] ? ' on' : '');
+  });
+  updateBinary();
+}
+
+function updateBinary() {
+  const el = document.getElementById('binaryRows');
+  let html = '';
+  for (let r = 0; r < 8; r++) {
+    const bits = matrixState[r].join('');
+    const hex = '0x' + parseInt(bits, 2).toString(16).toUpperCase().padStart(2,'0');
+    const bin = '0b' + bits;
+    html += `<span class="row-label">data[${r}] = </span><span class="row-val">${bin}</span>  <span class="row-hex">${hex}</span>\n`;
+  }
+  el.textContent = '';
+  el.innerHTML = html;
+}
+
+function loadPattern(name) {
+  stopAnim();
+  matrixState = PATTERNS[name].map(row => [...row]);
+  renderGrid();
+}
+
+function clearMatrix() {
+  stopAnim();
+  matrixState = Array(8).fill(null).map(() => Array(8).fill(0));
+  renderGrid();
+}
+
+function invertMatrix() {
+  stopAnim();
+  matrixState = matrixState.map(row => row.map(v => v ? 0 : 1));
+  renderGrid();
+}
+
+function startAnim() {
+  if (animInterval) { stopAnim(); return; }
+  animFrame = 0;
+  const btn = document.getElementById('animBtn');
+  btn.textContent = '⏹ Зупинити';
+  const status = document.getElementById('animStatus');
+  status.style.display = 'block';
+  animInterval = setInterval(() => {
+    matrixState = ANIM_FRAMES[animFrame % 2].map(row => [...row]);
+    renderGrid();
+    status.textContent = `▶ Кадр ${(animFrame % 2) + 1}/2 — ${animFrame % 2 === 0 ? '😊 Смайл' : '😞 Сумний'} | to_switch = 500 мс`;
+    animFrame++;
+  }, 500);
+}
+
+function stopAnim() {
+  if (animInterval) { clearInterval(animInterval); animInterval = null; }
+  document.getElementById('animBtn').textContent = '▶ Анімація смайлів';
+  document.getElementById('animStatus').style.display = 'none';
+}
+
+// ──────────────────────────────────
+//  Accordion
+// ──────────────────────────────────
+function toggleAccordion(header) {
+  const body = header.nextElementSibling;
+  const isOpen = header.classList.contains('open');
+  // close all
+  document.querySelectorAll('.accordion-header').forEach(h => {
+    h.classList.remove('open');
+    h.nextElementSibling.classList.remove('open');
+  });
+  if (!isOpen) {
+    header.classList.add('open');
+    body.classList.add('open');
+  }
+}
+
+// ──────────────────────────────────
+//  Copy Code
+// ──────────────────────────────────
+function copyCode(btn) {
+  const block = btn.parentElement;
+  const text = block.innerText.replace('copy','').replace('copied!','').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 1500);
+  });
+}
+
+// ──────────────────────────────────
+//  Quiz
+// ──────────────────────────────────
+let answered = new Array(10).fill(false);
+let scores = new Array(10).fill(false);
+
+function answer(opt, qIdx, isCorrect) {
+  if (answered[qIdx]) return;
+  answered[qIdx] = true;
+  scores[qIdx] = isCorrect;
+  const options = opt.closest('.quiz-options').querySelectorAll('.quiz-opt');
+  options.forEach(o => {
+    o.style.pointerEvents = 'none';
+    o.style.cursor = 'default';
+  });
+  opt.classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) {
+    // highlight correct
+    options.forEach(o => {
+      if (o.onclick && o.onclick.toString().includes('true')) o.classList.add('correct');
+    });
+  }
+  const exp = opt.closest('.quiz-q').querySelector('.quiz-explanation');
+  if (exp) exp.style.display = 'block';
+}
+
+function checkQuiz() {
+  const total = answered.filter(Boolean).length;
+  const correct = scores.filter(Boolean).length;
+  const scoreBox = document.getElementById('scoreBox');
+  const scoreNum = document.getElementById('scoreNum');
+  const scoreText = document.getElementById('scoreText');
+  scoreBox.style.display = 'block';
+  scoreNum.textContent = correct + '/10';
+  const msgs = [
+    [0,3,'Спробуй ще раз — перечитай теоретичний матеріал.'],
+    [4,6,'Непогано! Є над чим попрацювати.'],
+    [7,8,'Добре! Ти засвоїв більшість матеріалу.'],
+    [9,9,'Відмінно! Майже досконалий результат.'],
+    [10,10,'🏆 Бездоганно! Матриця тобі підкорилась.']
+  ];
+  const msg = msgs.find(([a,b]) => correct >= a && correct <= b);
+  scoreText.textContent = msg ? msg[2] : '';
+  scoreBox.scrollIntoView({behavior:'smooth'});
+}
+
+function resetQuiz() {
+  answered = new Array(10).fill(false);
+  scores = new Array(10).fill(false);
+  document.querySelectorAll('.quiz-opt').forEach(o => {
+    o.classList.remove('correct','wrong');
+    o.style.pointerEvents = '';
+    o.style.cursor = '';
+  });
+  document.querySelectorAll('.quiz-explanation').forEach(e => e.style.display = 'none');
+  document.getElementById('scoreBox').style.display = 'none';
+}
+
+// ──────────────────────────────────
+//  Nav active highlight on scroll
+// ──────────────────────────────────
+window.addEventListener('scroll', () => {
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('nav a');
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 90) current = s.id;
+  });
+  links.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+
+// ──────────────────────────────────
+//  Hero mini matrix animation
+// ──────────────────────────────────
+(function() {
+  const svg = document.querySelector('.hero-matrix svg');
+  const g = svg.querySelector('g');
+  const smileFrames = [
+    [0,0,1,1,1,1,0,0,
+     0,1,0,0,0,0,1,0,
+     1,0,1,0,0,1,0,1,
+     1,0,0,0,0,0,0,1,
+     1,0,1,0,0,1,0,1,
+     1,0,0,1,1,0,0,1,
+     0,1,0,0,0,0,1,0,
+     0,0,1,1,1,1,0,0],
+    [0,0,1,1,1,1,0,0,
+     0,1,0,0,0,0,1,0,
+     1,0,1,0,0,1,0,1,
+     1,0,0,0,0,0,0,1,
+     1,0,0,0,0,0,0,1,
+     1,0,1,1,1,1,0,1,
+     0,1,0,0,0,0,1,0,
+     0,0,1,1,1,1,0,0]
+  ];
+  let fr = 0;
+  function drawHero(pixels) {
+    g.innerHTML = '';
+    for (let i = 0; i < 64; i++) {
+      const r = Math.floor(i/8), c = i%8;
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      rect.setAttribute('cx', 16 + c*12);
+      rect.setAttribute('cy', 16 + r*12);
+      rect.setAttribute('r', 4);
+      rect.setAttribute('fill', pixels[i] ? '#ff4500' : '#4a1500');
+      if (pixels[i]) rect.setAttribute('filter','url(#glow)');
+      g.appendChild(rect);
+    }
+  }
+  // add glow filter
+  const defs = svg.querySelector('defs') || svg.insertBefore(document.createElementNS('http://www.w3.org/2000/svg','defs'), svg.firstChild);
+  defs.innerHTML += `<filter id="glow"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  drawHero(smileFrames[0]);
+  setInterval(() => { fr = (fr+1)%2; drawHero(smileFrames[fr]); }, 800);
+})();
+
+// ──────────────────────────────────
+//  Init
+// ──────────────────────────────────
+loadPattern('smile');
+buildGrid();
+</script>
+</body>
+</html>
