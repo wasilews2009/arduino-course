@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тема 21-22 · LCD дисплеї Arduino</title>
+<style>
+/* ───── DESIGN TOKENS ───── */
+/* Palette: PCB-cream bg, trace-blue accent, copper warm,
+   silk-white surface, resist-green success, amber warn */
+:root {
+  --bg: #F4F1EA;
+  --surface: #FFFFFF;
+  --s2: #EEF2F7;
+  --s3: #E2ECF5;
+  --grid: rgba(0,72,168,0.07);
+  --trace: #0048A8;
+  --trace-lt: #3A7AD4;
+  --trace-pale: #D0E4F5;
+  --copper: #C8721A;
+  --copper-lt: #E8A050;
+  --copper-pale: #F5E6D2;
+  --solder: #7A96B0;
+  --solder-lt: #B2C6D8;
+  --resist: #E8F5EC;
+  --resist-dk: #1E7A30;
+  --warn-bg: #FFF8E0;
+  --warn-brd: #F0C040;
+  --warn-dk: #7A5A00;
+  --lcd-bg: #4A7A28;
+  --lcd-text: #AAFFAA;
+  --lcd-pixel: #88EE66;
+  --lcd-off: #3A6018;
+  --text: #1A2535;
+  --text2: #3C5068;
+  --text3: #6A8096;
+  --mono: 'Share Tech Mono', monospace;
+  --disp: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --body: 'Inter', 'Segoe UI', sans-serif;
+  --r: 9px;
+  --sh: 0 2px 10px rgba(0,72,168,0.09);
+  --sh-lg: 0 6px 28px rgba(0,72,168,0.14);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+/* ───── NAV ───── */
+.nav {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(244,241,234,0.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 2px solid var(--trace);
+  display: flex; align-items: center; gap: 2px;
+  padding: 0 20px; overflow-x: auto; white-space: nowrap;
+}
+.nav-brand {
+  font-family: var(--mono); font-size: 11.5px; color: var(--trace);
+  border: 1.5px solid var(--trace); border-radius: 4px;
+  padding: 4px 10px; margin-right: 10px; flex-shrink: 0; letter-spacing: 1px;
+}
+.nav a {
+  display: inline-block; padding: 13px 11px;
+  font-size: 13px; font-weight: 500; color: var(--text2);
+  text-decoration: none; border-bottom: 3px solid transparent;
+  transition: all .2s; flex-shrink: 0;
+}
+.nav a:hover, .nav a.active { color: var(--trace); border-bottom-color: var(--trace); }
+
+/* ───── HERO ───── */
+.hero {
+  max-width: 1040px; margin: 0 auto;
+  padding: 48px 24px 36px;
+  display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center;
+}
+.hero-eye {
+  font-family: var(--mono); font-size: 10.5px; color: var(--copper);
+  letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.hero-eye::before { content: ''; display: block; width: 28px; height: 2px; background: var(--copper); }
+.hero h1 {
+  font-family: var(--disp); font-size: clamp(28px, 5vw, 50px);
+  font-weight: 700; color: var(--text); line-height: 1.1; margin-bottom: 16px;
+}
+.hero h1 em { color: var(--trace); font-style: normal; }
+.hero-lead {
+  color: var(--text2); font-size: 15.5px; max-width: 480px;
+  padding-left: 16px; border-left: 3px solid var(--copper); line-height: 1.65;
+}
+.tag-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+.tag {
+  font-family: var(--mono); font-size: 10.5px; padding: 3px 9px;
+  border-radius: 4px; background: var(--s2); color: var(--trace);
+  border: 1px solid var(--trace-pale); letter-spacing: .5px;
+}
+
+/* ───── LCD HERO DISPLAY ───── */
+.lcd-hero {
+  background: #2A4A18; border-radius: 10px; padding: 16px;
+  border: 3px solid #1A3010; box-shadow: var(--sh-lg), 0 0 30px rgba(80,180,40,0.12);
+  flex-shrink: 0;
+}
+.lcd-hero-lbl {
+  font-family: var(--mono); font-size: 9px; color: #5A8A30;
+  text-align: center; margin-bottom: 10px; letter-spacing: 2px;
+}
+.lcd-screen {
+  background: var(--lcd-bg); border-radius: 4px; padding: 10px 12px;
+  font-family: var(--mono); font-size: 15px; line-height: 2;
+  color: var(--lcd-pixel); border: 1px solid #3A6010;
+  min-width: 200px; text-shadow: 0 0 6px rgba(150,255,80,0.6);
+}
+.lcd-row { height: 24px; display: flex; align-items: center; gap: 1px; }
+.lcd-char {
+  width: 12px; height: 20px; display: flex; flex-direction: column;
+  gap: 1px; padding: 1px;
+}
+.lcd-px { flex: 1; border-radius: 1px; }
+.lcd-px.on { background: var(--lcd-pixel); box-shadow: 0 0 3px rgba(150,255,80,0.8); }
+.lcd-px.off { background: var(--lcd-off); }
+
+/* ───── MAIN ───── */
+.main { max-width: 1040px; margin: 0 auto; padding: 0 24px 80px; }
+
+/* ───── SECTIONS ───── */
+.section { margin-top: 52px; scroll-margin-top: 62px; }
+.sect-eye {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--copper); margin-bottom: 9px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sect-eye::after { content: ''; flex: 1; height: 1px; background: var(--solder-lt); }
+.section > h2 {
+  font-family: var(--disp); font-size: 22px; font-weight: 700;
+  color: var(--text); margin-bottom: 18px;
+}
+
+/* ───── CARDS ───── */
+.card {
+  background: var(--surface); border: 1px solid var(--s3);
+  border-radius: var(--r); box-shadow: var(--sh);
+  padding: 20px 22px; margin-bottom: 14px;
+}
+.card h3 {
+  font-family: var(--disp); font-size: 14px; font-weight: 600;
+  color: var(--trace); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card h3 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--copper); flex-shrink: 0; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px,1fr)); gap: 14px; }
+
+/* ───── PINOUT TABLE ───── */
+.pin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pin-table th {
+  background: var(--trace); color: #fff; padding: 9px 12px;
+  text-align: left; font-family: var(--disp); font-size: 12px; font-weight: 600;
+}
+.pin-table td { padding: 8px 12px; border-bottom: 1px solid var(--s3); color: var(--text2); vertical-align: top; }
+.pin-table tr:nth-child(even) td { background: var(--s2); }
+.pin-table code {
+  font-family: var(--mono); background: var(--trace-pale); color: var(--trace);
+  padding: 1px 5px; border-radius: 3px; font-size: 12px;
+}
+.pin-badge {
+  display: inline-block; font-family: var(--mono); font-size: 10px;
+  padding: 2px 8px; border-radius: 3px; color: #fff; font-weight: 600;
+}
+
+/* ───── ACCORDION ───── */
+.accordion { border: 1px solid var(--s3); border-radius: var(--r); overflow: hidden; margin-bottom: 10px; }
+.acc-h {
+  background: var(--s2); padding: 13px 18px; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--disp); font-size: 14px; font-weight: 600; color: var(--text);
+  user-select: none; transition: background .2s;
+}
+.acc-h:hover { background: var(--s3); }
+.acc-h .ch {
+  font-size: 10px; color: var(--trace); transition: transform .3s;
+  width: 20px; height: 20px; border-radius: 50%; background: var(--trace-pale);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.acc-h.open .ch { transform: rotate(180deg); }
+.acc-body {
+  display: none; background: var(--surface); padding: 16px 18px;
+  font-size: 14px; color: var(--text2); line-height: 1.75;
+  border-top: 1px solid var(--trace-pale);
+}
+.acc-body.open { display: block; }
+.acc-body p { margin-bottom: 10px; }
+.acc-body ul, .acc-body ol { padding-left: 20px; margin-bottom: 10px; }
+.acc-body li { margin-bottom: 5px; }
+
+/* ───── CODE ───── */
+.code-wrap { position: relative; margin: 12px 0; }
+.code-block {
+  background: #0C1A28; color: #C5D8EE;
+  border-radius: var(--r); padding: 18px 20px;
+  font-family: var(--mono); font-size: 13px; line-height: 1.85;
+  overflow-x: auto; border: 1px solid #1A3050;
+}
+.kw { color: #5BB8FF; }
+.ty { color: #FFD066; }
+.cm { color: #4A6880; font-style: italic; }
+.st { color: #90ECA0; }
+.nb { color: #FF9E66; }
+.fn { color: #B8DEFF; }
+.pp { color: #FF7A9A; }
+.copy-btn {
+  position: absolute; top: 10px; right: 10px;
+  background: #1A3050; border: 1px solid #2A4870; color: #6A90B2;
+  font-family: var(--mono); font-size: 11px; padding: 4px 12px;
+  border-radius: 4px; cursor: pointer; transition: all .2s;
+}
+.copy-btn:hover { background: var(--trace); color: #fff; border-color: var(--trace); }
+
+/* ───── ALERT BOXES ───── */
+.note { background: var(--trace-pale); border: 1px solid var(--trace-lt); border-left: 4px solid var(--trace); border-radius: var(--r); padding: 13px 15px; margin: 11px 0; font-size: 13.5px; color: var(--text2); }
+.warn { background: var(--warn-bg); border: 1px solid var(--warn-brd); border-left: 4px solid #D4A800; border-radius: var(--r); padding: 13px 15px; margin: 11px 0; font-size: 13.5px; color: var(--warn-dk); }
+.success { background: var(--resist); border: 1px solid #7AD098; border-left: 4px solid var(--resist-dk); border-radius: var(--r); padding: 13px 15px; margin: 11px 0; font-size: 13.5px; color: #1A4A22; }
+
+/* ───── STEPS ───── */
+.steps { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+.step {
+  background: var(--surface); border: 1px solid var(--s3);
+  border-radius: var(--r); box-shadow: var(--sh);
+  display: grid; grid-template-columns: 50px 1fr; overflow: hidden;
+}
+.step-n {
+  background: var(--trace); color: #fff;
+  font-family: var(--mono); font-size: 17px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; min-height: 68px;
+}
+.step-b { padding: 13px 17px; }
+.step-b h4 { font-family: var(--disp); font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.step-b p { font-size: 13.5px; color: var(--text2); }
+
+/* ───── COMPS ───── */
+.comp-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px,1fr)); gap: 9px; margin: 13px 0; }
+.comp-item {
+  background: var(--surface); border: 1px solid var(--s3);
+  border-radius: var(--r); padding: 11px 13px;
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; color: var(--text2); font-weight: 500;
+}
+.ci { font-size: 18px; flex-shrink: 0; }
+
+/* ───── TRACE DIVIDER ───── */
+.tdiv {
+  margin: 30px 0; height: 2px;
+  background: repeating-linear-gradient(90deg, var(--trace) 0, var(--trace) 14px, transparent 14px, transparent 20px);
+  opacity: .2;
+}
+
+/* ═══════════════════════════════════
+   LCD SIMULATOR
+═══════════════════════════════════ */
+.sim-card {
+  background: var(--surface); border: 1px solid var(--s3);
+  border-radius: var(--r); box-shadow: var(--sh-lg); padding: 24px;
+}
+.sim-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.sim-title { font-family: var(--disp); font-size: 16px; font-weight: 700; color: var(--text); flex: 1; }
+
+.btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-family: var(--disp); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: all .2s; }
+.btn-primary { background: var(--trace); color: #fff; }
+.btn-primary:hover { background: #003490; }
+.btn-outline { background: var(--surface); color: var(--text); border: 1.5px solid var(--solder); }
+.btn-outline:hover { border-color: var(--trace); color: var(--trace); }
+.btn-copper { background: var(--copper); color: #fff; }
+.btn-copper:hover { background: #A05A10; }
+
+/* Main LCD display */
+.lcd-module {
+  background: #2A4818; border-radius: 12px; padding: 20px;
+  border: 3px solid #1A3010;
+  box-shadow: var(--sh-lg), 0 0 40px rgba(60,160,20,0.1);
+  display: inline-block; margin-bottom: 16px;
+}
+.lcd-module-lbl {
+  font-family: var(--mono); font-size: 9px; color: #4A7A20;
+  margin-bottom: 12px; letter-spacing: 2px; text-align: center;
+}
+.lcd-display {
+  background: #3A6018; border-radius: 6px; padding: 12px 14px;
+  border: 1px solid #2A5010;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.lcd-row-cells {
+  display: flex; gap: 3px;
+}
+.lcd-cell {
+  width: 10px;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.lcd-cell-row { display: flex; gap: 1px; }
+.lcd-dot {
+  width: 2px; height: 2px; border-radius: 50%;
+  background: var(--lcd-off);
+  transition: background .1s;
+}
+.lcd-dot.lit { background: var(--lcd-pixel); box-shadow: 0 0 2px rgba(150,255,80,0.6); }
+.lcd-cursor-cell { outline: 1px solid var(--lcd-pixel); border-radius: 1px; }
+.lcd-spacer { width: 2px; }
+
+/* Simplified display view */
+.lcd-text-view {
+  background: var(--lcd-bg); border-radius: 6px; padding: 14px 18px;
+  font-family: var(--mono); font-size: 18px; line-height: 1.9;
+  color: var(--lcd-pixel); border: 1px solid #3A6010;
+  text-shadow: 0 0 8px rgba(150,255,80,0.5);
+  min-width: 320px; letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+.lcd-cursor { display: inline-block; width: 10px; background: var(--lcd-pixel); animation: blink .8s step-end infinite; vertical-align: bottom; margin-bottom: 2px; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.sim-body { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+.sim-panel { flex: 1; min-width: 240px; }
+.sim-panel h4 { font-family: var(--disp); font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 9px; margin-top: 14px; }
+.sim-panel h4:first-child { margin-top: 0; }
+
+.sim-input-wrap { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.sim-input {
+  flex: 1; min-width: 160px;
+  font-family: var(--mono); font-size: 13px;
+  background: var(--s2); border: 1.5px solid var(--solder-lt);
+  color: var(--text); padding: 8px 12px; border-radius: 6px; outline: none;
+  transition: border-color .2s;
+}
+.sim-input:focus { border-color: var(--trace); }
+
+.preset-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.preset-btn {
+  padding: 5px 12px; border-radius: 5px; border: 1px solid var(--s3);
+  background: var(--s2); color: var(--text); cursor: pointer;
+  font-size: 12px; font-family: var(--body); font-weight: 500;
+  transition: all .18s;
+}
+.preset-btn:hover { background: var(--trace); color: #fff; border-color: var(--trace); }
+
+.scroll-info {
+  font-family: var(--mono); font-size: 11px; color: var(--resist-dk);
+  background: var(--resist); border: 1px solid #90D098; border-radius: 4px;
+  padding: 5px 10px; margin-top: 8px; display: inline-block;
+}
+
+/* 5×8 char designer */
+.char-designer { margin-top: 4px; }
+.char-grid {
+  display: inline-grid; grid-template-columns: repeat(5, 22px);
+  grid-template-rows: repeat(8, 22px); gap: 3px;
+  background: #0C1A28; padding: 10px; border-radius: 6px;
+  border: 1px solid #1A3050;
+}
+.px-cell {
+  width: 22px; height: 22px; border-radius: 3px; cursor: pointer;
+  background: var(--lcd-off); border: 1px solid #2A4010; transition: all .1s;
+}
+.px-cell.lit { background: var(--lcd-pixel); box-shadow: 0 0 4px rgba(150,255,80,0.6); border-color: #70CC40; }
+.char-result {
+  font-family: var(--mono); font-size: 11.5px; color: #C5D8EE;
+  background: #0C1A28; border: 1px solid #1A3050; border-radius: 6px;
+  padding: 10px 14px; margin-top: 8px; line-height: 1.9;
+}
+.char-preview {
+  display: inline-block; background: var(--lcd-bg); border-radius: 4px;
+  padding: 6px; vertical-align: middle; margin-left: 12px;
+}
+
+/* DHT Simulator */
+.dht-sim {
+  background: var(--s2); border: 1px solid var(--s3); border-radius: var(--r);
+  padding: 18px 20px; margin-top: 4px;
+}
+.dht-sliders { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+.dht-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dht-label { font-family: var(--disp); font-size: 13px; font-weight: 600; color: var(--text2); min-width: 90px; }
+.dht-slider { flex: 1; min-width: 120px; accent-color: var(--trace); }
+.dht-val { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--trace); min-width: 50px; }
+
+/* ───── WIRING SVG ───── */
+.wiring-wrap {
+  background: var(--surface); border: 1px solid var(--s3);
+  border-radius: var(--r); box-shadow: var(--sh); padding: 18px; overflow-x: auto;
+}
+
+/* ═══════════════════════════════════
+   QUIZ
+═══════════════════════════════════ */
+.quiz-list { display: flex; flex-direction: column; gap: 15px; }
+.q-card {
+  background: var(--surface); border: 1px solid var(--s3);
+  border-radius: var(--r); box-shadow: var(--sh); padding: 18px 20px;
+}
+.q-text { font-family: var(--disp); font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 11px; }
+.q-opts { display: flex; flex-direction: column; gap: 7px; }
+.q-opt {
+  padding: 9px 13px; border-radius: 6px; cursor: pointer;
+  border: 1.5px solid var(--s3); font-size: 13.5px; color: var(--text2);
+  background: var(--s2); transition: all .18s;
+  display: flex; align-items: center; gap: 10px;
+}
+.q-opt:hover { border-color: var(--trace); background: var(--trace-pale); }
+.q-opt.correct { background: #E8F7EE; border-color: #2A9A4A; color: #1A5A2A; }
+.q-opt.wrong   { background: #FFEFEC; border-color: #CC4422; color: #7A2010; }
+.q-opt .ol {
+  width: 23px; height: 23px; border-radius: 4px; flex-shrink: 0;
+  background: var(--solder-lt); color: #fff;
+  font-family: var(--mono); font-size: 11px;
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+}
+.q-exp {
+  display: none; margin-top: 9px; padding: 9px 13px;
+  background: var(--trace-pale); border-radius: 6px; font-size: 13px; color: var(--text2);
+  border-left: 3px solid var(--trace);
+}
+.score-box {
+  background: var(--surface); border: 1px solid var(--s3); border-radius: var(--r);
+  box-shadow: var(--sh-lg); padding: 26px; text-align: center; margin-top: 20px; display: none;
+}
+.score-num { font-family: var(--mono); font-size: 52px; font-weight: 700; color: var(--trace); }
+.score-msg { font-size: 15px; color: var(--text2); margin-top: 8px; }
+
+/* ───── REF TABLE ───── */
+.ref-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ref-table th { background: var(--trace); color: #fff; padding: 9px 13px; text-align: left; font-family: var(--disp); font-size: 12px; font-weight: 600; }
+.ref-table td { padding: 8px 13px; border-bottom: 1px solid var(--s3); color: var(--text2); vertical-align: top; }
+.ref-table tr:nth-child(even) td { background: var(--s2); }
+.ref-table code { font-family: var(--mono); background: var(--trace-pale); color: var(--trace); padding: 1px 5px; border-radius: 3px; font-size: 11.5px; }
+
+/* ───── FOOTER ───── */
+footer {
+  background: var(--surface); border-top: 2px solid var(--trace);
+  text-align: center; padding: 16px 24px;
+  font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: .5px;
+}
+
+@media(max-width: 680px) {
+  .hero { grid-template-columns: 1fr; }
+  .lcd-hero { display: none; }
+  .sim-body { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="nav" id="topnav">
+  <div class="nav-brand">STEAM-HUB · Arduino</div>
+  <a href="#theory">Теорія</a>
+  <a href="#pinout">Розпіновка</a>
+  <a href="#sim">Симулятор</a>
+  <a href="#zav1">Завд. 1</a>
+  <a href="#zav2">Завд. 2</a>
+  <a href="#zav3">Завд. 3</a>
+  <a href="#zav4">Завд. 4</a>
+  <a href="#chars">Символи</a>
+  <a href="#quiz">Тест</a>
+  <a href="#ref">Довідник</a>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div>
+    <div class="hero-eye">Теми №21-22 · Arduino + LCD 1602</div>
+    <h1>LCD <em>дисплеї</em><br>в проєктах<br>Arduino</h1>
+    <p class="hero-lead">Від рідких кристалів до повідомлень на екрані: HD44780, LiquidCrystal, I²C-адаптер, власні символи та метеостанція.</p>
+    <div class="tag-row">
+      <span class="tag">LCD 1602</span>
+      <span class="tag">HD44780</span>
+      <span class="tag">LiquidCrystal</span>
+      <span class="tag">LiquidCrystal_I2C</span>
+      <span class="tag">DHT11</span>
+      <span class="tag">Keypad</span>
+      <span class="tag">createChar()</span>
+    </div>
+  </div>
+  <!-- Hero LCD Display -->
+  <div class="lcd-hero">
+    <div class="lcd-hero-lbl">LCD 1602 · 16×2</div>
+    <div class="lcd-screen" id="heroScreen">
+      <div id="heroRow0">&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;</div>
+      <div id="heroRow1">&nbsp;STEAM-HUB&nbsp;&nbsp;PUET</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+<!-- ═══════════════ THEORY ═══════════════ -->
+<section class="section" id="theory">
+  <div class="sect-eye">01 · Теоретична частина</div>
+  <h2>Принципи роботи LCD-дисплея</h2>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3><span class="dot"></span>Що таке LCD</h3>
+      <p><strong>LCD</strong> (Liquid Crystal Display) — рідкокристалічний дисплей. Складається з двох скляних пластин між якими — матриця комірок, заповнена рідкими кристалами. Молекули рідких кристалів під впливом електричного заряду змінюють поляризацію світла.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot"></span>Принцип відображення</h3>
+      <p>Поляризоване світло обертається рідким кристалом на 90° і пропускається фільтром. При подачі напруги — обертання не відбувається, фільтр блокує світло: ділянка стає <strong>темною</strong>. Так формується зображення.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot"></span>Контролер HD44780</h3>
+      <p>LCD 1602 містить <strong>контролер Hitachi HD44780</strong> з паралельним інтерфейсом. Символьний дисплей із підсвічуванням: <strong>2 рядки × 16 символів</strong>. Кожен символ — матриця <strong>5×8 пікселів</strong>.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot"></span>4-бітний режим</h3>
+      <p>Дані можна передавати через <strong>4 або 8 виводів</strong>. 4-бітний режим використовується для <strong>економії виводів</strong> мікроконтролера. Підключаються лише D4–D7 дисплея.</p>
+    </div>
+  </div>
+
+  <div class="tdiv"></div>
+
+  <div class="accordion">
+    <div class="acc-h" onclick="tAcc(this)">⚗️ Як рідкі кристали формують зображення — деталі <span class="ch">▼</span></div>
+    <div class="acc-body">
+      <p>Керування LCD здійснюється <strong>змінним сигналом</strong>. Якщо довго прикладати постійну напругу до однієї комірки — вона вийде з ладу. Тому генеруються спеціальні сигнали змінної форми, щоб до кожної комірки прикладалась змінна напруга.</p>
+      <p>Матриця LCD має виводи <strong>COMx</strong> (рядкові) та <strong>SEGx</strong> (стовпцеві). Комбінуючи сигнали на цих виводах, контролер формує зображення без перегріву комірок.</p>
+      <p>Саме для цього у LCD 1602 встановлений окремий контролер HD44780 — він приймає команди від мікроконтролера та сам формує необхідні сигнали для кожної комірки.</p>
+    </div>
+  </div>
+
+  <div class="accordion">
+    <div class="acc-h" onclick="tAcc(this)">🔄 Різниця між 4-бітним та 8-бітним режимами <span class="ch">▼</span></div>
+    <div class="acc-body">
+      <p><strong>8-бітний режим:</strong> дані передаються одразу через 8 ліній (D0–D7). Швидше, але потребує більше виводів Arduino (загалом ~12 виводів).</p>
+      <p><strong>4-бітний режим:</strong> дані передаються у два прийоми через 4 лінії (D4–D7). Трохи повільніше, але достатньо для текстових дисплеїв. Потребує ~6 виводів Arduino.</p>
+      <p><strong>I²C-адаптер</strong> (PCF8574) зменшує кількість виводів до <strong>2</strong> (SDA + SCL). Адреса за замовчуванням: <code>0x27</code> або <code>0x3F</code>. Ідеально для проєктів де задіяно багато інших модулів.</p>
+    </div>
+  </div>
+
+  <div class="accordion">
+    <div class="acc-h" onclick="tAcc(this)">🔤 Кирилиця на LCD 1602 — як це реалізувати <span class="ch">▼</span></div>
+    <div class="acc-body">
+      <p>Стандартні бібліотеки для LCD 1602 <strong>не підтримують кирилицю</strong>. Для відображення тексту українською мовою використовуються зовнішні бібліотеки.</p>
+      <p>Рекомендована бібліотека: <strong>LCD_1602_RUS_ALL</strong> — підтримує 16-контактний дисплей та I²C.</p>
+      <ol>
+        <li>Завантажте ZIP-архів бібліотеки</li>
+        <li>Arduino IDE → Sketch → Include Library → Add .ZIP Library...</li>
+        <li>Виберіть завантажений архів</li>
+        <li>Використовуйте приклади з меню для виведення кириличного тексту</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="accordion">
+    <div class="acc-h" onclick="tAcc(this)">✍️ Створення символів користувача — до 8 символів <span class="ch">▼</span></div>
+    <div class="acc-body">
+      <p>Бібліотека LiquidCrystal підтримує до <strong>8 символів користувача</strong> (індекси 0–7). Кожен символ задається масивом із 8 байт: кожен байт — рядок матриці 5×8.</p>
+      <p>Алгоритм:</p>
+      <ol>
+        <li>Оголошуємо масив: <code>byte MyChar[8] = { ... };</code></li>
+        <li>У <code>setup()</code>: <code>lcd.createChar(0, MyChar);</code> — реєструємо символ</li>
+        <li>У <code>loop()</code>: <code>lcd.write(byte(0));</code> — виводимо символ</li>
+      </ol>
+      <p>Для зручного створення бітових масивів символів використовуйте <strong>інтерактивний редактор символів</strong> у розділі «Символи» цього посібника!</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PINOUT ═══════════════ -->
+<section class="section" id="pinout">
+  <div class="sect-eye">02 · Розпіновка</div>
+  <h2>LCD 1602 — призначення виводів</h2>
+
+  <div class="wiring-wrap" style="margin-bottom:16px">
+    <svg viewBox="0 0 820 320" width="100%" xmlns="http://www.w3.org/2000/svg" style="max-height:340px;font-family:'Share Tech Mono',monospace">
+      <defs>
+        <pattern id="pcbg" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+          <circle cx="10" cy="10" r=".7" fill="#C8D8E8"/>
+        </pattern>
+        <marker id="aw" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+          <polygon points="0,0 6,3 0,6" fill="#0048A8"/>
+        </marker>
+      </defs>
+      <rect width="820" height="320" fill="#F4F1EA" rx="8"/>
+      <rect width="820" height="320" fill="url(#pcbg)" rx="8"/>
+
+      <!-- LCD 1602 PCB -->
+      <rect x="200" y="60" width="420" height="200" rx="8" fill="#1A3A6A" stroke="#0A2050" stroke-width="2"/>
+      <text x="410" y="88" text-anchor="middle" fill="#90C0F8" font-size="11" font-weight="bold" font-family="Space Grotesk,sans-serif">LCD 1602 · HD44780</text>
+
+      <!-- LCD screen area -->
+      <rect x="240" y="100" width="220" height="80" rx="5" fill="#3A6018"/>
+      <rect x="248" y="108" width="204" height="64" rx="3" fill="#4A7A28"/>
+      <!-- fake chars -->
+      <g fill="#88EE66" opacity=".7">
+        <rect x="255" y="116" width="6" height="10" rx="1"/>
+        <rect x="264" y="116" width="6" height="10" rx="1"/>
+        <rect x="273" y="116" width="6" height="10" rx="1"/>
+        <rect x="282" y="116" width="6" height="10" rx="1"/>
+        <rect x="291" y="116" width="6" height="10" rx="1"/>
+        <rect x="300" y="116" width="6" height="10" rx="1"/>
+        <rect x="309" y="116" width="6" height="10" rx="1"/>
+        <rect x="318" y="116" width="6" height="10" rx="1"/>
+        <rect x="255" y="150" width="6" height="10" rx="1"/>
+        <rect x="264" y="150" width="6" height="10" rx="1"/>
+        <rect x="273" y="150" width="6" height="10" rx="1"/>
+      </g>
+      <text x="352" y="130" fill="#88EE66" font-size="10" opacity=".9">Hello,</text>
+      <text x="352" y="160" fill="#88EE66" font-size="10" opacity=".9">Master!</text>
+
+      <!-- Contrast pot -->
+      <circle cx="480" cy="148" r="22" fill="#2A2A2A" stroke="#555" stroke-width="1.5"/>
+      <text x="480" y="152" text-anchor="middle" fill="#AAA" font-size="8">POT</text>
+
+      <!-- LED backlight indicator -->
+      <circle cx="558" cy="120" r="9" fill="#88EE66" opacity=".8"/>
+      <text x="558" y="148" text-anchor="middle" fill="#6A9A30" font-size="7.5">LED BKL</text>
+
+      <!-- 16-pin header -->
+      <rect x="200" y="228" width="420" height="20" rx="3" fill="#2A2A2A"/>
+      <g>
+        <!-- pins 1-16 -->
+        <g font-size="7.5" fill="#90C0F8">
+        <rect x="208" y="225" width="8" height="26" rx="2" fill="#AAA"/>
+        <text x="212" y="262" text-anchor="middle" fill="#333">1</text>
+        <text x="212" y="220" text-anchor="middle">VSS</text>
+
+        <rect x="220" y="225" width="8" height="26" rx="2" fill="#AAA"/>
+        <text x="224" y="262" text-anchor="middle" fill="#333">2</text>
+        <text x="224" y="220" text-anchor="middle">VDD</text>
+
+        <rect x="232" y="225" width="8" height="26" rx="2" fill="#AAA"/>
+        <text x="236" y="262" text-anchor="middle" fill="#333">3</text>
+        <text x="236" y="220" text-anchor="middle">VO</text>
+
+        <rect x="244" y="225" width="8" height="26" rx="2" fill="#AAA"/>
+        <text x="248" y="262" text-anchor="middle" fill="#333">4</text>
+        <text x="248" y="220" text-anchor="middle">RS</text>
+
+        <rect x="256" y="225" width="8" height="26" rx="2" fill="#AAA"/>
+        <text x="260" y="262" text-anchor="middle" fill="#333">5</text>
+        <text x="260" y="220" text-anchor="middle">R/W</text>
+
+        <rect x="268" y="225" width="8" height="26" rx="2" fill="#AAA"/>
+        <text x="272" y="262" text-anchor="middle" fill="#333">6</text>
+        <text x="272" y="220" text-anchor="middle">E</text>
+
+        <rect x="280" y="225" width="8" height="26" rx="2" fill="#777"/>
+        <text x="284" y="262" text-anchor="middle" fill="#EEE">7</text>
+        <text x="284" y="220" text-anchor="middle" fill="#888">D0</text>
+
+        <rect x="292" y="225" width="8" height="26" rx="2" fill="#777"/>
+        <text x="296" y="262" text-anchor="middle" fill="#EEE">8</text>
+        <text x="296" y="220" text-anchor="middle" fill="#888">D1</text>
+
+        <rect x="304" y="225" width="8" height="26" rx="2" fill="#777"/>
+        <text x="308" y="262" text-anchor="middle" fill="#EEE">9</text>
+        <text x="308" y="220" text-anchor="middle" fill="#888">D2</text>
+
+        <rect x="316" y="225" width="8" height="26" rx="2" fill="#777"/>
+        <text x="320" y="262" text-anchor="middle" fill="#EEE">10</text>
+        <text x="320" y="220" text-anchor="middle" fill="#888">D3</text>
+
+        <rect x="328" y="225" width="8" height="26" rx="2" fill="#FFD066"/>
+        <text x="332" y="262" text-anchor="middle" fill="#333">11</text>
+        <text x="332" y="220" text-anchor="middle" fill="#FFD066">D4</text>
+
+        <rect x="340" y="225" width="8" height="26" rx="2" fill="#FFD066"/>
+        <text x="344" y="262" text-anchor="middle" fill="#333">12</text>
+        <text x="344" y="220" text-anchor="middle" fill="#FFD066">D5</text>
+
+        <rect x="352" y="225" width="8" height="26" rx="2" fill="#FFD066"/>
+        <text x="356" y="262" text-anchor="middle" fill="#333">13</text>
+        <text x="356" y="220" text-anchor="middle" fill="#FFD066">D6</text>
+
+        <rect x="364" y="225" width="8" height="26" rx="2" fill="#FFD066"/>
+        <text x="368" y="262" text-anchor="middle" fill="#333">14</text>
+        <text x="368" y="220" text-anchor="middle" fill="#FFD066">D7</text>
+
+        <rect x="376" y="225" width="8" height="26" rx="2" fill="#FF8080"/>
+        <text x="380" y="262" text-anchor="middle" fill="#333">15</text>
+        <text x="380" y="220" text-anchor="middle" fill="#FF8080">A</text>
+
+        <rect x="388" y="225" width="8" height="26" rx="2" fill="#7FD0A8"/>
+        <text x="392" y="262" text-anchor="middle" fill="#333">16</text>
+        <text x="392" y="220" text-anchor="middle" fill="#7FD0A8">K</text>
+        </g>
+      </g>
+
+      <!-- Arduino UNO (right) -->
+      <rect x="660" y="80" width="130" height="200" rx="8" fill="#0048A8" stroke="#003080" stroke-width="2"/>
+      <text x="725" y="102" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="Space Grotesk,sans-serif">Arduino UNO</text>
+      <g font-size="8.5" fill="white">
+        <rect x="648" y="115" width="12" height="6" rx="2" fill="#7FD0A8"/>
+        <text x="643" y="121" text-anchor="end">GND</text>
+        <rect x="648" y="130" width="12" height="6" rx="2" fill="#FF8080"/>
+        <text x="643" y="136" text-anchor="end">5V</text>
+        <rect x="648" y="150" width="12" height="6" rx="2" fill="#5BB8FF"/>
+        <text x="643" y="156" text-anchor="end">D2</text>
+        <rect x="648" y="165" width="12" height="6" rx="2" fill="#5BB8FF"/>
+        <text x="643" y="171" text-anchor="end">D3</text>
+        <rect x="648" y="180" width="12" height="6" rx="2" fill="#5BB8FF"/>
+        <text x="643" y="186" text-anchor="end">D4</text>
+        <rect x="648" y="195" width="12" height="6" rx="2" fill="#5BB8FF"/>
+        <text x="643" y="201" text-anchor="end">D5</text>
+        <rect x="648" y="210" width="12" height="6" rx="2" fill="#FFD066"/>
+        <text x="643" y="216" text-anchor="end">D11 EN</text>
+        <rect x="648" y="225" width="12" height="6" rx="2" fill="#FF9E66"/>
+        <text x="643" y="231" text-anchor="end">D12 RS</text>
+      </g>
+
+      <!-- Traces: LCD pins → Arduino -->
+      <!-- GND trace -->
+      <polyline points="212,251 212,290 620,290 620,118 648,118" fill="none" stroke="#7FD0A8" stroke-width="1.8"/>
+      <!-- 5V trace -->
+      <polyline points="224,251 224,283 614,283 614,133 648,133" fill="none" stroke="#FF8080" stroke-width="1.8"/>
+      <!-- RS (pin4→D12) -->
+      <polyline points="248,251 248,298 630,298 630,228 648,228" fill="none" stroke="#FF9E66" stroke-width="1.8"/>
+      <!-- E (pin6→D11) -->
+      <polyline points="272,251 272,305 636,305 636,213 648,213" fill="none" stroke="#FFD066" stroke-width="1.8"/>
+      <!-- D4→D5 (LCD D4=pin11→Arduino D5) -->
+      <polyline points="332,251 332,275 580,275 580,198 648,198" fill="none" stroke="#5BB8FF" stroke-width="1.5"/>
+      <!-- D5→D4 -->
+      <polyline points="344,251 344,269 574,269 574,183 648,183" fill="none" stroke="#5BB8FF" stroke-width="1.5"/>
+      <!-- D6→D3 -->
+      <polyline points="356,251 356,263 568,263 568,168 648,168" fill="none" stroke="#5BB8FF" stroke-width="1.5"/>
+      <!-- D7→D2 -->
+      <polyline points="368,251 368,257 562,257 562,153 648,153" fill="none" stroke="#5BB8FF" stroke-width="1.5"/>
+
+      <!-- R/W → GND -->
+      <polyline points="260,251 260,308 640,308 640,118 648,118" fill="none" stroke="#7FD0A8" stroke-width="1.2" stroke-dasharray="4,2"/>
+
+      <!-- Legend -->
+      <rect x="18" y="60" width="170" height="115" rx="6" fill="white" stroke="#C8D8E8" stroke-width="1"/>
+      <text x="103" y="78" text-anchor="middle" fill="#1A2535" font-size="10" font-weight="bold" font-family="Space Grotesk,sans-serif">Легенда</text>
+      <line x1="30" y1="92" x2="60" y2="92" stroke="#7FD0A8" stroke-width="2"/>  <text x="66" y="96" fill="#1A5A38" font-size="8.5">GND</text>
+      <line x1="30" y1="108" x2="60" y2="108" stroke="#FF8080" stroke-width="2"/> <text x="66" y="112" fill="#8A0000" font-size="8.5">5V живлення</text>
+      <line x1="30" y1="124" x2="60" y2="124" stroke="#FF9E66" stroke-width="2"/> <text x="66" y="128" fill="#7A4A00" font-size="8.5">RS (регістр)</text>
+      <line x1="30" y1="140" x2="60" y2="140" stroke="#FFD066" stroke-width="2"/> <text x="66" y="144" fill="#7A5A00" font-size="8.5">E (Enable)</text>
+      <line x1="30" y1="156" x2="60" y2="156" stroke="#5BB8FF" stroke-width="2"/> <text x="66" y="160" fill="#003A8A" font-size="8.5">D4–D7 дані</text>
+    </svg>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Таблиця виводів LCD 1602</h3>
+    <div style="overflow-x:auto">
+      <table class="pin-table">
+        <thead><tr><th>#</th><th>Назва</th><th>Призначення</th><th>Arduino (4-бітний)</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>VSS</code></td><td>Земля (GND)</td><td>GND</td></tr>
+          <tr><td>2</td><td><code>VDD</code></td><td>Живлення +5В</td><td>5V</td></tr>
+          <tr><td>3</td><td><code>VO</code></td><td>Контраст (підстроєчний резистор)</td><td>Середній вивід потенціометра</td></tr>
+          <tr><td>4</td><td><code>RS</code></td><td>Register Select: 0=команда, 1=дані</td><td>D12 (або D8 для шілда)</td></tr>
+          <tr><td>5</td><td><code>R/W</code></td><td>Read/Write: 0=запис, 1=читання</td><td>GND (режим запису)</td></tr>
+          <tr><td>6</td><td><code>E</code></td><td>Enable: дозвіл роботи дисплея</td><td>D11 (або D9 для шілда)</td></tr>
+          <tr><td>7–10</td><td><code>D0–D3</code></td><td>Дані (не використ. у 4-бітному режимі)</td><td>— (не підключаються)</td></tr>
+          <tr><td>11–14</td><td><code>D4–D7</code></td><td>Дані (4 старших біти)</td><td>D5, D4, D3, D2</td></tr>
+          <tr><td>15</td><td><code>A (Anode)</code></td><td>Анод підсвічування</td><td>5V (через резистор 220Ω)</td></tr>
+          <tr><td>16</td><td><code>K (Cathode)</code></td><td>Катод підсвічування</td><td>GND</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SIMULATOR ═══════════════ -->
+<section class="section" id="sim">
+  <div class="sect-eye">03 · Симулятор</div>
+  <h2>Інтерактивний LCD-симулятор</h2>
+
+  <div class="sim-card">
+    <div class="sim-header">
+      <span class="sim-title">Симулятор LCD 1602 · 16×2 символи</span>
+    </div>
+    <div class="sim-body">
+      <!-- LCD Display -->
+      <div>
+        <div class="lcd-module">
+          <div class="lcd-module-lbl">LCD 1602 · HD44780</div>
+          <div class="lcd-text-view" id="lcdRow0">Welcome to PUET&nbsp;</div>
+          <div class="lcd-text-view" id="lcdRow1">STEAM-HUB 2025&nbsp;&nbsp;</div>
+        </div>
+        <div id="scrollInfo" class="scroll-info" style="display:none">▶ Прокрутка активна</div>
+      </div>
+      <!-- Panel -->
+      <div class="sim-panel">
+        <h4>Рядок 1 (setCursor 0,0)</h4>
+        <div class="sim-input-wrap">
+          <input class="sim-input" id="inp0" maxlength="16" value="Welcome to PUET" oninput="updateLCD()">
+          <button class="btn btn-outline" onclick="clearRow(0)">✕</button>
+        </div>
+        <h4>Рядок 2 (setCursor 0,1)</h4>
+        <div class="sim-input-wrap">
+          <input class="sim-input" id="inp1" maxlength="16" value="STEAM-HUB 2025" oninput="updateLCD()">
+          <button class="btn btn-outline" onclick="clearRow(1)">✕</button>
+        </div>
+
+        <h4>Ефекти та демо-тексти</h4>
+        <div class="preset-btns">
+          <button class="preset-btn" onclick="setPreset('Hello, master!','STEAM-HUB PUET')">Hello, master!</button>
+          <button class="preset-btn" onclick="setPreset('Humidity=65.0%','Temp=23.5Celsius')">DHT метеостанція</button>
+          <button class="preset-btn" onclick="setPreset('Custom Character','Symbols: 0-7')">Символи</button>
+          <button class="preset-btn" onclick="setPreset('Yurii Matviienko','23 of March')">Прокрутка (Зав.2)</button>
+          <button class="preset-btn" onclick="setPreset('Wellcome to PUET','')">Шілд-привітання</button>
+          <button class="preset-btn" onclick="toggleScroll()" id="scrollBtn">▶ Запустити прокрутку</button>
+        </div>
+
+        <h4>Метеостанція — симуляція DHT11</h4>
+        <div class="dht-sim">
+          <div class="dht-sliders">
+            <div class="dht-row">
+              <span class="dht-label">🌡 Темп.</span>
+              <input type="range" class="dht-slider" id="tempSlider" min="-20" max="50" value="23" oninput="updateDHT()">
+              <span class="dht-val" id="tempVal">23°C</span>
+            </div>
+            <div class="dht-row">
+              <span class="dht-label">💧 Вологість</span>
+              <input type="range" class="dht-slider" id="humSlider" min="0" max="100" value="65" oninput="updateDHT()">
+              <span class="dht-val" id="humVal">65%</span>
+            </div>
+          </div>
+          <button class="btn btn-copper" onclick="applyDHT()">📡 Відобразити на LCD</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ ZAV 1 ═══════════════ -->
+<section class="section" id="zav1">
+  <div class="sect-eye">04 · Практична робота 21-22</div>
+  <h2>Завдання 1 · «Привітай світ – II» (Project 13-1)</h2>
+
+  <div class="note">📌 <strong>Мета:</strong> Перевірити функціональність дисплея, вивівши на екран повідомлення <code>«Hello, master!»</code></div>
+
+  <h3 style="margin:18px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Нам знадобиться:</h3>
+  <div class="comp-list">
+    <div class="comp-item"><span class="ci">🟦</span>Arduino UNO</div>
+    <div class="comp-item"><span class="ci">💾</span>Програмувальний дріт</div>
+    <div class="comp-item"><span class="ci">💻</span>ПК + Arduino IDE</div>
+    <div class="comp-item"><span class="ci">🔲</span>Макетна плата</div>
+    <div class="comp-item"><span class="ci">🖥</span>РК-дисплей 1602</div>
+    <div class="comp-item"><span class="ci">⬛</span>Резистор 220Ω</div>
+    <div class="comp-item"><span class="ci">🔌</span>13 проводів</div>
+  </div>
+
+  <div class="steps" style="margin-top:18px">
+    <div class="step"><div class="step-n">1</div><div class="step-b">
+      <h4>З'єднайте компоненти на макеті</h4>
+      <p>Підключіть LCD 1602 до Arduino згідно зі схемою в розділі «Розпіновка». Резистор 220Ω між 5V та піном A (підсвічування) — за відсутності резистора підключіть до 3.3В. У разі відсутності компонентів — симулятор TinkerCAD.</p>
+    </div></div>
+    <div class="step"><div class="step-n">2</div><div class="step-b">
+      <h4>Імпортуйте бібліотеку LiquidCrystal</h4>
+      <p>Arduino IDE → Sketch → Include Library → LiquidCrystal (вбудована). Переконайтеся що бібліотека під'єднана до проєкту.</p>
+    </div></div>
+    <div class="step"><div class="step-n">3</div><div class="step-b">
+      <h4>Введіть та завантажте Лістинг 13-1</h4>
+      <p>Скомпілюйте та завантажте скетч. На першому рядку дисплея має з'явитися <code>Hello,</code>, на другому — <code>Master!</code> із відступом 2 символи.</p>
+    </div></div>
+    <div class="step"><div class="step-n">4</div><div class="step-b">
+      <h4>Налагодьте та поясніть програму</h4>
+      <p>Поясніть викладачу: роль <code>lcd.begin(16,2)</code>, функцію <code>lcd.setCursor()</code>, що буде якщо змінити координати курсора?</p>
+    </div></div>
+  </div>
+
+  <h3 style="margin:20px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Лістинг 13-1 · Hello, Master!</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="cpCode(this)">copy</button>
+    <div class="code-block"><span class="pp">#include</span><span class="st">&lt;LiquidCrystal.h&gt;</span>
+
+<span class="cm">// Виводи: (rs, enable, d4, d5, d6, d7)</span>
+LiquidCrystal <span class="fn">lcd</span>(<span class="nb">12</span>, <span class="nb">11</span>, <span class="nb">5</span>, <span class="nb">4</span>, <span class="nb">3</span>, <span class="nb">2</span>);
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  lcd.<span class="fn">begin</span>(<span class="nb">16</span>, <span class="nb">2</span>);          <span class="cm">// 16 стовпців, 2 рядки</span>
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  lcd.<span class="fn">setCursor</span>(<span class="nb">0</span>, <span class="nb">0</span>);       <span class="cm">// стовпець 0, рядок 0</span>
+  lcd.<span class="fn">print</span>(<span class="st">"   Hello,"</span>);
+  lcd.<span class="fn">setCursor</span>(<span class="nb">2</span>, <span class="nb">1</span>);       <span class="cm">// стовпець 2, рядок 1</span>
+  lcd.<span class="fn">print</span>(<span class="st">"Master!"</span>);
+}</div>
+  </div>
+  <div class="note">💡 Для шілда LCD змініть піни: <code>LiquidCrystal lcd(8, 9, 4, 5, 6, 7);</code> та виведіть <code>"Wellcome to PUET"</code></div>
+</section>
+
+<!-- ═══════════════ ZAV 2 ═══════════════ -->
+<section class="section" id="zav2">
+  <div class="sect-eye">04 · Практична робота 21-22</div>
+  <h2>Завдання 2 · Біжуча лінія II (Project 13-2)</h2>
+
+  <div class="note">📌 <strong>Мета:</strong> Відобразити два рядки тексту, що прокручуються від правого краю до лівого. Перший рядок — ім'я та прізвище, другий — дата народження.</div>
+
+  <h3 style="margin:18px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Нам знадобиться:</h3>
+  <div class="comp-list">
+    <div class="comp-item"><span class="ci">🟦</span>Arduino UNO</div>
+    <div class="comp-item"><span class="ci">💻</span>ПК + Arduino IDE</div>
+    <div class="comp-item"><span class="ci">🔲</span>Макетна плата</div>
+    <div class="comp-item"><span class="ci">🖥</span>РК-дисплей 1602</div>
+    <div class="comp-item"><span class="ci">🎛</span>Потенціометр</div>
+    <div class="comp-item"><span class="ci">⬛</span>Резистор</div>
+    <div class="comp-item"><span class="ci">🔌</span>22 дроти</div>
+  </div>
+
+  <div class="steps" style="margin-top:18px">
+    <div class="step"><div class="step-n">1</div><div class="step-b">
+      <h4>Зберіть схему з потенціометром</h4>
+      <p>Підключіть потенціометр: два крайніх виводи до GND та 5V, середній — до піна VO (контраст) LCD. Це дозволяє налаштувати контрастність зображення обертанням ручки.</p>
+    </div></div>
+    <div class="step"><div class="step-n">2</div><div class="step-b">
+      <h4>Введіть Лістинг 13-2, замінивши текст</h4>
+      <p>Замініть <code>"Yurii Matviienko"</code> на своє ім'я та прізвище, а <code>"23 of March"</code> — на свою дату народження. Не забудьте: рядок не повинен перевищувати 16 символів!</p>
+    </div></div>
+    <div class="step"><div class="step-n">3</div><div class="step-b">
+      <h4>Завантажте та налагодьте прокрутку</h4>
+      <p>Після завантаження текст має плавно прокручуватися зліва. Поекспериментуйте зі значенням <code>delay(400)</code> — що відбувається при збільшенні/зменшенні? Як зробити прокрутку зліва направо?</p>
+    </div></div>
+  </div>
+
+  <h3 style="margin:20px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Лістинг 13-2 · Прокрутка тексту</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="cpCode(this)">copy</button>
+    <div class="code-block"><span class="pp">#include</span> <span class="st">&lt;LiquidCrystal.h&gt;</span>
+
+LiquidCrystal <span class="fn">lcd</span>(<span class="nb">12</span>, <span class="nb">11</span>, <span class="nb">5</span>, <span class="nb">4</span>, <span class="nb">3</span>, <span class="nb">2</span>);
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  lcd.<span class="fn">begin</span>(<span class="nb">16</span>, <span class="nb">2</span>);
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="ty">int</span> i;
+
+  lcd.<span class="fn">setCursor</span>(<span class="nb">0</span>, <span class="nb">0</span>);
+  lcd.<span class="fn">print</span>(<span class="st">"Yurii Matviienko"</span>);   <span class="cm">// замініть на своє ім'я</span>
+  lcd.<span class="fn">setCursor</span>(<span class="nb">0</span>, <span class="nb">1</span>);
+  lcd.<span class="fn">print</span>(<span class="st">"23 of March"</span>);         <span class="cm">// замініть на свою дату</span>
+
+  <span class="kw">for</span> (i = <span class="nb">0</span>; i &lt;= <span class="nb">16</span>; i++) {
+    lcd.<span class="fn">scrollDisplayLeft</span>();      <span class="cm">// прокрутка ліворуч</span>
+    <span class="fn">delay</span>(<span class="nb">400</span>);                    <span class="cm">// затримка 400 мс</span>
+  }
+  <span class="cm">// Підказка: scrollDisplayRight() — у зворотному напрямку</span>
+}</div>
+  </div>
+  <div class="success">✅ <strong>Для прокрутки зліва направо:</strong> замініть <code>lcd.scrollDisplayLeft()</code> на <code>lcd.scrollDisplayRight()</code></div>
+</section>
+
+<!-- ═══════════════ ZAV 3 ═══════════════ -->
+<section class="section" id="zav3">
+  <div class="sect-eye">04 · Практична робота 21-22</div>
+  <h2>Завдання 3 · Друк на екрані (Project 13-3)</h2>
+
+  <div class="note">📌 <strong>Мета:</strong> Значення натиснутих клавіш мембранної клавіатури відображаються на LCD через I²C-адаптер.</div>
+
+  <h3 style="margin:18px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Нам знадобиться:</h3>
+  <div class="comp-list">
+    <div class="comp-item"><span class="ci">🟦</span>Arduino UNO</div>
+    <div class="comp-item"><span class="ci">💻</span>ПК + Arduino IDE</div>
+    <div class="comp-item"><span class="ci">🔲</span>Макетна плата</div>
+    <div class="comp-item"><span class="ci">🖥</span>РК-дисплей 1602</div>
+    <div class="comp-item"><span class="ci">🔗</span>I²C-адаптер (PCF8574)</div>
+    <div class="comp-item"><span class="ci">⌨</span>Мембранна клавіатура</div>
+    <div class="comp-item"><span class="ci">🔌</span>13 проводів</div>
+  </div>
+
+  <div class="warn" style="margin:16px 0">⚠️ <strong>I²C адреса:</strong> типові адреси адаптера <code>0x27</code> або <code>0x3F</code>. Якщо дисплей не відповідає — скористайтеся I²C-сканером для визначення адреси.</div>
+
+  <div class="steps">
+    <div class="step"><div class="step-n">1</div><div class="step-b">
+      <h4>Встановіть бібліотеки</h4>
+      <p>Arduino IDE → Sketch → Include Library → Manage Libraries. Встановіть: <strong>LiquidCrystal_I2C</strong> (Frank de Brabander) та <strong>Keypad</strong> (Mark Stanley). Перезапустіть IDE.</p>
+    </div></div>
+    <div class="step"><div class="step-n">2</div><div class="step-b">
+      <h4>Підключіть I²C-адаптер та клавіатуру</h4>
+      <p>LCD I²C: VCC→5V, GND→GND, SDA→A4, SCL→A5. Клавіатура (4 рядки): рядки → D5,D4,D3,D2; стовпці → D9,D8,D7,D6.</p>
+    </div></div>
+    <div class="step"><div class="step-n">3</div><div class="step-b">
+      <h4>Введіть та завантажте Лістинг 13-3</h4>
+      <p>При натисканні клавіші — символ відображається на LCD та виводиться в Serial Monitor. Перевірте роботу усіх клавіш.</p>
+    </div></div>
+  </div>
+
+  <h3 style="margin:20px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Лістинг 13-3 · Клавіатура + I²C LCD</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="cpCode(this)">copy</button>
+    <div class="code-block"><span class="pp">#include</span> <span class="st">&lt;Keypad.h&gt;</span>
+<span class="pp">#include</span> <span class="st">&lt;LiquidCrystal_I2C.h&gt;</span>
+
+LiquidCrystal_I2C <span class="fn">lcd</span>(<span class="nb">0x27</span>, <span class="nb">16</span>, <span class="nb">2</span>);   <span class="cm">// адреса, 16 стовп., 2 рядки</span>
+
+<span class="kw">const</span> <span class="ty">byte</span> ROWS = <span class="nb">4</span>;           <span class="cm">// кількість рядків клавіатури</span>
+<span class="kw">const</span> <span class="ty">byte</span> COLS = <span class="nb">3</span>;           <span class="cm">// кількість стовпців клавіатури</span>
+<span class="ty">char</span> hexaKeys[ROWS][COLS] = {
+  {<span class="st">'1'</span>,<span class="st">'4'</span>,<span class="st">'7'</span>,<span class="st">'*'</span>},
+  {<span class="st">'2'</span>,<span class="st">'5'</span>,<span class="st">'8'</span>,<span class="st">'0'</span>},
+  {<span class="st">'3'</span>,<span class="st">'6'</span>,<span class="st">'9'</span>,<span class="st">'#'</span>}
+};
+<span class="ty">byte</span> rowPins[ROWS] = {<span class="nb">5</span>, <span class="nb">4</span>, <span class="nb">3</span>, <span class="nb">2</span>};   <span class="cm">// піни рядків клавіатури</span>
+<span class="ty">byte</span> colPins[COLS] = {<span class="nb">9</span>, <span class="nb">8</span>, <span class="nb">7</span>, <span class="nb">6</span>};   <span class="cm">// піни стовпців клавіатури</span>
+Keypad customKeypad = <span class="fn">Keypad</span>(<span class="fn">makeKeymap</span>(hexaKeys), rowPins, colPins, ROWS, COLS);
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  <span class="fn">Serial</span>.<span class="fn">begin</span>(<span class="nb">9600</span>);
+  lcd.<span class="fn">begin</span>();         <span class="cm">// ініціалізація дисплею</span>
+  lcd.<span class="fn">backlight</span>();     <span class="cm">// вмикаємо підсвічування</span>
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="ty">char</span> customKey = customKeypad.<span class="fn">getKey</span>();
+  <span class="kw">if</span> (customKey) {
+    <span class="fn">Serial</span>.<span class="fn">println</span>(customKey);
+    lcd.<span class="fn">setCursor</span>(<span class="nb">1</span>, <span class="nb">4</span>);    <span class="cm">// позиціонування курсору</span>
+    lcd.<span class="fn">print</span>(customKey);
+  }
+}</div>
+  </div>
+</section>
+
+<!-- ═══════════════ ZAV 4 ═══════════════ -->
+<section class="section" id="zav4">
+  <div class="sect-eye">04 · Практична робота 21-22</div>
+  <h2>Завдання 4 · Прототип метеостанції (Project 13-4)</h2>
+
+  <div class="note">📌 <strong>Мета:</strong> Відображати температуру та вологість від датчика DHT11/DHT22 на LCD через I²C.</div>
+
+  <h3 style="margin:18px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Нам знадобиться:</h3>
+  <div class="comp-list">
+    <div class="comp-item"><span class="ci">🟦</span>Arduino UNO</div>
+    <div class="comp-item"><span class="ci">💻</span>ПК + Arduino IDE</div>
+    <div class="comp-item"><span class="ci">🔲</span>Макетна плата</div>
+    <div class="comp-item"><span class="ci">🖥</span>РК-дисплей + I²C</div>
+    <div class="comp-item"><span class="ci">🌡</span>Датчик DHT11/DHT22</div>
+    <div class="comp-item"><span class="ci">🔌</span>Дроти</div>
+  </div>
+
+  <div class="warn" style="margin:16px 0">⚠️ <strong>DHT11:</strong> підключіть до D4. Резистор підтяжки 10 кОм між DATA та VCC — обов'язковий! Бібліотека: <strong>DHT sensor library</strong> by Adafruit.</div>
+
+  <div class="steps">
+    <div class="step"><div class="step-n">1</div><div class="step-b">
+      <h4>Схема підключення DHT + LCD I²C</h4>
+      <p>DHT11: VCC→5V, GND→GND, DATA→D4 (з резистором 10кОм до 5V). LCD I²C: VCC→5V, GND→GND, SDA→A4, SCL→A5.</p>
+    </div></div>
+    <div class="step"><div class="step-n">2</div><div class="step-b">
+      <h4>Встановіть бібліотеки</h4>
+      <p>Встановіть через Manage Libraries: <strong>DHT sensor library</strong> (Adafruit) та <strong>Adafruit Unified Sensor</strong>. Обидві є в одному наборі.</p>
+    </div></div>
+    <div class="step"><div class="step-n">3</div><div class="step-b">
+      <h4>Введіть Лістинг 13-4 та завантажте</h4>
+      <p>LCD оновлюється кожні 2 секунди. Дихніть на датчик — вологість зміниться! Перевірте чи коректні значення температури.</p>
+    </div></div>
+    <div class="step"><div class="step-n">4</div><div class="step-b">
+      <h4>Спробуйте симулятор вище</h4>
+      <p>Перейдіть у розділ «Симулятор», рухайте повзунки температури та вологості й натисніть «Відобразити на LCD» — побачите як виглядатиме результат на дисплеї.</p>
+    </div></div>
+  </div>
+
+  <h3 style="margin:20px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Лістинг 13-4 · Метеостанція DHT + LCD I²C</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="cpCode(this)">copy</button>
+    <div class="code-block"><span class="pp">#include</span> <span class="st">"DHT.h"</span>
+<span class="pp">#define</span> DHTPIN  <span class="nb">4</span>         <span class="cm">// пін датчика DHT</span>
+<span class="pp">#define</span> DHTTYPE DHT11     <span class="cm">// тип датчика (DHT11 або DHT22)</span>
+DHT <span class="fn">dht</span>(DHTPIN, DHTTYPE);
+
+<span class="pp">#include</span> <span class="st">&lt;LiquidCrystal_I2C.h&gt;</span>
+LiquidCrystal_I2C <span class="fn">lcd</span>(<span class="nb">0x27</span>, <span class="nb">16</span>, <span class="nb">2</span>);
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  dht.<span class="fn">begin</span>();
+  lcd.<span class="fn">backlight</span>();
+  lcd.<span class="fn">init</span>();
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  lcd.<span class="fn">clear</span>();
+
+  lcd.<span class="fn">setCursor</span>(<span class="nb">0</span>, <span class="nb">0</span>);
+  lcd.<span class="fn">print</span>(<span class="st">"Humidity="</span>);
+  lcd.<span class="fn">print</span>((<span class="ty">float</span>)dht.<span class="fn">readHumidity</span>());
+  lcd.<span class="fn">print</span>(<span class="st">"%"</span>);
+
+  lcd.<span class="fn">setCursor</span>(<span class="nb">0</span>, <span class="nb">1</span>);
+  lcd.<span class="fn">print</span>(<span class="st">"Temp="</span>);
+  lcd.<span class="fn">print</span>((<span class="ty">float</span>)dht.<span class="fn">readTemperature</span>());
+  lcd.<span class="fn">print</span>(<span class="st">"Celsius"</span>);
+
+  <span class="fn">delay</span>(<span class="nb">2000</span>);              <span class="cm">// оновлення кожні 2 секунди</span>
+  lcd.<span class="fn">clear</span>();
+}</div>
+  </div>
+</section>
+
+<!-- ═══════════════ CUSTOM CHARS ═══════════════ -->
+<section class="section" id="chars">
+  <div class="sect-eye">05 · Символи користувача</div>
+  <h2>Редактор символів 5×8</h2>
+
+  <div class="note">💡 Клацайте по пікселях — генерується масив для <code>lcd.createChar()</code>. Підтримується до <strong>8 символів</strong> (індекси 0–7).</div>
+
+  <div class="sim-card" style="margin-top:16px">
+    <div style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
+      <div>
+        <div style="font-family:var(--disp);font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px">Редактор 5×8 пікселів</div>
+        <div class="char-grid" id="charGrid"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="clearChar()">🗑 Очистити</button>
+          <button class="btn btn-outline" onclick="invertChar()">⇔ Інвертувати</button>
+        </div>
+        <div style="font-family:var(--disp);font-size:13px;font-weight:600;color:var(--text2);margin:14px 0 8px">Попередній перегляд на LCD</div>
+        <div class="char-preview" id="charPreview"></div>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <div style="font-family:var(--disp);font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">Готові символи з теорії</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+          <button class="preset-btn" onclick="loadSymbol('heart')">❤ Heart</button>
+          <button class="preset-btn" onclick="loadSymbol('bell')">🔔 Bell</button>
+          <button class="preset-btn" onclick="loadSymbol('alien')">👾 Alien</button>
+          <button class="preset-btn" onclick="loadSymbol('check')">✓ Check</button>
+          <button class="preset-btn" onclick="loadSymbol('skull')">💀 Skull</button>
+          <button class="preset-btn" onclick="loadSymbol('lock')">🔒 Lock</button>
+        </div>
+        <div style="font-family:var(--disp);font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">Масив для Arduino</div>
+        <div class="char-result" id="charResult"></div>
+        <div class="code-wrap" style="margin-top:12px">
+          <button class="copy-btn" onclick="cpCode(this)">copy</button>
+          <div class="code-block" id="charCode" style="font-size:12px">
+<span class="cm">// Оголошення символу:</span>
+<span class="ty">byte</span> MyChar[<span class="nb">8</span>] = {};
+
+<span class="cm">// У setup():</span>
+lcd.<span class="fn">createChar</span>(<span class="nb">0</span>, MyChar);
+
+<span class="cm">// У loop():</span>
+lcd.<span class="fn">write</span>(<span class="ty">byte</span>(<span class="nb">0</span>));
+          </div>
+        </div>
+        <div class="note" style="margin-top:10px;font-size:12.5px">
+          📌 Код символів з теорії: Heart, Bell, Alien, Check, Speaker, Sound, Skull, Lock виводяться разом у прикладі з <code>"Custom Character"</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin:22px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Лістинг · Символи користувача (фрагмент)</h3>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="cpCode(this)">copy</button>
+    <div class="code-block"><span class="pp">#include</span> <span class="st">&lt;LiquidCrystal.h&gt;</span>
+LiquidCrystal <span class="fn">lcd</span>(<span class="nb">8</span>, <span class="nb">9</span>, <span class="nb">4</span>, <span class="nb">5</span>, <span class="nb">6</span>, <span class="nb">7</span>);
+
+<span class="ty">byte</span> Heart[<span class="nb">8</span>] = {
+  <span class="nb">0b00000</span>, <span class="nb">0b01010</span>, <span class="nb">0b11111</span>, <span class="nb">0b11111</span>,
+  <span class="nb">0b01110</span>, <span class="nb">0b00100</span>, <span class="nb">0b00000</span>, <span class="nb">0b00000</span>
+};
+<span class="ty">byte</span> Bell[<span class="nb">8</span>] = {
+  <span class="nb">0b00100</span>, <span class="nb">0b01110</span>, <span class="nb">0b01110</span>, <span class="nb">0b01110</span>,
+  <span class="nb">0b11111</span>, <span class="nb">0b00000</span>, <span class="nb">0b00100</span>, <span class="nb">0b00000</span>
+};
+<span class="ty">byte</span> Skull[<span class="nb">8</span>] = {
+  <span class="nb">0b00000</span>, <span class="nb">0b01110</span>, <span class="nb">0b10101</span>, <span class="nb">0b11011</span>,
+  <span class="nb">0b01110</span>, <span class="nb">0b01110</span>, <span class="nb">0b00000</span>, <span class="nb">0b00000</span>
+};
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  lcd.<span class="fn">begin</span>(<span class="nb">16</span>, <span class="nb">2</span>);
+  lcd.<span class="fn">createChar</span>(<span class="nb">0</span>, Heart);   <span class="cm">// реєструємо символ 0</span>
+  lcd.<span class="fn">createChar</span>(<span class="nb">1</span>, Bell);    <span class="cm">// реєструємо символ 1</span>
+  lcd.<span class="fn">createChar</span>(<span class="nb">6</span>, Skull);   <span class="cm">// реєструємо символ 6</span>
+  lcd.<span class="fn">clear</span>();
+  lcd.<span class="fn">print</span>(<span class="st">"Custom Character"</span>);
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  lcd.<span class="fn">setCursor</span>(<span class="nb">0</span>, <span class="nb">1</span>);
+  lcd.<span class="fn">write</span>(<span class="ty">byte</span>(<span class="nb">0</span>));          <span class="cm">// виводимо Heart</span>
+  lcd.<span class="fn">setCursor</span>(<span class="nb">2</span>, <span class="nb">1</span>);
+  lcd.<span class="fn">write</span>(<span class="ty">byte</span>(<span class="nb">1</span>));          <span class="cm">// виводимо Bell</span>
+  lcd.<span class="fn">setCursor</span>(<span class="nb">12</span>, <span class="nb">1</span>);
+  lcd.<span class="fn">write</span>(<span class="ty">byte</span>(<span class="nb">6</span>));          <span class="cm">// виводимо Skull</span>
+}</div>
+  </div>
+</section>
+
+<!-- ═══════════════ QUIZ ═══════════════ -->
+<section class="section" id="quiz">
+  <div class="sect-eye">06 · Контрольні питання</div>
+  <h2>Тест — 10 питань</h2>
+
+  <div class="quiz-list" id="quizList">
+
+    <div class="q-card" data-qi="0">
+      <div class="q-text">1. Що означає абревіатура LCD?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,0,false)"><span class="ol">A</span>Light Color Display</div>
+        <div class="q-opt" onclick="qa(this,0,true)"><span class="ol">B</span>Liquid Crystal Display</div>
+        <div class="q-opt" onclick="qa(this,0,false)"><span class="ol">C</span>Linear Control Device</div>
+        <div class="q-opt" onclick="qa(this,0,false)"><span class="ol">D</span>Light Crystal Diode</div>
+      </div>
+      <div class="q-exp">LCD (Liquid Crystal Display) — рідкокристалічний дисплей. Принцип роботи: рідкі кристали змінюють поляризацію світла під дією електричного поля, керуючи пропусканням через поляризаційні фільтри.</div>
+    </div>
+
+    <div class="q-card" data-qi="1">
+      <div class="q-text">2. Скільки символів та рядків відображає LCD 1602?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,1,false)"><span class="ol">A</span>8 символів, 1 рядок</div>
+        <div class="q-opt" onclick="qa(this,1,false)"><span class="ol">B</span>20 символів, 4 рядки</div>
+        <div class="q-opt" onclick="qa(this,1,true)"><span class="ol">C</span>16 символів, 2 рядки</div>
+        <div class="q-opt" onclick="qa(this,1,false)"><span class="ol">D</span>32 символи, 2 рядки</div>
+      </div>
+      <div class="q-exp">LCD 1602: 16 символів × 2 рядки = 32 символи загалом. Кожен символ відображається у матриці 5×8 пікселів. Назва дисплея «1602» якраз і означає 16 стовпців, 2 рядки.</div>
+    </div>
+
+    <div class="q-card" data-qi="2">
+      <div class="q-text">3. Скільки виводів Arduino потрібно для 4-бітного режиму LCD 1602?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,2,false)"><span class="ol">A</span>2 виводи (SDA, SCL)</div>
+        <div class="q-opt" onclick="qa(this,2,false)"><span class="ol">B</span>8 виводів</div>
+        <div class="q-opt" onclick="qa(this,2,true)"><span class="ol">C</span>6 виводів (RS, E, D4–D7)</div>
+        <div class="q-opt" onclick="qa(this,2,false)"><span class="ol">D</span>16 виводів</div>
+      </div>
+      <div class="q-exp">У 4-бітному режимі підключаються: RS, E, D4, D5, D6, D7 — всього 6 виводів Arduino. D0–D3 не використовуються. Для I²C режиму достатньо лише 2 виводів (SDA + SCL).</div>
+    </div>
+
+    <div class="q-card" data-qi="3">
+      <div class="q-text">4. Навіщо вивід R/W LCD 1602 зазвичай підключають до GND?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,3,false)"><span class="ol">A</span>Для економії енергії</div>
+        <div class="q-opt" onclick="qa(this,3,true)"><span class="ol">B</span>Для роботи в режимі запису (Write mode)</div>
+        <div class="q-opt" onclick="qa(this,3,false)"><span class="ol">C</span>Для захисту від перегріву</div>
+        <div class="q-opt" onclick="qa(this,3,false)"><span class="ol">D</span>Для збільшення контрастності</div>
+      </div>
+      <div class="q-exp">R/W = 0 (GND) означає режим запису — передача команд/даних від Arduino до дисплея. R/W = 1 (HIGH) — режим читання зі стану дисплея. Оскільки дисплей використовується як пристрій виводу, R/W завжди тримають LOW.</div>
+    </div>
+
+    <div class="q-card" data-qi="4">
+      <div class="q-text">5. Яка функція встановлює позицію курсора на LCD?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,4,false)"><span class="ol">A</span><code>lcd.moveCursor(col, row)</code></div>
+        <div class="q-opt" onclick="qa(this,4,false)"><span class="ol">B</span><code>lcd.position(col, row)</code></div>
+        <div class="q-opt" onclick="qa(this,4,true)"><span class="ol">C</span><code>lcd.setCursor(col, row)</code></div>
+        <div class="q-opt" onclick="qa(this,4,false)"><span class="ol">D</span><code>lcd.goto(col, row)</code></div>
+      </div>
+      <div class="q-exp"><code>lcd.setCursor(col, row)</code> — перший параметр номер стовпця (0–15), другий — номер рядка (0 або 1). Наприклад, <code>setCursor(2, 1)</code> встановлює курсор у 3-тю позицію другого рядка.</div>
+    </div>
+
+    <div class="q-card" data-qi="5">
+      <div class="q-text">6. Яку максимальну кількість символів користувача підтримує бібліотека LiquidCrystal?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,5,false)"><span class="ol">A</span>4 символи</div>
+        <div class="q-opt" onclick="qa(this,5,true)"><span class="ol">B</span>8 символів</div>
+        <div class="q-opt" onclick="qa(this,5,false)"><span class="ol">C</span>16 символів</div>
+        <div class="q-opt" onclick="qa(this,5,false)"><span class="ol">D</span>32 символи</div>
+      </div>
+      <div class="q-exp">Бібліотека LiquidCrystal підтримує рівно <strong>8 символів користувача</strong> (індекси 0–7). Вони зберігаються у CGRAM контролера HD44780. Кожен символ задається масивом із 8 байт (матриця 5×8 пікселів).</div>
+    </div>
+
+    <div class="q-card" data-qi="6">
+      <div class="q-text">7. Яка I²C адреса за замовчуванням для більшості LCD-адаптерів PCF8574?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,6,false)"><span class="ol">A</span>0x3C</div>
+        <div class="q-opt" onclick="qa(this,6,true)"><span class="ol">B</span>0x27</div>
+        <div class="q-opt" onclick="qa(this,6,false)"><span class="ol">C</span>0x40</div>
+        <div class="q-opt" onclick="qa(this,6,false)"><span class="ol">D</span>0x08</div>
+      </div>
+      <div class="q-exp">Більшість I²C-адаптерів PCF8574 для LCD мають адресу <strong>0x27</strong>. Деякі виробники використовують 0x3F. Якщо адреса невідома — завантажте I²C Scanner скетч для автоматичного визначення.</div>
+    </div>
+
+    <div class="q-card" data-qi="7">
+      <div class="q-text">8. Яка функція прокручує весь вміст дисплея ліворуч?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,7,false)"><span class="ol">A</span><code>lcd.shiftLeft()</code></div>
+        <div class="q-opt" onclick="qa(this,7,false)"><span class="ol">B</span><code>lcd.moveLeft()</code></div>
+        <div class="q-opt" onclick="qa(this,7,true)"><span class="ol">C</span><code>lcd.scrollDisplayLeft()</code></div>
+        <div class="q-opt" onclick="qa(this,7,false)"><span class="ol">D</span><code>lcd.scroll(-1)</code></div>
+      </div>
+      <div class="q-exp"><code>lcd.scrollDisplayLeft()</code> зміщує весь вміст дисплея на 1 позицію ліворуч. Парна функція: <code>lcd.scrollDisplayRight()</code>. Кожен виклик — одне зміщення на 1 символ, тому у циклі зі <code>delay()</code> отримується анімація прокрутки.</div>
+    </div>
+
+    <div class="q-card" data-qi="8">
+      <div class="q-text">9. Яку розмірність має матриця одного символу на LCD 1602?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,8,false)"><span class="ol">A</span>3×5 пікселів</div>
+        <div class="q-opt" onclick="qa(this,8,true)"><span class="ol">B</span>5×8 пікселів</div>
+        <div class="q-opt" onclick="qa(this,8,false)"><span class="ol">C</span>8×8 пікселів</div>
+        <div class="q-opt" onclick="qa(this,8,false)"><span class="ol">D</span>7×5 пікселів</div>
+      </div>
+      <div class="q-exp">Кожен символ на LCD 1602 відображається у матриці <strong>5 стовпців × 8 рядків = 40 пікселів</strong>. Масив символу користувача — 8 байт, кожен байт описує один рядок (використовуються 5 молодших бітів).</div>
+    </div>
+
+    <div class="q-card" data-qi="9">
+      <div class="q-text">10. Яка функція реєструє символ користувача у контролері LCD?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,9,false)"><span class="ol">A</span><code>lcd.addChar(id, arr)</code></div>
+        <div class="q-opt" onclick="qa(this,9,false)"><span class="ol">B</span><code>lcd.defineChar(id, arr)</code></div>
+        <div class="q-opt" onclick="qa(this,9,true)"><span class="ol">C</span><code>lcd.createChar(id, arr)</code></div>
+        <div class="q-opt" onclick="qa(this,9,false)"><span class="ol">D</span><code>lcd.setChar(id, arr)</code></div>
+      </div>
+      <div class="q-exp"><code>lcd.createChar(id, arr)</code> — перший параметр: номер символу (0–7), другий: масив із 8 байт. Викликається у <code>setup()</code>. Для виведення: <code>lcd.write(byte(id))</code>.</div>
+    </div>
+
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px">
+    <button class="btn btn-primary" onclick="checkQuiz()">Перевірити результат</button>
+    <button class="btn btn-outline" onclick="resetQuiz()">↺ Повторити</button>
+  </div>
+  <div class="score-box" id="scoreBox">
+    <div class="score-num" id="scoreNum">—</div>
+    <div class="score-msg" id="scoreMsg"></div>
+  </div>
+</section>
+
+<!-- ═══════════════ REFERENCE ═══════════════ -->
+<section class="section" id="ref">
+  <div class="sect-eye">07 · Довідник</div>
+  <h2>Функції та команди LCD</h2>
+
+  <div class="card" style="margin-bottom:16px">
+    <h3><span class="dot"></span>Функції бібліотеки LiquidCrystal</h3>
+    <div style="overflow-x:auto">
+      <table class="ref-table">
+        <thead><tr><th>Функція</th><th>Опис</th></tr></thead>
+        <tbody>
+          <tr><td><code>LiquidCrystal lcd(rs,en,d4,d5,d6,d7)</code></td><td>Створення об'єкта (виводи: RS, Enable, D4–D7)</td></tr>
+          <tr><td><code>lcd.begin(cols, rows)</code></td><td>Ініціалізація дисплея. Наприклад: <code>begin(16,2)</code></td></tr>
+          <tr><td><code>lcd.print(text)</code></td><td>Виведення тексту або числа з поточної позиції курсора</td></tr>
+          <tr><td><code>lcd.setCursor(col, row)</code></td><td>Встановити курсор: col=0..15, row=0..1</td></tr>
+          <tr><td><code>lcd.clear()</code></td><td>Очистити екран та перемістити курсор на початок</td></tr>
+          <tr><td><code>lcd.home()</code></td><td>Перемістити курсор на початок (без очищення)</td></tr>
+          <tr><td><code>lcd.scrollDisplayLeft()</code></td><td>Прокрутити весь вміст на 1 символ ліворуч</td></tr>
+          <tr><td><code>lcd.scrollDisplayRight()</code></td><td>Прокрутити весь вміст на 1 символ праворуч</td></tr>
+          <tr><td><code>lcd.createChar(id, arr)</code></td><td>Зареєструвати символ користувача (id: 0–7)</td></tr>
+          <tr><td><code>lcd.write(byte(id))</code></td><td>Вивести символ користувача за його id</td></tr>
+          <tr><td><code>lcd.noDisplay() / lcd.display()</code></td><td>Вимкнути / увімкнути відображення (контент зберігається)</td></tr>
+          <tr><td><code>lcd.noCursor() / lcd.cursor()</code></td><td>Сховати / показати курсор</td></tr>
+          <tr><td><code>lcd.noBlink() / lcd.blink()</code></td><td>Вимкнути / увімкнути мигання курсора</td></tr>
+          <tr><td><code>lcd.noBacklight() / lcd.backlight()</code></td><td>Підсвічування (тільки I²C-бібліотека)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h3><span class="dot"></span>Порівняння: пряме підключення vs I²C</h3>
+    <div style="overflow-x:auto">
+      <table class="ref-table">
+        <thead><tr><th>Параметр</th><th>4-бітний режим</th><th>I²C-адаптер</th></tr></thead>
+        <tbody>
+          <tr><td>Виводів Arduino</td><td>6 (RS, E, D4–D7)</td><td>2 (SDA, SCL → A4, A5)</td></tr>
+          <tr><td>Бібліотека</td><td><code>LiquidCrystal.h</code></td><td><code>LiquidCrystal_I2C.h</code></td></tr>
+          <tr><td>Ініціалізація</td><td><code>LiquidCrystal lcd(rs,en,...)</code></td><td><code>LiquidCrystal_I2C lcd(0x27,16,2)</code></td></tr>
+          <tr><td>Підсвічування</td><td>Резистор на pin A</td><td><code>lcd.backlight()</code></td></tr>
+          <tr><td>Складність монтажу</td><td>Більше дротів</td><td>Значно простіше</td></tr>
+          <tr><td>Швидкість</td><td>Вища</td><td>Трохи нижча (I²C ~400 кГц)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Корисні посилання та бібліотеки</h3>
+    <div style="overflow-x:auto">
+      <table class="ref-table">
+        <thead><tr><th>Ресурс</th><th>Призначення</th></tr></thead>
+        <tbody>
+          <tr><td><code>LiquidCrystal</code></td><td>Вбудована бібліотека Arduino для прямого підключення LCD</td></tr>
+          <tr><td><code>LiquidCrystal_I2C</code></td><td>Бібліотека для LCD через I²C-адаптер (Frank de Brabander)</td></tr>
+          <tr><td><code>DHT sensor library</code></td><td>Бібліотека Adafruit для датчиків DHT11/DHT22</td></tr>
+          <tr><td><code>Keypad</code></td><td>Бібліотека для мембранних клавіатур (Mark Stanley)</td></tr>
+          <tr><td><code>LCD_1602_RUS_ALL</code></td><td>Кирилиця на LCD 1602 (ssilver2007 на GitHub)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</div><!-- /main -->
+
+<footer>
+  STEAM-HUB · ПУЕТ · Теми 21-22 — LCD Дисплеї Arduino &nbsp;|&nbsp; Інтерактивний посібник · 2025
+</footer>
+
+<!-- ═══════════════════════════════ SCRIPTS ═══════════════════════════════ -->
+<script>
+/* ─── HERO ANIMATION ─── */
+const heroMsgs = [
+  ['Hello, master!  ','   STEAM-HUB    '],
+  ['  PUET  2025    ','Arduino · LCD   '],
+  ['Humidity=65.0%  ','Temp=23.5Celsius'],
+  ['Custom Character','♥ ♪ 👾 ✓ 🔔 🔒  ']
+];
+let heroIdx = 0;
+function cycleHero() {
+  const r0 = document.getElementById('heroRow0');
+  const r1 = document.getElementById('heroRow1');
+  r0.textContent = heroMsgs[heroIdx][0];
+  r1.textContent = heroMsgs[heroIdx][1];
+  heroIdx = (heroIdx + 1) % heroMsgs.length;
+}
+setInterval(cycleHero, 2200);
+cycleHero();
+
+/* ─── ACCORDION ─── */
+function tAcc(h) {
+  const b = h.nextElementSibling;
+  const open = h.classList.contains('open');
+  document.querySelectorAll('.acc-h').forEach(x => { x.classList.remove('open'); x.nextElementSibling.classList.remove('open'); });
+  if (!open) { h.classList.add('open'); b.classList.add('open'); }
+}
+
+/* ─── COPY CODE ─── */
+function cpCode(btn) {
+  const text = btn.nextElementSibling.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ copied!';
+    setTimeout(() => btn.textContent = 'copy', 1800);
+  });
+}
+
+/* ─── LCD SIMULATOR ─── */
+let scrollTimer = null;
+let scrollDir = -1;
+let scrollOffset = 0;
+let scrollTexts = ['',''];
+
+function updateLCD() {
+  const v0 = (document.getElementById('inp0').value || '').padEnd(16,' ').slice(0,16);
+  const v1 = (document.getElementById('inp1').value || '').padEnd(16,' ').slice(0,16);
+  document.getElementById('lcdRow0').innerHTML = v0 + '<span class="lcd-cursor"> </span>';
+  document.getElementById('lcdRow1').textContent = v1;
+}
+
+function clearRow(r) {
+  document.getElementById('inp'+r).value = '';
+  updateLCD();
+}
+
+function setPreset(r0, r1) {
+  stopScroll();
+  document.getElementById('inp0').value = r0;
+  document.getElementById('inp1').value = r1;
+  updateLCD();
+}
+
+function toggleScroll() {
+  if (scrollTimer) { stopScroll(); return; }
+  scrollTexts = [
+    document.getElementById('inp0').value || 'Yurii Matviienko',
+    document.getElementById('inp1').value || '23 of March'
+  ];
+  scrollOffset = 0;
+  document.getElementById('scrollBtn').textContent = '⏹ Зупинити';
+  document.getElementById('scrollInfo').style.display = 'inline-block';
+  scrollTimer = setInterval(() => {
+    scrollOffset++;
+    const show = (txt) => {
+      const s = '                ' + txt + '                ';
+      return s.slice(scrollOffset % (txt.length + 16), scrollOffset % (txt.length + 16) + 16);
+    };
+    document.getElementById('lcdRow0').textContent = show(scrollTexts[0]);
+    document.getElementById('lcdRow1').textContent = show(scrollTexts[1]);
+  }, 300);
+}
+function stopScroll() {
+  if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; }
+  document.getElementById('scrollBtn').textContent = '▶ Запустити прокрутку';
+  document.getElementById('scrollInfo').style.display = 'none';
+  updateLCD();
+}
+
+function updateDHT() {
+  const t = document.getElementById('tempSlider').value;
+  const h = document.getElementById('humSlider').value;
+  document.getElementById('tempVal').textContent = t + '°C';
+  document.getElementById('humVal').textContent = h + '%';
+}
+
+function applyDHT() {
+  const t = document.getElementById('tempSlider').value;
+  const h = document.getElementById('humSlider').value;
+  stopScroll();
+  const r0 = ('Humidity=' + h + '%').padEnd(16,' ');
+  const r1 = ('Temp=' + t + 'Celsius').padEnd(16,' ');
+  document.getElementById('lcdRow0').textContent = r0;
+  document.getElementById('lcdRow1').textContent = r1;
+  document.getElementById('inp0').value = 'Humidity=' + h + '%';
+  document.getElementById('inp1').value = 'Temp=' + t + 'Celsius';
+}
+
+updateLCD();
+
+/* ─── CHAR DESIGNER ─── */
+const SYMBOLS = {
+  heart: [0b00000,0b01010,0b11111,0b11111,0b01110,0b00100,0b00000,0b00000],
+  bell:  [0b00100,0b01110,0b01110,0b01110,0b11111,0b00000,0b00100,0b00000],
+  alien: [0b11111,0b10101,0b11111,0b11111,0b01110,0b01010,0b11011,0b00000],
+  check: [0b00000,0b00001,0b00011,0b10110,0b11100,0b01000,0b00000,0b00000],
+  skull: [0b00000,0b01110,0b10101,0b11011,0b01110,0b01110,0b00000,0b00000],
+  lock:  [0b01110,0b10001,0b10001,0b11111,0b11011,0b11011,0b11111,0b00000]
+};
+
+let charState = Array.from({length:8}, () => Array(5).fill(0));
+
+function buildCharGrid() {
+  const g = document.getElementById('charGrid');
+  g.innerHTML = '';
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 5; c++) {
+      const d = document.createElement('div');
+      d.className = 'px-cell' + (charState[r][c] ? ' lit' : '');
+      d.dataset.r = r; d.dataset.c = c;
+      d.addEventListener('click', () => { charState[r][c] = charState[r][c] ? 0 : 1; buildCharGrid(); });
+      g.appendChild(d);
+    }
+  }
+  updateCharResult();
+}
+
+function updateCharResult() {
+  const res = document.getElementById('charResult');
+  const codeEl = document.getElementById('charCode');
+  let lines = [];
+  for (let r = 0; r < 8; r++) {
+    const bits = charState[r].join('');
+    const hex = '0b' + bits.padStart(8,'0');
+    lines.push({ bits, hex });
+  }
+  res.innerHTML = lines.map((l,i) =>
+    `<span style="color:#4A6880">row${i}:</span> <span style="color:#5BB8FF">0b</span><span style="color:#90ECA0">${l.bits}</span>`
+  ).join('<br>');
+
+  const arrStr = lines.map(l => '  0b' + l.bits.padStart(8,'0')).join(',\n');
+  codeEl.innerHTML = `<span class="cm">// Оголошення символу:</span>
+<span class="ty">byte</span> MyChar[<span class="nb">8</span>] = {
+${arrStr}
+};
+
+<span class="cm">// У setup():</span>
+lcd.<span class="fn">createChar</span>(<span class="nb">0</span>, MyChar);
+
+<span class="cm">// У loop():</span>
+lcd.<span class="fn">write</span>(<span class="ty">byte</span>(<span class="nb">0</span>));`;
+
+  // Preview
+  const prev = document.getElementById('charPreview');
+  let html = '<div class="lcd-text-view" style="font-size:13px;min-width:auto;display:inline-block;padding:8px 12px">';
+  html += '<div style="display:inline-grid;grid-template-columns:repeat(5,8px);grid-template-rows:repeat(8,8px);gap:1px">';
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 5; c++)
+      html += `<div style="width:8px;height:8px;border-radius:1px;background:${charState[r][c] ? 'var(--lcd-pixel)' : 'var(--lcd-off)'}"></div>`;
+  html += '</div></div>';
+  prev.innerHTML = html;
+}
+
+function clearChar() {
+  charState = Array.from({length:8}, () => Array(5).fill(0));
+  buildCharGrid();
+}
+
+function invertChar() {
+  charState = charState.map(r => r.map(v => v ? 0 : 1));
+  buildCharGrid();
+}
+
+function loadSymbol(name) {
+  const sym = SYMBOLS[name];
+  if (!sym) return;
+  charState = sym.map(byte => {
+    const row = [];
+    for (let b = 4; b >= 0; b--) row.push((byte >> b) & 1);
+    return row;
+  });
+  buildCharGrid();
+}
+
+buildCharGrid();
+loadSymbol('heart');
+
+/* ─── QUIZ ─── */
+let answered = new Array(10).fill(null);
+
+function qa(opt, qi, correct) {
+  if (answered[qi] !== null) return;
+  answered[qi] = correct;
+  const opts = opt.closest('.q-opts').querySelectorAll('.q-opt');
+  opts.forEach(o => { o.style.pointerEvents = 'none'; o.style.cursor = 'default'; });
+  opt.classList.add(correct ? 'correct' : 'wrong');
+  if (!correct) {
+    opts.forEach(o => { if (o.onclick && o.onclick.toString().includes(',true)')) o.classList.add('correct'); });
+  }
+  const exp = opt.closest('.q-card').querySelector('.q-exp');
+  if (exp) exp.style.display = 'block';
+}
+
+function checkQuiz() {
+  const ok = answered.filter(v => v === true).length;
+  const box = document.getElementById('scoreBox');
+  const num = document.getElementById('scoreNum');
+  const msg = document.getElementById('scoreMsg');
+  box.style.display = 'block';
+  num.textContent = ok + '/10';
+  const msgs = [
+    [0,3,'Перечитай теорію — LCD ще попереду!'],
+    [4,5,'Непогано! Вчимося далі.'],
+    [6,7,'Добре! Більшість матеріалу засвоєно.'],
+    [8,9,'Відмінно! Майже досконалий результат.'],
+    [10,10,'🏆 Бездоганно! Arduino + LCD під контролем.']
+  ];
+  const m = msgs.find(([a,b]) => ok >= a && ok <= b);
+  msg.textContent = m ? m[2] : '';
+  box.scrollIntoView({behavior:'smooth'});
+}
+
+function resetQuiz() {
+  answered = new Array(10).fill(null);
+  document.querySelectorAll('.q-opt').forEach(o => {
+    o.classList.remove('correct','wrong');
+    o.style.pointerEvents = '';
+    o.style.cursor = '';
+  });
+  document.querySelectorAll('.q-exp').forEach(e => e.style.display = 'none');
+  document.getElementById('scoreBox').style.display = 'none';
+}
+
+/* ─── NAV SCROLL SPY ─── */
+window.addEventListener('scroll', () => {
+  const secs = document.querySelectorAll('.section[id]');
+  const links = document.querySelectorAll('.nav a');
+  let cur = '';
+  secs.forEach(s => { if (window.scrollY >= s.offsetTop - 80) cur = s.id; });
+  links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + cur));
+});
+</script>
+</body>
+</html>
