@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тема 26 · Застосування осцилографа</title>
+<style>
+:root{
+  --bg:#F3F0E8;--sf:#FFFFFF;--sf2:#EEF3F8;--sf3:#E0EAF4;
+  --grid:rgba(0,60,160,.07);
+  --tr:#0044A0;--tr-lt:#3A7CD4;--tr-pale:#CCDFF5;
+  --cu:#C07018;--cu-lt:#E09040;--cu-pale:#F5E8D0;
+  --sl:#7A96B0;--sl-lt:#B0C8DC;
+  --re:#E6F5EC;--re-dk:#1A7830;
+  --wb:#FFF7DC;--wd:#7A5600;
+  --scope:#00E060; --scope-dim:#0A3018; --scope-bg:#031A08;
+  --ch1:#FFD060; --ch2:#5BB8FF;
+  --text:#18243A;--t2:#3C5068;--t3:#6A8098;
+  --mono:'Share Tech Mono',monospace;--disp:'Space Grotesk','Segoe UI',sans-serif;--body:'Inter','Segoe UI',sans-serif;
+  --r:9px;--sh:0 2px 10px rgba(0,60,160,.09);--shL:0 6px 28px rgba(0,60,160,.14);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:28px 28px;color:var(--text);font-family:var(--body);font-size:15px;line-height:1.65;min-height:100vh}
+.nav{position:sticky;top:0;z-index:200;background:rgba(243,240,232,.95);backdrop-filter:blur(12px);border-bottom:2px solid var(--tr);display:flex;align-items:center;gap:2px;padding:0 18px;overflow-x:auto;white-space:nowrap}
+.nav-brand{font-family:var(--mono);font-size:11px;color:var(--tr);border:1.5px solid var(--tr);border-radius:4px;padding:4px 10px;margin-right:10px;flex-shrink:0;letter-spacing:1px}
+.nav a{display:inline-block;padding:12px 9px;font-size:12px;font-weight:500;color:var(--t2);text-decoration:none;border-bottom:3px solid transparent;transition:all .2s;flex-shrink:0}
+.nav a:hover,.nav a.active{color:var(--tr);border-bottom-color:var(--tr)}
+.hero{max-width:1060px;margin:0 auto;padding:44px 22px 32px;display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center}
+.hero-eye{font-family:var(--mono);font-size:10px;color:var(--cu);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.hero-eye::before{content:'';display:block;width:28px;height:2px;background:var(--cu)}
+.hero h1{font-family:var(--disp);font-size:clamp(26px,5vw,46px);font-weight:700;color:var(--text);line-height:1.1;margin-bottom:14px}
+.hero h1 em{color:var(--tr);font-style:normal}
+.hero-lead{color:var(--t2);font-size:15px;max-width:480px;padding-left:14px;border-left:3px solid var(--cu);line-height:1.65}
+.tag-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+.tag{font-family:var(--mono);font-size:10.5px;padding:3px 9px;border-radius:4px;background:var(--sf2);color:var(--tr);border:1px solid var(--tr-pale)}
+.main{max-width:1060px;margin:0 auto;padding:0 22px 80px}
+.section{margin-top:52px;scroll-margin-top:60px}
+.s-eye{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--cu);margin-bottom:9px;display:flex;align-items:center;gap:10px}
+.s-eye::after{content:'';flex:1;height:1px;background:var(--sl-lt)}
+.section>h2{font-family:var(--disp);font-size:22px;font-weight:700;color:var(--text);margin-bottom:18px}
+.card{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);box-shadow:var(--sh);padding:20px 22px;margin-bottom:14px}
+.card h3{font-family:var(--disp);font-size:14px;font-weight:600;color:var(--tr);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card h3 .d{width:7px;height:7px;border-radius:50%;background:var(--cu);flex-shrink:0}
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px}
+.acc{border:1px solid var(--sf3);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.acc-h{background:var(--sf2);padding:13px 17px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:var(--disp);font-size:14px;font-weight:600;color:var(--text);user-select:none;transition:background .2s}
+.acc-h:hover{background:var(--sf3)}
+.acc-h .ch{font-size:10px;color:var(--tr);transition:transform .3s;width:20px;height:20px;border-radius:50%;background:var(--tr-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.acc-h.open .ch{transform:rotate(180deg)}
+.acc-b{display:none;background:var(--sf);padding:16px 18px;font-size:14px;color:var(--t2);line-height:1.75;border-top:1px solid var(--tr-pale)}
+.acc-b.open{display:block}
+.acc-b p{margin-bottom:10px}
+.acc-b ul,ol{padding-left:20px;margin-bottom:10px}
+.acc-b li{margin-bottom:5px}
+.cw{position:relative;margin:12px 0}
+.cb{background:#0B1924;color:#C4D7EE;border-radius:var(--r);padding:18px 20px;font-family:var(--mono);font-size:13px;line-height:1.85;overflow-x:auto;border:1px solid #182A3C}
+.kw{color:#58B8FF}.ty{color:#FFD060}.cm{color:#486278;font-style:italic}.st{color:#8CEEA0}.nb{color:#FF9E60}.fn{color:#B4DEFF}.pp{color:#FF7A9A}
+.copy-btn{position:absolute;top:10px;right:10px;background:#182A3C;border:1px solid #2A4266;color:#6A92B4;font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:4px;cursor:pointer;transition:all .2s}
+.copy-btn:hover{background:var(--tr);color:#fff;border-color:var(--tr)}
+.note{background:var(--tr-pale);border:1px solid var(--tr-lt);border-left:4px solid var(--tr);border-radius:var(--r);padding:13px 15px;margin:11px 0;font-size:13.5px;color:var(--t2)}
+.warn{background:var(--wb);border:1px solid #F0C040;border-left:4px solid #D4A000;border-radius:var(--r);padding:13px 15px;margin:11px 0;font-size:13.5px;color:var(--wd)}
+.ok{background:var(--re);border:1px solid #7AD098;border-left:4px solid var(--re-dk);border-radius:var(--r);padding:13px 15px;margin:11px 0;font-size:13.5px;color:#1A4822}
+.steps{display:flex;flex-direction:column;gap:12px;margin:16px 0}
+.step{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);box-shadow:var(--sh);display:grid;grid-template-columns:50px 1fr;overflow:hidden}
+.sn{background:var(--tr);color:#fff;font-family:var(--mono);font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;min-height:66px}
+.sb{padding:13px 16px}
+.sb h4{font-family:var(--disp);font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.sb p{font-size:13.5px;color:var(--t2)}
+.cl{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:9px;margin:12px 0}
+.ci{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);padding:10px 13px;display:flex;align-items:center;gap:9px;font-size:13px;color:var(--t2);font-weight:500}
+.tdiv{margin:28px 0;height:2px;background:repeating-linear-gradient(90deg,var(--tr) 0,var(--tr) 14px,transparent 14px,transparent 20px);opacity:.2}
+.subtab-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.subtab{padding:8px 18px;border-radius:7px;border:1.5px solid var(--sf3);background:var(--sf);color:var(--t2);cursor:pointer;font-family:var(--disp);font-size:13px;font-weight:600;transition:all .2s}
+.subtab.active{background:var(--tr);color:#fff;border-color:var(--tr)}
+.subtab:hover:not(.active){border-color:var(--tr-lt)}
+.tabpane{display:none}
+.tabpane.active{display:block}
+.btn{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-family:var(--disp);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+.btn-p{background:var(--tr);color:#fff}.btn-p:hover{background:#0030A0}
+.btn-o{background:var(--sf);color:var(--text);border:1.5px solid var(--sl)}.btn-o:hover{border-color:var(--tr);color:var(--tr)}
+.btn-g{background:var(--re-dk);color:#fff}.btn-g:hover{background:#106020}
+.btn-cu{background:var(--cu);color:#fff}.btn-cu:hover{background:#A06010}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pbt{padding:6px 13px;border-radius:5px;border:1px solid var(--sf3);background:var(--sf2);color:var(--text);cursor:pointer;font-size:12px;font-family:var(--body);font-weight:500;transition:all .18s}
+.pbt:hover,.pbt.active{background:var(--tr);color:#fff;border-color:var(--tr)}
+.wire-wrap{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);box-shadow:var(--sh);padding:18px;overflow-x:auto}
+.ref-table{width:100%;border-collapse:collapse;font-size:13px}
+.ref-table th{background:var(--tr);color:#fff;padding:9px 13px;text-align:left;font-family:var(--disp);font-size:12px;font-weight:600}
+.ref-table td{padding:8px 13px;border-bottom:1px solid var(--sf3);color:var(--t2);vertical-align:top}
+.ref-table tr:nth-child(even) td{background:var(--sf2)}
+.ref-table code{font-family:var(--mono);background:var(--tr-pale);color:var(--tr);padding:1px 5px;border-radius:3px;font-size:11.5px}
+footer{background:var(--sf);border-top:2px solid var(--tr);text-align:center;padding:16px 22px;font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:.5px}
+
+/* ── SCOPE SIMULATOR ── */
+.scope-card{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);box-shadow:var(--shL);padding:24px}
+.scope-body{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.scope-screen-wrap{flex-shrink:0}
+#scopeCanvas{display:block;border-radius:8px;background:var(--scope-bg);border:3px solid #1A2A1A;box-shadow:0 0 30px rgba(0,224,96,.08)}
+.scope-readout{font-family:var(--mono);font-size:10.5px;color:var(--scope);background:#031A08;border:1px solid #1A3A1A;border-radius:6px;padding:8px 12px;margin-top:8px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between}
+.scope-panel{flex:1;min-width:250px}
+.scope-panel h4{font-family:var(--disp);font-size:12.5px;font-weight:600;color:var(--t2);margin:14px 0 9px}
+.scope-panel h4:first-child{margin-top:0}
+.sl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sl-label{font-family:var(--disp);font-size:12px;font-weight:600;color:var(--t2);min-width:78px}
+.sl-inp{flex:1;min-width:100px;accent-color:var(--tr)}
+.sl-val{font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--tr);min-width:60px;text-align:right}
+.sigtype-row{display:flex;flex-wrap:wrap;gap:6px}
+.metric-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.metric{background:var(--sf2);border:1px solid var(--sf3);border-radius:6px;padding:8px 12px;text-align:center;flex:1;min-width:78px}
+.metric-val{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--tr)}
+.metric-lbl{font-size:10px;color:var(--t3);font-family:var(--disp);margin-top:1px}
+
+/* ── QUIZ ── */
+.quiz-list{display:flex;flex-direction:column;gap:15px}
+.q-card{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);box-shadow:var(--sh);padding:18px 20px}
+.q-text{font-family:var(--disp);font-size:14px;font-weight:600;color:var(--text);margin-bottom:11px}
+.q-opts{display:flex;flex-direction:column;gap:7px}
+.q-opt{padding:9px 13px;border-radius:6px;cursor:pointer;border:1.5px solid var(--sf3);font-size:13.5px;color:var(--t2);background:var(--sf2);transition:all .18s;display:flex;align-items:center;gap:10px}
+.q-opt:hover{border-color:var(--tr);background:var(--tr-pale)}
+.q-opt.correct{background:#E8F7EE;border-color:#2A9A4A;color:#1A5A2A}
+.q-opt.wrong{background:#FFEEEA;border-color:#CC4422;color:#7A2010}
+.q-opt .ol{width:23px;height:23px;border-radius:4px;flex-shrink:0;background:var(--sl-lt);color:#fff;font-family:var(--mono);font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.q-exp{display:none;margin-top:9px;padding:9px 13px;background:var(--tr-pale);border-radius:6px;font-size:13px;color:var(--t2);border-left:3px solid var(--tr)}
+.score-box{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);box-shadow:var(--shL);padding:26px;text-align:center;margin-top:20px;display:none}
+.score-num{font-family:var(--mono);font-size:52px;font-weight:700;color:var(--tr)}
+.score-msg{font-size:15px;color:var(--t2);margin-top:8px}
+
+@media(max-width:680px){.hero{grid-template-columns:1fr}.hero-widget{display:none}.scope-body{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-brand">STEAM-HUB · Електроніка</div>
+  <a href="#theory">Теорія</a>
+  <a href="#waves">Форми сигналів</a>
+  <a href="#sim">Симулятор</a>
+  <a href="#choose">Вибір приладу</a>
+  <a href="#integrity">Цілісність</a>
+  <a href="#zavA">Робота A (С1-48Б)</a>
+  <a href="#zavD">Робота D (FNIRSI)</a>
+  <a href="#quiz">Тест</a>
+  <a href="#ref">Довідник</a>
+</nav>
+
+<div class="hero">
+  <div>
+    <div class="hero-eye">Тема №26 · Застосування осцилографа</div>
+    <h1>Осцилограф —<br><em>«очі»</em> для<br>електричних сигналів</h1>
+    <p class="hero-lead">Від аналогового С1-48Б до цифрового FNIRSI DSO-510: форми хвиль, ШІМ, I²C, UART, перевірка конденсаторів, акумуляторів та кварців.</p>
+    <div class="tag-row">
+      <span class="tag">С1-48Б</span><span class="tag">FNIRSI DSO-510</span>
+      <span class="tag">Duty Cycle</span><span class="tag">Vpp</span>
+      <span class="tag">I²C / UART</span><span class="tag">RC-розряд</span>
+      <span class="tag">Тригер</span>
+    </div>
+  </div>
+  <div class="hero-widget">
+    <canvas id="heroCanvas" width="170" height="140" style="border-radius:8px;background:#031A08;border:2px solid #1A2A1A"></canvas>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ══════ THEORY ══════ -->
+<section class="section" id="theory">
+  <div class="s-eye">01 · Теоретична частина</div>
+  <h2>Що таке осцилограф і навіщо він потрібен</h2>
+
+  <div class="cg">
+    <div class="card">
+      <h3><span class="d"></span>Призначення</h3>
+      <p>Осцилограф — вимірювальний прилад, що візуалізує форму електричного сигналу: графік зміни напруги у часі. Дозволяє побачити амплітуду, частоту, тривалість імпульсів, спотворення — те, що не покаже мультиметр.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Мультиметр vs осцилограф</h3>
+      <p>Мультиметр показує середнє/RMS значення. БЖ з пульсаціями 1В на тлі 5В мультиметр покаже як стабільні «5V». Для цифрової логіки ці пульсації — критичне «сміття», яке видно лише на осцилографі.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Аналоговий vs цифровий</h3>
+      <p><strong>Аналоговий</strong> (ЕПТ): миттєва візуалізація, великий, неточний, зникає з ринку.<br><strong>Цифровий</strong>: запис, аналіз на ПК, точність; вища ціна, залежність від ПЗ.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Осі координат</h3>
+      <p>Вертикальна вісь (Y) — напруга. Горизонтальна (X) — час. Інтенсивність/колір (Z) — додаткова характеристика на DPO-осцилографах.</p>
+    </div>
+  </div>
+
+  <div class="tdiv"></div>
+
+  <div class="cg">
+    <div class="card">
+      <h3><span class="d"></span>Смуга пропускання</h3>
+      <p>Максимальна частота сигналу, яку прилад точно зчитує. <strong>Правило «п'яти»:</strong> смуга має бути мінімум у 5 разів більшою за максимальну частоту досліджуваного сигналу.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Частота дискретизації</h3>
+      <p>Кількість точок вимірювання в секунду (GS/s). Чим вища — тим точніше відтворення форми сигналу. Рекомендовано: у 5 разів вища за найвищу частоту схеми.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Канальність</h3>
+      <p>Кількість одночасно вимірюваних сигналів: від 1 до 4+. Для більшості задач достатньо 2 каналів (наприклад SCL+SDA для I²C).</p>
+    </div>
+  </div>
+
+  <div class="tdiv"></div>
+
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">📊 Типи приладів — порівняльна таблиця <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <div style="overflow-x:auto">
+        <table class="ref-table">
+          <thead><tr><th>Тип</th><th>Особливості</th><th>Застосування</th></tr></thead>
+          <tbody>
+            <tr><td>Стаціонарні</td><td>Великі, надійні</td><td>Лабораторії, сервісні центри</td></tr>
+            <tr><td>Портативні</td><td>Мобільні, акумулятор</td><td>Виїзна діагностика</td></tr>
+            <tr><td>USB</td><td>Працюють через ПК</td><td>Хобі, навчання</td></tr>
+            <tr><td>MSO</td><td>+ логічний аналізатор</td><td>Професійна діагностика</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px">Приклади застосування: виявлення збоїв у цифрових схемах, вимірювання імпульсів у БЖ, аналіз протоколів UART/SPI/I²C (MSO), перевірка сигналів в авто та генераторах.</p>
+    </div>
+  </div>
+
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">🛠 Алгоритм застосування осцилографа <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <ol>
+        <li>Увімкніть прилад і оберіть потрібний канал</li>
+        <li>Підключіть щупи до точки вимірювання</li>
+        <li>Налаштуйте шкалу часу (ЧАС/см) та напруги (V/см)</li>
+        <li>Активуйте тригер — фіксацію сигналу</li>
+        <li>Аналізуйте форму хвилі: симетрію, пульсації, піки</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">🎯 Як обрати осцилограф — ключові критерії <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <ul>
+        <li><strong>Тип вимірювань</strong> — логічні сигнали чи радіочастотний спектр?</li>
+        <li><strong>Смуга пропускання</strong> — мінімум ×5 за максимальну частоту сигналу</li>
+        <li><strong>Частота дискретизації</strong> — також ×5 за максимальну частоту</li>
+        <li><strong>Щупи</strong> — пасивні (стандарт) чи активні (для високих частот, низьке ємнісне навантаження)</li>
+        <li><strong>Глибина пам'яті</strong> — для тривалих/складних сигналів</li>
+        <li><strong>Кількість каналів</strong> — 1, 2 чи більше залежно від задачі</li>
+        <li><strong>Сфера застосування</strong> — баланс функціоналу, ціни та реальних потреб</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ WAVES ══════ -->
+<section class="section" id="waves">
+  <div class="s-eye">02 · Форми сигналів</div>
+  <h2>Типи хвиль та їх характеристики</h2>
+
+  <div class="card">
+    <h3><span class="d"></span>Що розповідає форма хвилі</h3>
+    <p style="margin-bottom:10px">Графік сигналу може розкрити: значення часу/напруги, частоту, ділянки, що змінюються; чи є спотворення через несправний компонент; співвідношення AC/DC складових; рівень шуму.</p>
+    <ul style="padding-left:18px;font-size:13.5px;color:var(--t2);line-height:1.9">
+      <li><strong>Зміна висоти</strong> — змінилась напруга</li>
+      <li><strong>Пряма горизонтальна лінія</strong> — характеристики стабільні</li>
+      <li><strong>Діагональні прямі</strong> — лінійна зміна (наростання/спад зі стійкою швидкістю)</li>
+      <li><strong>Гострі кути</strong> — раптові зміни</li>
+    </ul>
+  </div>
+
+  <div class="cg" style="margin-top:14px">
+    <div class="card"><h3><span class="d"></span>Синусоїда</h3><p>Гармонічний сигнал — основа змінного струму, аудіосигналів, РЧ-несучих.</p></div>
+    <div class="card"><h3><span class="d"></span>Прямокутні / квадратичні</h3><p>Цифрові сигнали, тактові імпульси, ШІМ.</p></div>
+    <div class="card"><h3><span class="d"></span>Пилоподібні / трикутні</h3><p>Розгортка, генератори, деякі типи модуляції.</p></div>
+    <div class="card"><h3><span class="d"></span>Покрокові / пульсуючі</h3><p>Перехідні процеси, заряд/розряд конденсаторів.</p></div>
+  </div>
+
+  <div class="note" style="margin-top:14px">💡 Класифікація також включає: періодичні/неперіодичні, синхронні/асинхронні та комплексні хвилі (суперпозиція кількох гармонік).</div>
+</section>
+
+<!-- ══════ SIMULATOR ══════ -->
+<section class="section" id="sim">
+  <div class="s-eye">03 · Симулятор</div>
+  <h2>Інтерактивний екран осцилографа</h2>
+
+  <div class="scope-card">
+    <div class="scope-body">
+      <div class="scope-screen-wrap">
+        <canvas id="scopeCanvas" width="440" height="280"></canvas>
+        <div class="scope-readout" id="scopeReadout">
+          <span>CH1: <span style="color:var(--ch1)" id="rV">1V/div</span></span>
+          <span>T/div: <span id="rT">1ms</span></span>
+          <span>Freq: <span id="rF">490Hz</span></span>
+          <span>Duty: <span id="rD">50%</span></span>
+        </div>
+      </div>
+      <div class="scope-panel">
+        <h4>Тип сигналу</h4>
+        <div class="sigtype-row">
+          <button class="pbt active" onclick="setSigType('square',this)">▭ Прямокутний</button>
+          <button class="pbt" onclick="setSigType('sine',this)">∿ Синусоїда</button>
+          <button class="pbt" onclick="setSigType('triangle',this)">△ Трикутний</button>
+          <button class="pbt" onclick="setSigType('sawtooth',this)">⩘ Пилоподібний</button>
+          <button class="pbt" onclick="setSigType('rc',this)">⌐ RC-заряд</button>
+          <button class="pbt" onclick="setSigType('i2c',this)">⌗ I²C пакет</button>
+          <button class="pbt" onclick="setSigType('uart',this)">⌶ UART байт</button>
+          <button class="pbt" onclick="setSigType('noisy',this)">⌇ Шум/перешкоди</button>
+        </div>
+
+        <h4>Параметри</h4>
+        <div class="sl-row">
+          <span class="sl-label">Duty Cycle</span>
+          <input type="range" class="sl-inp" id="scDuty" min="0" max="100" value="50" oninput="drawScopeUI()">
+          <span class="sl-val" id="scDutyV">50%</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label">Частота</span>
+          <input type="range" class="sl-inp" id="scFreq" min="1" max="10" value="5" oninput="drawScopeUI()">
+          <span class="sl-val" id="scFreqV">490 Гц</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label">Амплітуда</span>
+          <input type="range" class="sl-inp" id="scAmp" min="1" max="5" value="5" oninput="drawScopeUI()">
+          <span class="sl-val" id="scAmpV">5 В</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label">V/дiл</span>
+          <input type="range" class="sl-inp" id="scVdiv" min="1" max="5" value="2" oninput="drawScopeUI()">
+          <span class="sl-val" id="scVdivV">1В</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label">Шум</span>
+          <input type="range" class="sl-inp" id="scNoise" min="0" max="40" value="0" oninput="drawScopeUI()">
+          <span class="sl-val" id="scNoiseV">0%</span>
+        </div>
+
+        <div class="metric-row">
+          <div class="metric"><div class="metric-val" id="mPeriod">2.04мс</div><div class="metric-lbl">Період</div></div>
+          <div class="metric"><div class="metric-val" id="mVavg">2.5В</div><div class="metric-lbl">Vavg</div></div>
+          <div class="metric"><div class="metric-val" id="mVpp">5В</div><div class="metric-lbl">Vpp</div></div>
+        </div>
+        <div class="note" style="margin-top:12px;font-size:12.5px">💡 Перемикайте типи сигналів, щоб побачити, як виглядають реальні форми з практичних робіт: RC-заряд конденсатора, пакет I²C, байт UART, ШІМ з різним Duty Cycle.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ CHOOSE / DEVICE COMPARISON ══════ -->
+<section class="section" id="choose">
+  <div class="s-eye">04 · Два прилади практичної роботи</div>
+  <h2>С1-48Б (аналоговий) vs FNIRSI DSO-510 (цифровий)</h2>
+
+  <div class="cg">
+    <div class="card">
+      <h3><span class="d"></span>Осцилограф С1-48Б</h3>
+      <p>Аналоговий, низькочастотний. Смуга 0–1 МГц. Максимальна чутливість 5 мм/мВ. Вхідний опір 1 МОм (закритий вхід) / 10 МОм (з дільником 1:10). Час розгортки: 2 мкс/см…100 мс/см.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Осцилограф FNIRSI DSO-510</h3>
+      <p>Цифровий портативний 2-в-1 (осцилограф + генератор). Смуга 10 МГц, дискретизація 48 MВ/с. Дисплей 2.8" TFT 320×240. Розгортка 50нс–20с. Калібрувальний вихід: 1 кГц, 3.3В.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:6px">
+    <h3><span class="d"></span>Технічні характеристики — порівняння</h3>
+    <div style="overflow-x:auto">
+      <table class="ref-table">
+        <thead><tr><th>Параметр</th><th>С1-48Б</th><th>FNIRSI DSO-510</th></tr></thead>
+        <tbody>
+          <tr><td>Тип</td><td>Аналоговий (ЕПТ)</td><td>Цифровий (TFT)</td></tr>
+          <tr><td>Смуга пропускання</td><td>0–1 МГц</td><td>10 МГц</td></tr>
+          <tr><td>Дискретизація</td><td>—</td><td>48 MВ/с</td></tr>
+          <tr><td>Чутливість</td><td>0,002–5 В/см (20 положень)</td><td>10мВ/діл–10В/діл</td></tr>
+          <tr><td>Розгортка часу</td><td>2мкс/см…100мс/см</td><td>50нс…20с</td></tr>
+          <tr><td>Канали</td><td>1</td><td>1 (2 для I²C-завдання)</td></tr>
+          <tr><td>Calibration out</td><td>—</td><td>1кГц, 50%, 3.3В</td></tr>
+          <tr><td>Живлення</td><td>~220В мережа</td><td>Вбудований акумулятор</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="warn">⚠️ <strong>Безпека FNIRSI:</strong> ніколи не підключайте заземлення щупа до «гарячої» частини імпульсних БЖ без розв'язувального трансформатора — коротке замикання через осцилограф! Завжди використовуйте дільник 10× для високих напруг/частот. Не торкайтеся металевих частин при вимірюванні високої напруги.</div>
+</section>
+
+<!-- ══════ SIGNAL INTEGRITY ══════ -->
+<section class="section" id="integrity">
+  <div class="s-eye">05 · Цілісність сигналу</div>
+  <h2>Чому цілісність сигналу — критична проблема</h2>
+
+  <div class="card">
+    <h3><span class="d"></span>Три фактори цілісності сигналу</h3>
+    <p>Осцилограф схожий на фотокамеру, що захоплює образ сигналу:</p>
+    <ul style="padding-left:18px;font-size:13.5px;color:var(--t2);line-height:1.9;margin-top:8px">
+      <li>Чи відповідає «знімок» тому, що дійсно сталося?</li>
+      <li>Зображення чітке чи розмите?</li>
+      <li>Скільки чітких «знімків» можна зробити за секунду (частота дискретизації)?</li>
+    </ul>
+  </div>
+
+  <div class="acc" style="margin-top:14px">
+    <div class="acc-h" onclick="tA(this)">⚡ Чому це проблема саме сьогодні? <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <p>Тактові частоти процесорів зросли на порядки. Час циклу передачі — у 1000 разів вищий, ніж 20 років тому. Сучасні IC мають швидкості 2–5 GS/s, DDR3-пам'ять — тактову частоту понад 2 ГГц з часом наростання фронту ~35 пс.</p>
+      <p>Навіть трак друкованої плати довжиною 6 дюймів стає <strong>лінією передачі</strong>, коли граничні швидкості сигналу нижчі за 4-6 нс — незалежно від частоти повторення. Це створює «нематеріальні» сполуки, що непередбачено впливають одна на одну.</p>
+    </div>
+  </div>
+
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">🔬 Аналогові джерела цифрових проблем <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <p>Похибки на «цифровому полі» зазвичай мають аналогове походження. Для точного відстеження несправностей потрібен осцилограф — він покаже краї, шуми, перехідні характеристики, допоможе виміряти час встановлення та час утримання.</p>
+      <p>Високі граничні швидкості вимагають більших струмів → стрибки потенціалу схеми → зростання EMI (електромагнітних перешкод) та перехресних перешкод.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ PRACTICE A (С1-48Б) ══════ -->
+<section class="section" id="zavA">
+  <div class="s-eye">06 · Практична робота 26-A</div>
+  <h2>«Застосування осцилографії в діагностиці» — на прикладі С1-48Б</h2>
+
+  <div class="card">
+    <h3><span class="d"></span>Блок-схема приладу та органи керування</h3>
+    <p>Прилад складається з трьох основних блоків. На лицьовій панелі блоку <strong>підсилювача</strong>: «ЯСКРАВІСТЬ», «ФОКУС», «АСТИГМАТИЗМ», «ЗМІЩЕННЯ», «БАЛАНС», V/см, «МНОЖ.» (×1/×10), «ВХІД» (закритий/відкритий). На панелі блоку <strong>розвертки</strong>: «СИНХРОНІЗАЦІЯ», «РІВЕНЬ», «СТАБІЛЬНІСТЬ», «ЧАС/см», «ПЛАВНО», «РОЗТЯГ», «ОДНОКР.».</p>
+  </div>
+
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">🔧 Підготовка приладу до роботи — 15 кроків <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <div style="overflow-x:auto">
+        <table class="ref-table">
+          <thead><tr><th>#</th><th>Дія</th><th>Пояснення</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Перевірте заземлення</td><td>Захист від ураження струмом</td></tr>
+            <tr><td>2</td><td>Перемикач мережі → 220В</td><td>Для України</td></tr>
+            <tr><td>3</td><td>«ЯСКРАВІСТЬ» — вліво до упору</td><td>Захист ЕПТ при вмиканні</td></tr>
+            <tr><td>4</td><td>«РІВЕНЬ» — середнє положення</td><td>—</td></tr>
+            <tr><td>5</td><td>«СТАБІЛЬНІСТЬ» — за год. стрілкою до упору</td><td>Режим автоколивань</td></tr>
+            <tr><td>6</td><td>«БАЛАНС» — середнє</td><td>—</td></tr>
+            <tr><td>7</td><td>«ЗМІЩЕННЯ» — середнє</td><td>—</td></tr>
+            <tr><td>8</td><td>«ЧАС/см» — 0,5 мс/см</td><td>—</td></tr>
+            <tr><td>9</td><td>«МНОЖ.» → ×10</td><td>—</td></tr>
+            <tr><td>10</td><td>«ПЛАСТИНИ Y/X» — вгору</td><td>—</td></tr>
+            <tr><td>11</td><td>Гнізда «ВХІД Z» — закорочені</td><td>—</td></tr>
+            <tr><td>12</td><td>Увімкнути «МЕРЕЖА»</td><td>Загорається лампочка</td></tr>
+            <tr><td>13</td><td>Прогрів 2-3 хвилини</td><td>Стабілізація режимів</td></tr>
+            <tr><td>14</td><td>Регулювати яскравість</td><td>Лінія добре видима, не надто яскрава</td></tr>
+            <tr><td>15</td><td>Регулювати фокус</td><td>Пляма максимально кругла й чітка</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="warn" style="margin-top:10px">⚠️ Не залишайте яскраву нерухому пляму на екрані — пропалить люмінофор!</div>
+    </div>
+  </div>
+
+  <div class="tdiv"></div>
+
+  <h3 style="font-family:var(--disp);font-size:16px;font-weight:700;color:var(--text);margin-bottom:14px">Чотири завдання роботи 26-A</h3>
+
+  <!-- Sub-tabs for 4 tasks -->
+  <div class="subtab-row">
+    <button class="subtab active" onclick="showTabA(0,this)">1. Конденсатор</button>
+    <button class="subtab" onclick="showTabA(1,this)">2. ШІМ</button>
+    <button class="subtab" onclick="showTabA(2,this)">3. Акумулятор 18650</button>
+    <button class="subtab" onclick="showTabA(3,this)">4. Датчики/шини</button>
+  </div>
+
+  <!-- TASK A1 -->
+  <div class="tabpane active" id="tabA0">
+    <div class="note">📌 <strong>Мета:</strong> оцінити стан конденсаторів за формою зарядної кривої, визначити ємність, виявити дефекти (пробій, обрив, втрата ємності).</div>
+    <div class="cl">
+      <div class="ci">📟 Осцилограф С1-48Б</div><div class="ci">🟦 Arduino UNO</div>
+      <div class="ci">🔲 Макетна плата</div><div class="ci">⚡ Конденсатори 10/100/1000 мкФ</div>
+      <div class="ci">⚡ Керамічний 0,1 мкФ</div><div class="ci">⬛ Резистори 1к/10к</div>
+      <div class="ci">🔌 Провода ×10</div><div class="ci">📏 Мультиметр</div>
+    </div>
+    <h4 style="font-family:var(--disp);font-size:14px;margin:14px 0 8px">Скетч генератора імпульсів</h4>
+    <div class="cw"><button class="copy-btn" onclick="cp(this)">copy</button>
+    <div class="cb"><span class="cm">// Генератор прямокутних імпульсів для тестування конденсаторів</span>
+<span class="cm">// Вихід: пін 9</span>
+<span class="kw">const</span> <span class="ty">int</span> testPin = <span class="nb">9</span>;
+<span class="kw">const</span> <span class="ty">int</span> frequency = <span class="nb">100</span>;  <span class="cm">// 100 Гц, період 10 мс</span>
+
+<span class="kw">void</span> <span class="fn">setup</span>() { <span class="fn">pinMode</span>(testPin, OUTPUT); }
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="fn">digitalWrite</span>(testPin, HIGH);
+  <span class="fn">delayMicroseconds</span>(<span class="nb">5000</span>);  <span class="cm">// 5 мс HIGH</span>
+  <span class="fn">digitalWrite</span>(testPin, LOW);
+  <span class="fn">delayMicroseconds</span>(<span class="nb">5000</span>);  <span class="cm">// 5 мс LOW</span>
+}</div></div>
+
+    <div class="steps">
+      <div class="step"><div class="sn">1</div><div class="sb"><h4>Налаштування осцилографа</h4><p>V/см: 0,5–1 В/см. ЧАС/см: 1–2 мс/см. Синхронізація: ВНУТР., «+». Вхід: закритий (⎓). Розтяг: ×1.</p></div></div>
+      <div class="step"><div class="sn">2</div><div class="sb"><h4>Спостереження зарядної кривої</h4><p>C=100мкФ, R=1кОм → τ=RC=0,1с=100мс. Період Arduino T=10мс. Оскільки T≪τ — конденсатор не встигає повністю зарядитись.</p></div></div>
+      <div class="step"><div class="sn">3</div><div class="sb"><h4>Вимірювання постійної часу τ</h4><p>Знайдіть рівень 0,63×Umax — точка 63% від кінцевого значення. Виміряний час до цього рівня = τ. Розрахуйте ємність: C=τ/R.</p></div></div>
+      <div class="step"><div class="sn">4</div><div class="sb"><h4>Дослідіть різні ємності</h4><p>0,1мкФ/10кОм→τ=1мс (майже трикутна). 1000мкФ/1кОм→τ=1с (практично пряма лінія, потрібна зміна масштабу).</p></div></div>
+      <div class="step"><div class="sn">5</div><div class="sb"><h4>Діагностика несправностей</h4><p>Обрив → прямокутні імпульси без спаду. Пробій → лінія близько до 0В. Втрата ємності → крута крива (τ менша розрахункової).</p></div></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="d"></span>Таблиця τ для різних конденсаторів</h3>
+      <div style="overflow-x:auto">
+        <table class="ref-table">
+          <thead><tr><th>Конденсатор</th><th>R</th><th>Теор. τ</th><th>Очікувана крива</th></tr></thead>
+          <tbody>
+            <tr><td>0,1 мкФ керам.</td><td>10 кОм</td><td>1 мс</td><td>Майже трикутна</td></tr>
+            <tr><td>10 мкФ електр.</td><td>1 кОм</td><td>10 мс</td><td>Виражена експонента</td></tr>
+            <tr><td>100 мкФ електр.</td><td>1 кОм</td><td>100 мс</td><td>Дуже пологий наріст</td></tr>
+            <tr><td>1000 мкФ електр.</td><td>1 кОм</td><td>1 с</td><td>Практично пряма лінія</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASK A2 -->
+  <div class="tabpane" id="tabA1">
+    <div class="note">📌 <strong>Мета:</strong> візуалізувати та проаналізувати ШІМ-сигнал: частота, скважність, амплітуда.</div>
+    <p style="font-size:13.5px;color:var(--t2);margin-bottom:10px">Arduino UNO генерує ШІМ на пінах 3,5,6,9,10,11: Timer0 (5,6)→980Гц, Timer1 (9,10)→490Гц, Timer2 (3,11)→490/980Гц. Роздільність: 8 біт (0-255).</p>
+
+    <h4 style="font-family:var(--disp);font-size:14px;margin:10px 0 8px">Скетч 2.2 — ШІМ з потенціометром</h4>
+    <div class="cw"><button class="copy-btn" onclick="cp(this)">copy</button>
+    <div class="cb"><span class="kw">const</span> <span class="ty">int</span> pwmPin = <span class="nb">9</span>;
+<span class="kw">const</span> <span class="ty">int</span> potPin = A0;
+
+<span class="kw">void</span> <span class="fn">setup</span>() { <span class="fn">pinMode</span>(pwmPin, OUTPUT); <span class="fn">Serial</span>.<span class="fn">begin</span>(<span class="nb">9600</span>); }
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="ty">int</span> potValue = <span class="fn">analogRead</span>(potPin);
+  <span class="ty">int</span> pwmValue = <span class="fn">map</span>(potValue, <span class="nb">0</span>, <span class="nb">1023</span>, <span class="nb">0</span>, <span class="nb">255</span>);
+  <span class="fn">analogWrite</span>(pwmPin, pwmValue);
+  <span class="ty">float</span> dutyCycle = (pwmValue / <span class="nb">255.0</span>) * <span class="nb">100</span>;
+  <span class="fn">Serial</span>.<span class="fn">print</span>(<span class="st">"PWM: "</span>); <span class="fn">Serial</span>.<span class="fn">print</span>(pwmValue);
+  <span class="fn">Serial</span>.<span class="fn">print</span>(<span class="st">" | Duty: "</span>); <span class="fn">Serial</span>.<span class="fn">println</span>(dutyCycle);
+  <span class="fn">delay</span>(<span class="nb">100</span>);
+}</div></div>
+
+    <div class="card">
+      <h3><span class="d"></span>Таблиця: задане заповнення → виміряні параметри</h3>
+      <div style="overflow-x:auto">
+        <table class="ref-table">
+          <thead><tr><th>analogWrite()</th><th>t_HIGH</th><th>Період T</th><th>Заповнення</th><th>U_RC</th></tr></thead>
+          <tbody>
+            <tr><td>0 (0%)</td><td>0</td><td>2,04мс</td><td>0%</td><td>0В</td></tr>
+            <tr><td>64 (25%)</td><td>0,51мс</td><td>2,04мс</td><td>25%</td><td>1,2В</td></tr>
+            <tr><td>127 (50%)</td><td>1,02мс</td><td>2,04мс</td><td>50%</td><td>2,5В</td></tr>
+            <tr><td>191 (75%)</td><td>1,53мс</td><td>2,04мс</td><td>75%</td><td>3,7В</td></tr>
+            <tr><td>255 (100%)</td><td>2,04мс</td><td>2,04мс</td><td>100%</td><td>5В</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:8px;font-size:13px;color:var(--t2)">Налаштування осцилографа: V/см=1-2В, ЧАС/см=0,5-1мс, синхр. ВНУТР «+» рівень ~2,5В. Період T=1/490≈2,04мс. Для перетворення ШІМ в аналогову напругу — додайте RC-фільтр.</p>
+    </div>
+  </div>
+
+  <!-- TASK A3 -->
+  <div class="tabpane" id="tabA2">
+    <div class="note">📌 <strong>Мета:</strong> оцінити стан Li-Ion акумулятора 18650: напруга під навантаженням, внутрішній опір, дефекти.</div>
+    <p style="font-size:13.5px;color:var(--t2);margin-bottom:10px">Номінальна напруга: 3,6–3,7В. Заряд: до 4,2В. Розряд: 2,5–3,0В. Ємність: 2000–3500мА·год. R_вн = (U_хх − U_нав) / I_нав.</p>
+
+    <h4 style="font-family:var(--disp);font-size:14px;margin:10px 0 8px">Скетч системи тестування акумулятора</h4>
+    <div class="cw"><button class="copy-btn" onclick="cp(this)">copy</button>
+    <div class="cb"><span class="kw">const</span> <span class="ty">int</span> loadPin = <span class="nb">3</span>;      <span class="cm">// керування MOSFET</span>
+<span class="kw">const</span> <span class="ty">int</span> voltagePin = A0;  <span class="cm">// дільник напруги ×2</span>
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  <span class="fn">pinMode</span>(loadPin, OUTPUT);
+  <span class="fn">digitalWrite</span>(loadPin, LOW);
+  <span class="fn">Serial</span>.<span class="fn">begin</span>(<span class="nb">9600</span>);
+}
+
+<span class="ty">float</span> <span class="fn">readBatteryVoltage</span>() {
+  <span class="ty">int</span> adc = <span class="fn">analogRead</span>(voltagePin);
+  <span class="kw">return</span> (adc / <span class="nb">1023.0</span>) * <span class="nb">5.0</span> * <span class="nb">2.0</span>;  <span class="cm">// ×2 через дільник</span>
+}
+
+<span class="kw">void</span> <span class="fn">runTest</span>() {
+  <span class="ty">float</span> vOpen = <span class="fn">readBatteryVoltage</span>();   <span class="cm">// холостий хід</span>
+  <span class="fn">digitalWrite</span>(loadPin, HIGH);          <span class="cm">// навантаження ON</span>
+  <span class="fn">delay</span>(<span class="nb">2000</span>);
+  <span class="ty">float</span> vLoad = <span class="fn">readBatteryVoltage</span>();    <span class="cm">// під навантаженням</span>
+  <span class="fn">digitalWrite</span>(loadPin, LOW);           <span class="cm">// навантаження OFF</span>
+}</div></div>
+
+    <div class="card">
+      <h3><span class="d"></span>Внутрішній опір — критерій стану</h3>
+      <div style="overflow-x:auto">
+        <table class="ref-table">
+          <thead><tr><th>R_вн</th><th>Стан</th><th>Придатність</th></tr></thead>
+          <tbody>
+            <tr><td>&lt; 50 мОм</td><td>Відмінний</td><td>Новий/мало використаний</td></tr>
+            <tr><td>50–100 мОм</td><td>Добрий</td><td>Нормальна робота</td></tr>
+            <tr><td>100–200 мОм</td><td>Задовільний</td><td>Помірне зношення</td></tr>
+            <tr><td>200–500 мОм</td><td>Поганий</td><td>Суттєве зношення</td></tr>
+            <tr><td>&gt; 500 мОм</td><td>Критичний</td><td>Небезпечний, можливе нагрівання</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="ok">✅ Швидке відновлення напруги (&lt;30с) після зняття навантаження → низький R_вн, гарний стан. Повільне (&gt;2хв) → деградація.</div>
+  </div>
+
+  <!-- TASK A4 -->
+  <div class="tabpane" id="tabA3">
+    <div class="note">📌 <strong>Мета:</strong> діагностувати аналогові/цифрові датчики, перевірити цілісність шин I²C, виявити перешкоди.</div>
+
+    <h4 style="font-family:var(--disp);font-size:14px;margin:12px 0 8px">4.1 — Датчик температури LM35 (10мВ/°C)</h4>
+    <p style="font-size:13.5px;color:var(--t2)">0°C→0мВ, 25°C→250мВ, 100°C→1000мВ. V/см=0,1-0,2В (малі сигнали), ЧАС/см=0,5-1с (повільна зміна).</p>
+
+    <h4 style="font-family:var(--disp);font-size:14px;margin:14px 0 8px">4.2 — Шина I²C (SDA/SCL)</h4>
+    <p style="font-size:13.5px;color:var(--t2);margin-bottom:8px">SDA — дані, SCL — тактовий сигнал. Швидкість: 100кГц (Standard), 400кГц (Fast). С1-48Б (1МГц) дозволяє бачити загальну структуру пакетів.</p>
+    <div class="card">
+      <h3><span class="d"></span>Діагностика помилок I²C</h3>
+      <div style="overflow-x:auto">
+        <table class="ref-table">
+          <thead><tr><th>Симптом</th><th>Причина</th><th>Діагностика</th></tr></thead>
+          <tbody>
+            <tr><td>SDA постійно LOW</td><td>Закорочення/зависання</td><td>Перевірити рівень без передачі</td></tr>
+            <tr><td>SCL постійно LOW</td><td>Зависання генератора</td><td>Перевірити рівень SCL</td></tr>
+            <tr><td>Немає старт-біта</td><td>Проблема ініціалізації</td><td>Перевірити перехід SDA при SCL=HIGH</td></tr>
+            <tr><td>Немає ACK</td><td>Ведений не відповідає</td><td>9-й такт — SDA має бути LOW</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h4 style="font-family:var(--disp);font-size:14px;margin:14px 0 8px">4.3 — ШІМ-сервопривід SG90</h4>
+    <p style="font-size:13.5px;color:var(--t2)">Частота 50Гц (період 20мс). 0°→0,5мс, 90°→1,5мс, 180°→2,5мс. ЧАС/см=5мс/см (період займе 4см).</p>
+  </div>
+</section>
+
+<!-- continued in part 2 -->
