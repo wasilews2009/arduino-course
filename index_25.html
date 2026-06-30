@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тема 25 · Сервоприводи та ШІМ Arduino</title>
+<style>
+/* ══════════════════════════════════════
+   DESIGN TOKENS — PCB LIGHT THEME
+══════════════════════════════════════ */
+:root{
+  --bg:#F3F0E8;
+  --sf:#FFFFFF;
+  --sf2:#EEF3F8;
+  --sf3:#E0EAF4;
+  --grid:rgba(0,60,160,.07);
+  --tr:#0044A0;       /* trace blue */
+  --tr-lt:#3A7CD4;
+  --tr-pale:#CCDFF5;
+  --cu:#C07018;       /* copper */
+  --cu-lt:#E09040;
+  --cu-pale:#F5E8D0;
+  --sl:#7A96B0;       /* solder */
+  --sl-lt:#B0C8DC;
+  --re:#E6F5EC;       /* resist green */
+  --re-dk:#1A7830;
+  --wb:#FFF7DC;       /* warn bg */
+  --wd:#7A5600;       /* warn dark */
+  --pwd:#FF5500;      /* PWM orange */
+  --svo:#009966;      /* servo green */
+  --text:#18243A;
+  --t2:#3C5068;
+  --t3:#6A8098;
+  --mono:'Share Tech Mono',monospace;
+  --disp:'Space Grotesk','Segoe UI',sans-serif;
+  --body:'Inter','Segoe UI',sans-serif;
+  --r:9px;
+  --sh:0 2px 10px rgba(0,60,160,.09);
+  --shL:0 6px 28px rgba(0,60,160,.14);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  color:var(--text);font-family:var(--body);font-size:15px;line-height:1.65;
+  min-height:100vh;
+}
+
+/* ── NAV ── */
+.nav{position:sticky;top:0;z-index:200;background:rgba(243,240,232,.95);
+  backdrop-filter:blur(12px);border-bottom:2px solid var(--tr);
+  display:flex;align-items:center;gap:2px;padding:0 18px;overflow-x:auto;white-space:nowrap}
+.nav-brand{font-family:var(--mono);font-size:11px;color:var(--tr);
+  border:1.5px solid var(--tr);border-radius:4px;padding:4px 10px;
+  margin-right:10px;flex-shrink:0;letter-spacing:1px}
+.nav a{display:inline-block;padding:12px 10px;font-size:12.5px;font-weight:500;
+  color:var(--t2);text-decoration:none;border-bottom:3px solid transparent;
+  transition:all .2s;flex-shrink:0}
+.nav a:hover,.nav a.active{color:var(--tr);border-bottom-color:var(--tr)}
+
+/* ── HERO ── */
+.hero{max-width:1040px;margin:0 auto;padding:44px 22px 32px;
+  display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center}
+.hero-eye{font-family:var(--mono);font-size:10px;color:var(--cu);
+  letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;
+  display:flex;align-items:center;gap:10px}
+.hero-eye::before{content:'';display:block;width:28px;height:2px;background:var(--cu)}
+.hero h1{font-family:var(--disp);font-size:clamp(26px,5vw,48px);
+  font-weight:700;color:var(--text);line-height:1.1;margin-bottom:14px}
+.hero h1 em{color:var(--tr);font-style:normal}
+.hero-lead{color:var(--t2);font-size:15px;max-width:470px;
+  padding-left:14px;border-left:3px solid var(--cu);line-height:1.65}
+.tag-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+.tag{font-family:var(--mono);font-size:10.5px;padding:3px 9px;border-radius:4px;
+  background:var(--sf2);color:var(--tr);border:1px solid var(--tr-pale)}
+
+/* ── MAIN ── */
+.main{max-width:1040px;margin:0 auto;padding:0 22px 80px}
+.section{margin-top:52px;scroll-margin-top:60px}
+.s-eye{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--cu);margin-bottom:9px;display:flex;align-items:center;gap:10px}
+.s-eye::after{content:'';flex:1;height:1px;background:var(--sl-lt)}
+.section>h2{font-family:var(--disp);font-size:22px;font-weight:700;color:var(--text);margin-bottom:18px}
+
+/* ── CARDS ── */
+.card{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);
+  box-shadow:var(--sh);padding:20px 22px;margin-bottom:14px}
+.card h3{font-family:var(--disp);font-size:14px;font-weight:600;color:var(--tr);
+  margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card h3 .d{width:7px;height:7px;border-radius:50%;background:var(--cu);flex-shrink:0}
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px}
+
+/* ── ACCORDION ── */
+.acc{border:1px solid var(--sf3);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.acc-h{background:var(--sf2);padding:13px 17px;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--disp);font-size:14px;font-weight:600;color:var(--text);
+  user-select:none;transition:background .2s}
+.acc-h:hover{background:var(--sf3)}
+.acc-h .ch{font-size:10px;color:var(--tr);transition:transform .3s;
+  width:20px;height:20px;border-radius:50%;background:var(--tr-pale);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.acc-h.open .ch{transform:rotate(180deg)}
+.acc-b{display:none;background:var(--sf);padding:16px 18px;font-size:14px;
+  color:var(--t2);line-height:1.75;border-top:1px solid var(--tr-pale)}
+.acc-b.open{display:block}
+.acc-b p{margin-bottom:10px}
+.acc-b ul,ol{padding-left:20px;margin-bottom:10px}
+.acc-b li{margin-bottom:5px}
+
+/* ── CODE ── */
+.cw{position:relative;margin:12px 0}
+.cb{background:#0B1924;color:#C4D7EE;border-radius:var(--r);padding:18px 20px;
+  font-family:var(--mono);font-size:13px;line-height:1.85;overflow-x:auto;
+  border:1px solid #182A3C}
+.kw{color:#58B8FF}.ty{color:#FFD060}.cm{color:#486278;font-style:italic}
+.st{color:#8CEEA0}.nb{color:#FF9E60}.fn{color:#B4DEFF}.pp{color:#FF7A9A}
+.copy-btn{position:absolute;top:10px;right:10px;background:#182A3C;
+  border:1px solid #2A4266;color:#6A92B4;font-family:var(--mono);font-size:11px;
+  padding:4px 12px;border-radius:4px;cursor:pointer;transition:all .2s}
+.copy-btn:hover{background:var(--tr);color:#fff;border-color:var(--tr)}
+
+/* ── ALERTS ── */
+.note{background:var(--tr-pale);border:1px solid var(--tr-lt);border-left:4px solid var(--tr);
+  border-radius:var(--r);padding:13px 15px;margin:11px 0;font-size:13.5px;color:var(--t2)}
+.warn{background:var(--wb);border:1px solid #F0C040;border-left:4px solid #D4A000;
+  border-radius:var(--r);padding:13px 15px;margin:11px 0;font-size:13.5px;color:var(--wd)}
+.ok{background:var(--re);border:1px solid #7AD098;border-left:4px solid var(--re-dk);
+  border-radius:var(--r);padding:13px 15px;margin:11px 0;font-size:13.5px;color:#1A4822}
+
+/* ── STEPS ── */
+.steps{display:flex;flex-direction:column;gap:12px;margin:16px 0}
+.step{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);
+  box-shadow:var(--sh);display:grid;grid-template-columns:50px 1fr;overflow:hidden}
+.sn{background:var(--tr);color:#fff;font-family:var(--mono);font-size:17px;
+  font-weight:700;display:flex;align-items:center;justify-content:center;min-height:66px}
+.sb{padding:13px 16px}
+.sb h4{font-family:var(--disp);font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.sb p{font-size:13.5px;color:var(--t2)}
+
+/* ── COMPS ── */
+.cl{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:9px;margin:12px 0}
+.ci{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);
+  padding:10px 13px;display:flex;align-items:center;gap:9px;font-size:13px;
+  color:var(--t2);font-weight:500}
+
+/* ── TDIV ── */
+.tdiv{margin:28px 0;height:2px;
+  background:repeating-linear-gradient(90deg,var(--tr) 0,var(--tr) 14px,transparent 14px,transparent 20px);
+  opacity:.2}
+
+/* ══════════════════════════════════════
+   PWM VISUALIZER
+══════════════════════════════════════ */
+.pwm-card{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);
+  box-shadow:var(--shL);padding:24px}
+.pwm-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.pwm-title{font-family:var(--disp);font-size:16px;font-weight:700;color:var(--text);flex:1}
+
+.pwm-body{display:grid;grid-template-columns:1fr auto;gap:28px;flex-wrap:wrap}
+.pwm-canvas-wrap{flex:1;min-width:280px}
+
+#pwmCanvas{width:100%;height:140px;display:block;border-radius:6px;
+  background:#0B1924;border:1px solid #182A3C}
+
+.pwm-sliders{display:flex;flex-direction:column;gap:14px;min-width:200px}
+.sl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sl-label{font-family:var(--disp);font-size:12.5px;font-weight:600;color:var(--t2);min-width:80px}
+.sl-inp{flex:1;min-width:100px;accent-color:var(--tr)}
+.sl-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--tr);min-width:48px}
+
+.pwm-metrics{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
+.metric{background:var(--sf2);border:1px solid var(--sf3);border-radius:6px;
+  padding:10px 14px;text-align:center;flex:1;min-width:90px}
+.metric-val{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--tr)}
+.metric-lbl{font-size:11.5px;color:var(--t3);font-family:var(--disp);margin-top:2px}
+
+/* ══════════════════════════════════════
+   SERVO SIMULATOR
+══════════════════════════════════════ */
+.servo-card{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);
+  box-shadow:var(--shL);padding:24px}
+.servo-body{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+
+.servo-vis{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:12px}
+#servoCanvas{display:block;border-radius:8px}
+
+.servo-panel{flex:1;min-width:240px}
+.servo-panel h4{font-family:var(--disp);font-size:13px;font-weight:600;
+  color:var(--t2);margin-bottom:9px;margin-top:14px}
+.servo-panel h4:first-child{margin-top:0}
+
+.angle-display{font-family:var(--mono);font-size:40px;font-weight:700;color:var(--svo);
+  text-align:center;background:var(--sf2);border:1px solid var(--sf3);
+  border-radius:8px;padding:12px;margin-bottom:12px;line-height:1}
+.angle-sub{font-size:13px;color:var(--t3);font-family:var(--disp)}
+
+.pulse-bar{background:var(--sf2);border:1px solid var(--sf3);border-radius:6px;
+  padding:12px 14px;margin-top:8px}
+.pulse-track{height:20px;background:#0B1924;border-radius:4px;
+  position:relative;overflow:hidden;border:1px solid #182A3C}
+.pulse-fill{height:100%;background:var(--pwd);border-radius:4px;
+  transition:width .3s;position:relative}
+.pulse-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;
+  width:2px;background:rgba(255,255,255,.6)}
+.pulse-labels{display:flex;justify-content:space-between;margin-top:4px;
+  font-family:var(--mono);font-size:10px;color:var(--t3)}
+
+.preset-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px}
+.pbt{padding:6px 13px;border-radius:5px;border:1px solid var(--sf3);
+  background:var(--sf2);color:var(--text);cursor:pointer;font-size:12px;
+  font-family:var(--body);font-weight:500;transition:all .18s}
+.pbt:hover,.pbt.active{background:var(--tr);color:#fff;border-color:var(--tr)}
+.pbt-grn:hover,.pbt-grn.active{background:var(--svo);border-color:var(--svo)}
+
+.btn{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;
+  font-family:var(--disp);font-size:13px;font-weight:600;
+  display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+.btn-p{background:var(--tr);color:#fff}.btn-p:hover{background:#0030A0}
+.btn-o{background:var(--sf);color:var(--text);border:1.5px solid var(--sl)}
+.btn-o:hover{border-color:var(--tr);color:var(--tr)}
+.btn-g{background:var(--svo);color:#fff}.btn-g:hover{background:#006644}
+.btn-cu{background:var(--cu);color:#fff}.btn-cu:hover{background:#A06010}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+
+/* Animation status badge */
+.anim-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);
+  font-size:11px;color:var(--re-dk);background:var(--re);border:1px solid #7AD098;
+  border-radius:4px;padding:4px 10px;margin-top:8px}
+
+/* ── WIRING SVG ── */
+.wire-wrap{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);
+  box-shadow:var(--sh);padding:18px;overflow-x:auto}
+
+/* ── QUIZ ── */
+.quiz-list{display:flex;flex-direction:column;gap:15px}
+.q-card{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);
+  box-shadow:var(--sh);padding:18px 20px}
+.q-text{font-family:var(--disp);font-size:14px;font-weight:600;color:var(--text);margin-bottom:11px}
+.q-opts{display:flex;flex-direction:column;gap:7px}
+.q-opt{padding:9px 13px;border-radius:6px;cursor:pointer;border:1.5px solid var(--sf3);
+  font-size:13.5px;color:var(--t2);background:var(--sf2);transition:all .18s;
+  display:flex;align-items:center;gap:10px}
+.q-opt:hover{border-color:var(--tr);background:var(--tr-pale)}
+.q-opt.correct{background:#E8F7EE;border-color:#2A9A4A;color:#1A5A2A}
+.q-opt.wrong{background:#FFEEEA;border-color:#CC4422;color:#7A2010}
+.q-opt .ol{width:23px;height:23px;border-radius:4px;flex-shrink:0;
+  background:var(--sl-lt);color:#fff;font-family:var(--mono);font-size:11px;
+  display:flex;align-items:center;justify-content:center;font-weight:700}
+.q-exp{display:none;margin-top:9px;padding:9px 13px;background:var(--tr-pale);
+  border-radius:6px;font-size:13px;color:var(--t2);border-left:3px solid var(--tr)}
+.score-box{background:var(--sf);border:1px solid var(--sf3);border-radius:var(--r);
+  box-shadow:var(--shL);padding:26px;text-align:center;margin-top:20px;display:none}
+.score-num{font-family:var(--mono);font-size:52px;font-weight:700;color:var(--tr)}
+.score-msg{font-size:15px;color:var(--t2);margin-top:8px}
+
+/* ── REF ── */
+.ref-table{width:100%;border-collapse:collapse;font-size:13px}
+.ref-table th{background:var(--tr);color:#fff;padding:9px 13px;text-align:left;
+  font-family:var(--disp);font-size:12px;font-weight:600}
+.ref-table td{padding:8px 13px;border-bottom:1px solid var(--sf3);color:var(--t2);vertical-align:top}
+.ref-table tr:nth-child(even) td{background:var(--sf2)}
+.ref-table code{font-family:var(--mono);background:var(--tr-pale);color:var(--tr);
+  padding:1px 5px;border-radius:3px;font-size:11.5px}
+
+/* ── FOOTER ── */
+footer{background:var(--sf);border-top:2px solid var(--tr);text-align:center;
+  padding:16px 22px;font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:.5px}
+
+@media(max-width:680px){
+  .hero{grid-template-columns:1fr}.hero-widget{display:none}
+  .servo-body{flex-direction:column}.pwm-body{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="nav" id="nav">
+  <div class="nav-brand">STEAM-HUB · Arduino</div>
+  <a href="#theory">Теорія</a>
+  <a href="#pwm">ШІМ</a>
+  <a href="#sim">Симулятор</a>
+  <a href="#zav1">Завд.1</a>
+  <a href="#zav2">Завд.2</a>
+  <a href="#zav3">Завд.3</a>
+  <a href="#zav4">Завд.4</a>
+  <a href="#zav5">Завд.5</a>
+  <a href="#quiz">Тест</a>
+  <a href="#ref">Довідник</a>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div>
+    <div class="hero-eye">Тема №25 · Arduino + Servo + PWM</div>
+    <h1>Сервоприводи<br>та <em>ШІМ</em><br>в Arduino</h1>
+    <p class="hero-lead">Від PDM-імпульсу до точного кута: будова SG90, бібліотека Servo.h, широтно-імпульсна модуляція та RFID-замок.</p>
+    <div class="tag-row">
+      <span class="tag">Servo SG90</span><span class="tag">Servo.h</span>
+      <span class="tag">PWM / PDM</span><span class="tag">analogWrite()</span>
+      <span class="tag">map()</span><span class="tag">RFID MFRC522</span>
+      <span class="tag">attach() / write()</span>
+    </div>
+  </div>
+  <!-- Hero widget: live servo arc -->
+  <div class="hero-widget">
+    <canvas id="heroCanvas" width="160" height="160"
+      style="border-radius:10px;background:#0B1924;border:2px solid #182A3C"></canvas>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ══════════════ THEORY ══════════════ -->
+<section class="section" id="theory">
+  <div class="s-eye">01 · Теоретична частина</div>
+  <h2>Будова та принцип роботи сервоприводу</h2>
+
+  <div class="cg">
+    <div class="card">
+      <h3><span class="d"></span>Що таке сервопривід</h3>
+      <p>Сервопривід — це привід зі <strong>зворотним зв'язком</strong> для точного керування положенням осі. Усередині: колекторний двигун, редуктор, потенціометр зворотного зв'язку та контролер із PWM-інтерфейсом.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Характеристики SG90 (9g)</h3>
+      <p>Живлення: 3–7.2 В. Крутний момент: 1.2 кг/см при 4.8 В, 1.6 кг/см при 6 В. Кут: 160–180°. Швидкість: 180° за 0.3 с. Струм: 400 мА (без навантаження), до 1 А стартовий.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Дроти підключення</h3>
+      <p><strong>🟤 Коричневий</strong> → GND<br>
+      <strong>🔴 Червоний</strong> → VCC (5 В)<br>
+      <strong>🟡 Жовтий</strong> → Цифровий ШІМ-пін (~)</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Два типи серво</h3>
+      <p><strong>Позиційні:</strong> керують кутом (0–180°). Найпоширеніші.<br>
+      <strong>Постійного обертання</strong> (360°, continuous): керують швидкістю обертання як звичайний мотор з цифровим управлінням.</p>
+    </div>
+  </div>
+
+  <div class="warn" style="margin-top:16px">
+    ⚠️ <strong>УВАГА! Живлення.</strong> Сервопривід споживає до 1А стартового струму. Рекомендується живити від <strong>зовнішнього джерела</strong>. При 2+ приводах від Arduino може вигоріти захисний діод на платі! Спільна земля між Arduino та джерелом — обов'язкова.
+  </div>
+
+  <div class="tdiv"></div>
+
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">📡 PDM vs PWM — у чому різниця? <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <p>Сервопривід керується <strong>довжиною імпульсу</strong> (PDM — Pulse Duration Modulation), а не скважністю (PWM):</p>
+      <ul>
+        <li><strong>0°</strong> → імпульс ~500 мкс</li>
+        <li><strong>90°</strong> → імпульс ~1500 мкс</li>
+        <li><strong>180°</strong> → імпульс ~2500 мкс</li>
+      </ul>
+      <p>Імпульси подаються з частотою <strong>~50 Гц</strong> (аналогове серво). При частоті менше 20 Гц — «джиттер», більше 100 Гц — неадекватна поведінка. Цифрові серво допускають до ~300 Гц.</p>
+      <p>Технічно PDM та PWM — схожі, але серво очікує саме <em>тривалість</em> імпульсу, а не його відсоткову частку від періоду.</p>
+    </div>
+  </div>
+
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">🛠 Бібліотека Servo.h — методи та обмеження <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <p>Підключення: <code>#include &lt;Servo.h&gt;</code> та <code>Servo myservo;</code></p>
+      <ul>
+        <li><code>attach(pin)</code> — підключити серво до піна (діапазон 544–2400 мкс)</li>
+        <li><code>attach(pin, min, max)</code> — з налаштуванням діапазону мкс</li>
+        <li><code>write(angle)</code> — повернути на кут у градусах (0–180)</li>
+        <li><code>writeMicroseconds(us)</code> — повернути за довжиною імпульсу</li>
+        <li><code>detach()</code> — відключити</li>
+      </ul>
+      <div class="warn" style="margin-top:8px">⚠️ На <strong>Arduino Nano</strong> бібліотека використовує Timer1 → ШІМ на пінах <strong>9 та 10 недоступний</strong> при використанні Servo.h!</div>
+      <p style="margin-top:8px">Arduino Uno підтримує до <strong>12 сервоприводів</strong>, Arduino Mega — до <strong>48</strong>.</p>
+    </div>
+  </div>
+
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">🔧 Типові проблеми та їх усунення <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <ul>
+        <li><strong>fatal error: Servo.h</strong> — бібліотека не встановлена. Завантажте та встановіть через Manage Libraries.</li>
+        <li><strong>Серво не крутиться</strong> — перевірте спільну землю між Arduino та серво. Перевірте достатність струму джерела живлення.</li>
+        <li><strong>Серво тріщить і не обертається</strong> — неправильно виставлені крайні положення. Замість 0° → 10°, замість 180° → 170°.</li>
+        <li><strong>Перешкоди / тремтіння</strong> — підключіть конденсатор 100 мкФ між 5V та GND плати Arduino.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">⚙️ Керування серво без бібліотеки — через digitalWrite <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <p>Базова програма керування серво через прямі затримки:</p>
+      <div class="cw" style="margin-top:6px">
+        <div class="cb"><span class="pp">#define</span> SERVO_PIN <span class="nb">3</span>
+<span class="pp">#define</span> POT_PIN   <span class="nb">0</span>
+
+<span class="kw">void</span> <span class="fn">setup</span>() { <span class="fn">pinMode</span>(SERVO_PIN, OUTPUT); }
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="ty">int</span> pulse = <span class="fn">map</span>(<span class="fn">analogRead</span>(POT_PIN), <span class="nb">0</span>, <span class="nb">1023</span>, <span class="nb">500</span>, <span class="nb">2500</span>);
+  <span class="fn">digitalWrite</span>(SERVO_PIN, HIGH);
+  <span class="fn">delayMicroseconds</span>(pulse);   <span class="cm">// тривалість імпульсу</span>
+  <span class="fn">digitalWrite</span>(SERVO_PIN, LOW);
+  <span class="fn">delay</span>(<span class="nb">20</span>);  <span class="cm">// 50 Гц</span>
+}</div>
+      </div>
+      <p style="margin-top:8px">Обмеження: такий підхід блокує весь <code>loop()</code> і підходить лише для одного серво. Для кількох — використовуйте <code>Servo.h</code> або асинхронний таймер на <code>millis()</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ PWM ══════════════ -->
+<section class="section" id="pwm">
+  <div class="s-eye">02 · Широтно-імпульсна модуляція</div>
+  <h2>ШІМ (PWM) — принцип і застосування</h2>
+
+  <div class="cg">
+    <div class="card">
+      <h3><span class="d"></span>Що таке ШІМ</h3>
+      <p>PWM (Pulse Width Modulation) — цифровий сигнал, що перемикається між HIGH і LOW з фіксованою частотою. <strong>Duty Cycle</strong> (шпаруватість) — відсоток часу HIGH за один період.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Піни ШІМ Arduino Uno</h3>
+      <p>Позначені <strong>~</strong>: піни 3, 5, 6, 9, 10, 11. Частота: ~490 Гц (піни 3,9,10,11) та ~980 Гц (піни 5,6). Функція: <code>analogWrite(pin, 0–255)</code>.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Duty Cycle → напруга</h3>
+      <p>0% → 0 В · 25% → 1.25 В · 50% → 2.5 В · 75% → 3.75 В · 100% → 5 В. Значення <code>analogWrite</code>: 0→0%, 128→50%, 255→100%.</p>
+    </div>
+    <div class="card">
+      <h3><span class="d"></span>Застосування ШІМ</h3>
+      <p>Яскравість LED · швидкість DC-двигуна · сервоприводи (PDM) · звук через tone() · контраст LCD · нагрів елементів · керування вентиляторами.</p>
+    </div>
+  </div>
+
+  <div class="tdiv"></div>
+
+  <!-- PWM VISUALIZER -->
+  <div class="pwm-card">
+    <div class="pwm-top">
+      <span class="pwm-title">⚡ Інтерактивний ШІМ-осцилограф</span>
+    </div>
+    <div class="pwm-body">
+      <div class="pwm-canvas-wrap">
+        <canvas id="pwmCanvas"></canvas>
+        <div class="pwm-metrics" id="pwmMetrics">
+          <div class="metric"><div class="metric-val" id="mDuty">50%</div><div class="metric-lbl">Duty Cycle</div></div>
+          <div class="metric"><div class="metric-val" id="mVolt">2.5 В</div><div class="metric-lbl">Середня напруга</div></div>
+          <div class="metric"><div class="metric-val" id="mFreq">490 Гц</div><div class="metric-lbl">Частота</div></div>
+          <div class="metric"><div class="metric-val" id="mVal">128</div><div class="metric-lbl">analogWrite</div></div>
+        </div>
+      </div>
+      <div class="pwm-sliders">
+        <h4 style="font-family:var(--disp);font-size:13px;font-weight:600;color:var(--t2);margin-bottom:12px">Параметри сигналу</h4>
+        <div class="sl-row">
+          <span class="sl-label">Duty Cycle</span>
+          <input type="range" class="sl-inp" id="dutySlider" min="0" max="100" value="50" oninput="updatePWM()">
+          <span class="sl-val" id="dutyLbl">50%</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label">Частота</span>
+          <input type="range" class="sl-inp" id="freqSlider" min="1" max="5" value="3" oninput="updatePWM()">
+          <span class="sl-val" id="freqLbl">490 Гц</span>
+        </div>
+        <div style="margin-top:12px;font-family:var(--disp);font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">Швидкі пресети</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button class="pbt" onclick="setPWMPreset(0)">0%</button>
+          <button class="pbt" onclick="setPWMPreset(25)">25%</button>
+          <button class="pbt active" onclick="setPWMPreset(50)">50%</button>
+          <button class="pbt" onclick="setPWMPreset(75)">75%</button>
+          <button class="pbt" onclick="setPWMPreset(100)">100%</button>
+        </div>
+        <div class="note" style="margin-top:14px;font-size:12.5px">
+          💡 <strong>analogWrite(pin, value)</strong>:<br>
+          value = duty% × 255 / 100<br>
+          Наприклад: 50% → write(128)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tdiv"></div>
+
+  <!-- PWM code examples -->
+  <h3 style="font-family:var(--disp);font-size:16px;font-weight:700;color:var(--text);margin-bottom:12px">Приклади використання ШІМ</h3>
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">💡 1. «Дихання» світлодіода — плавна зміна яскравості <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <div class="cw">
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <div class="cb"><span class="ty">int</span> ledPin = <span class="nb">9</span>;
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  <span class="fn">pinMode</span>(ledPin, OUTPUT);
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="kw">for</span> (<span class="ty">int</span> v = <span class="nb">0</span>; v &lt;= <span class="nb">255</span>; v++) {
+    <span class="fn">analogWrite</span>(ledPin, v);    <span class="cm">// збільшення яскравості</span>
+    <span class="fn">delay</span>(<span class="nb">10</span>);
+  }
+  <span class="kw">for</span> (<span class="ty">int</span> v = <span class="nb">255</span>; v &gt;= <span class="nb">0</span>; v--) {
+    <span class="fn">analogWrite</span>(ledPin, v);    <span class="cm">// зменшення яскравості</span>
+    <span class="fn">delay</span>(<span class="nb">10</span>);
+  }
+}</div>
+      </div>
+      <p style="margin-top:8px">Duty Cycle плавно змінюється від 0% до 100% і назад → ефект «дихання» LED. Повний цикл займає ~5 секунд.</p>
+    </div>
+  </div>
+
+  <div class="acc">
+    <div class="acc-h" onclick="tA(this)">⚙️ 2. Керування швидкістю DC-двигуна <span class="ch">▼</span></div>
+    <div class="acc-b">
+      <div class="cw">
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <div class="cb"><span class="ty">int</span> motorPin = <span class="nb">6</span>;
+
+<span class="kw">void</span> <span class="fn">setup</span>() { <span class="fn">pinMode</span>(motorPin, OUTPUT); }
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="fn">analogWrite</span>(motorPin, <span class="nb">128</span>); <span class="cm">// ~50% потужності</span>
+  <span class="fn">delay</span>(<span class="nb">2000</span>);
+  <span class="fn">analogWrite</span>(motorPin, <span class="nb">255</span>); <span class="cm">// 100% потужності</span>
+  <span class="fn">delay</span>(<span class="nb">2000</span>);
+}</div>
+      </div>
+      <p style="margin-top:8px">ШІМ-сигнал на вхід драйвера двигуна (L293D, L298N) регулює середню напругу → швидкість обертання. Ніколи не підключайте двигун напряму до Arduino!</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ SIMULATOR ══════════════ -->
+<section class="section" id="sim">
+  <div class="s-eye">03 · Симулятор</div>
+  <h2>Інтерактивний симулятор сервоприводу</h2>
+
+  <div class="servo-card">
+    <div class="btn-row">
+      <button class="btn btn-p" onclick="setAngle(0)">0°</button>
+      <button class="btn btn-p" onclick="setAngle(45)">45°</button>
+      <button class="btn btn-p" onclick="setAngle(90)">90°</button>
+      <button class="btn btn-p" onclick="setAngle(135)">135°</button>
+      <button class="btn btn-p" onclick="setAngle(180)">180°</button>
+      <button class="btn btn-g" onclick="startStopSweep()" id="sweepBtn">▶ Sweep 0↔180</button>
+      <button class="btn btn-cu" onclick="startStopPot()" id="potBtn">🎛 Потенціометр</button>
+    </div>
+    <div class="servo-body">
+      <div class="servo-vis">
+        <canvas id="servoCanvas" width="240" height="240"></canvas>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:4px">SG90 · 9g Micro Servo</div>
+        <div id="animBadge" class="anim-badge" style="display:none">▶ анімація активна</div>
+      </div>
+      <div class="servo-panel">
+        <h4>Кут повороту</h4>
+        <div class="angle-display" id="angleDisp">
+          <div id="angleBig">90°</div>
+          <div class="angle-sub" id="angleSub">Середнє положення</div>
+        </div>
+        <div style="margin-bottom:12px">
+          <input type="range" style="width:100%;accent-color:var(--svo)" id="angleSlider" min="0" max="180" value="90" oninput="setAngle(+this.value)">
+          <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:2px">
+            <span>0°</span><span>45°</span><span>90°</span><span>135°</span><span>180°</span>
+          </div>
+        </div>
+
+        <h4>PDM-імпульс (тривалість HIGH)</h4>
+        <div class="pulse-bar">
+          <div class="pulse-track">
+            <div class="pulse-fill" id="pulseFill" style="width:50%"></div>
+          </div>
+          <div class="pulse-labels">
+            <span>500 мкс (0°)</span>
+            <span id="pulseVal">1500 мкс</span>
+            <span>2500 мкс (180°)</span>
+          </div>
+        </div>
+
+        <h4 style="margin-top:14px">Код для Arduino (Servo.h)</h4>
+        <div class="cw" style="margin-top:0">
+          <div class="cb" id="servoCodeBox" style="font-size:12px;padding:12px 14px">
+<span class="pp">#include</span> <span class="st">&lt;Servo.h&gt;</span>
+Servo myservo;
+<span class="kw">void</span> <span class="fn">setup</span>() { myservo.<span class="fn">attach</span>(<span class="nb">9</span>); }
+<span class="kw">void</span> <span class="fn">loop</span>()  { myservo.<span class="fn">write</span>(<span class="nb" id="codeAngle">90</span>); }
+          </div>
+        </div>
+
+        <h4>Позиції в проєктах</h4>
+        <div class="preset-row">
+          <button class="pbt pbt-grn" onclick="setAngle(0)">🔒 Зачинено (0°)</button>
+          <button class="pbt pbt-grn" onclick="setAngle(90)">🚪 Відчинено (90°)</button>
+          <button class="pbt" onclick="setAngle(45)">📐 45°</button>
+          <button class="pbt" onclick="setAngle(180)">🔄 180°</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ ZAV 1 ══════════════ -->
+<section class="section" id="zav1">
+  <div class="s-eye">04 · Практична робота №25</div>
+  <h2>Завдання 1 · Контроль одним сервоприводом (Project 14-1)</h2>
+
+  <div class="note">📌 <strong>Мета:</strong> підключити сервопривід і змусити його повернутись на 0°, 90° та 180° з паузою 2 секунди між положеннями.</div>
+
+  <h3 style="margin:18px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Нам знадобиться:</h3>
+  <div class="cl">
+    <div class="ci"><span style="font-size:18px">🟦</span>Arduino UNO</div>
+    <div class="ci"><span style="font-size:18px">💾</span>Програмувальний дріт</div>
+    <div class="ci"><span style="font-size:18px">💻</span>ПК + Arduino IDE</div>
+    <div class="ci"><span style="font-size:18px">⚙</span>1 сервопривід SG90</div>
+    <div class="ci"><span style="font-size:18px">🔌</span>З'єднувальні дроти</div>
+  </div>
+
+  <!-- Wiring diagram -->
+  <div class="wire-wrap" style="margin:16px 0">
+    <svg viewBox="0 0 700 260" width="100%" xmlns="http://www.w3.org/2000/svg" style="max-height:280px;font-family:'Share Tech Mono',monospace">
+      <defs>
+        <pattern id="pd" x="0" y="0" width="18" height="18" patternUnits="userSpaceOnUse">
+          <circle cx="9" cy="9" r=".7" fill="#C4D4E4"/>
+        </pattern>
+      </defs>
+      <rect width="700" height="260" fill="#F3F0E8" rx="8"/>
+      <rect width="700" height="260" fill="url(#pd)" rx="8"/>
+
+      <!-- Arduino -->
+      <rect x="18" y="60" width="120" height="180" rx="8" fill="#0044A0" stroke="#002880" stroke-width="2"/>
+      <text x="78" y="85" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="Space Grotesk,sans-serif">Arduino UNO</text>
+      <g font-size="9" fill="white" font-family="Share Tech Mono,monospace">
+        <rect x="138" y="110" width="12" height="7" rx="2" fill="#AAA"/><text x="132" y="117" text-anchor="end">GND</text>
+        <rect x="138" y="127" width="12" height="7" rx="2" fill="#FF8888"/><text x="132" y="134" text-anchor="end">5V</text>
+        <rect x="138" y="155" width="12" height="7" rx="2" fill="#FFD060"/><text x="132" y="162" text-anchor="end">~11</text>
+        <rect x="138" y="175" width="12" height="7" rx="2" fill="#FFD060"/><text x="132" y="182" text-anchor="end">A0</text>
+      </g>
+
+      <!-- Servo body -->
+      <rect x="380" y="80" width="100" height="120" rx="8" fill="#2A2A3A" stroke="#404060" stroke-width="1.5"/>
+      <text x="430" y="102" text-anchor="middle" fill="#A0C0F0" font-size="10">SG90</text>
+      <text x="430" y="115" text-anchor="middle" fill="#6080A0" font-size="8">Servo</text>
+      <!-- Servo horn -->
+      <ellipse cx="430" cy="80" rx="18" ry="10" fill="#555" stroke="#777" stroke-width="1"/>
+      <line x1="430" y1="70" x2="430" y2="55" stroke="#888" stroke-width="2"/>
+      <rect x="426" y="48" width="8" height="8" rx="3" fill="#999"/>
+      <!-- Servo wires -->
+      <g>
+        <line x1="380" y1="140" x2="355" y2="140" stroke="#5A3010" stroke-width="2.5"/>
+        <line x1="380" y1="153" x2="355" y2="153" stroke="#CC2020" stroke-width="2.5"/>
+        <line x1="380" y1="166" x2="355" y2="166" stroke="#CCA000" stroke-width="2.5"/>
+      </g>
+      <text x="372" y="137" text-anchor="end" fill="#5A3010" font-size="8">GND</text>
+      <text x="372" y="150" text-anchor="end" fill="#CC2020" font-size="8">VCC</text>
+      <text x="372" y="163" text-anchor="end" fill="#998000" font-size="8">SIG</text>
+
+      <!-- Traces Arduino → Servo -->
+      <!-- GND -->
+      <polyline points="150,113 220,113 220,140 355,140" fill="none" stroke="#888" stroke-width="1.8"/>
+      <!-- 5V -->
+      <polyline points="150,130 228,130 228,153 355,153" fill="none" stroke="#FF8888" stroke-width="1.8"/>
+      <!-- Signal D11 -->
+      <polyline points="150,158 260,158 260,166 355,166" fill="none" stroke="#CCA000" stroke-width="1.8"/>
+
+      <!-- Signal label -->
+      <rect x="244" y="145" width="54" height="16" rx="3" fill="#FFF8DC" stroke="#DDB000" stroke-width="1"/>
+      <text x="271" y="157" text-anchor="middle" fill="#7A5000" font-size="8">PWM ~11</text>
+
+      <!-- Potentiometer (for zav2) -->
+      <rect x="520" y="90" width="70" height="100" rx="6" fill="#1A2A1A" stroke="#3A5A3A" stroke-width="1.5"/>
+      <text x="555" y="112" text-anchor="middle" fill="#70C070" font-size="9">POT</text>
+      <circle cx="555" cy="140" r="18" fill="#333" stroke="#555" stroke-width="1.5"/>
+      <text x="555" y="144" text-anchor="middle" fill="#AAA" font-size="8">10kΩ</text>
+      <line x1="555" y1="122" x2="555" y2="115" stroke="#888" stroke-width="2"/>
+      <!-- pot wires -->
+      <line x1="520" y1="170" x2="500" y2="170" stroke="#888" stroke-width="2"/>
+      <line x1="520" y1="155" x2="500" y2="155" stroke="#FF8888" stroke-width="2"/>
+      <line x1="520" y1="140" x2="500" y2="140" stroke="#60A0FF" stroke-width="2"/>
+      <polyline points="500,170 490,170 490,113 150,113" fill="none" stroke="#888" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <polyline points="500,155 485,155 485,130 150,130" fill="none" stroke="#FF8888" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <polyline points="500,140 478,140 478,175 150,175" fill="none" stroke="#60A0FF" stroke-width="1.5" stroke-dasharray="4,2"/>
+
+      <!-- Labels -->
+      <text x="430" y="220" text-anchor="middle" fill="#3C5068" font-size="8.5">← Завдання 1: лише Servo</text>
+      <text x="555" y="220" text-anchor="middle" fill="#3C5068" font-size="8.5">← Завдання 2: + Pot (A0)</text>
+
+      <!-- Legend -->
+      <rect x="18" y="240" width="250" height="18" rx="3" fill="white" stroke="#C4D4E4"/>
+      <line x1="26" y1="249" x2="46" y2="249" stroke="#888" stroke-width="2"/><text x="50" y="253" fill="#333" font-size="7.5">GND</text>
+      <line x1="90" y1="249" x2="110" y2="249" stroke="#FF8888" stroke-width="2"/><text x="114" y="253" fill="#333" font-size="7.5">5V</text>
+      <line x1="148" y1="249" x2="168" y2="249" stroke="#CCA000" stroke-width="2"/><text x="172" y="253" fill="#333" font-size="7.5">Signal</text>
+      <line x1="210" y1="249" x2="230" y2="249" stroke="#60A0FF" stroke-width="2" stroke-dasharray="4,2"/><text x="234" y="253" fill="#333" font-size="7.5">A0/Pot</text>
+    </svg>
+  </div>
+
+  <div class="steps">
+    <div class="step"><div class="sn">1</div><div class="sb">
+      <h4>З'єднайте компоненти</h4>
+      <p>🟤 GND → GND Arduino, 🔴 VCC → 5V Arduino, 🟡 Signal → пін ~11. За відсутності компонентів — симулятор TinkerCAD або інтерактивний симулятор у розділі «Симулятор».</p>
+    </div></div>
+    <div class="step"><div class="sn">2</div><div class="sb">
+      <h4>Під'єднайте та встановіть Servo.h</h4>
+      <p>Підключіть Arduino. В IDE перевірте наявність бібліотеки: Sketch → Include Library. Якщо відсутня — Manage Libraries → «Servo».</p>
+    </div></div>
+    <div class="step"><div class="sn">3</div><div class="sb">
+      <h4>Введіть та завантажте Лістинг 14-1</h4>
+      <p>Сервопривід має по черзі повертатись на 0°, 90°, 180° з паузою 2 с. Поясніть викладачу різницю між <code>write(90)</code> і <code>write(270)</code> — чому останнє не має сенсу для позиційного серво?</p>
+    </div></div>
+  </div>
+
+  <h3 style="margin:20px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Лістинг 14-1 · Базове керування кутом</h3>
+  <div class="cw">
+    <button class="copy-btn" onclick="cp(this)">copy</button>
+    <div class="cb"><span class="pp">#include</span> <span class="st">&lt;Servo.h&gt;</span>    <span class="cm">// підключення бібліотеки</span>
+
+Servo servo1;    <span class="cm">// оголошення об'єкта класу Servo</span>
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  servo1.<span class="fn">attach</span>(<span class="nb">11</span>);   <span class="cm">// серво підключено до піна 11</span>
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  servo1.<span class="fn">write</span>(<span class="nb">0</span>);    <span class="cm">// повернути на 0°</span>
+  <span class="fn">delay</span>(<span class="nb">2000</span>);
+  servo1.<span class="fn">write</span>(<span class="nb">90</span>);   <span class="cm">// повернути на 90°</span>
+  <span class="fn">delay</span>(<span class="nb">2000</span>);
+  servo1.<span class="fn">write</span>(<span class="nb">180</span>);  <span class="cm">// повернути на 180°</span>
+  <span class="fn">delay</span>(<span class="nb">2000</span>);
+}</div>
+  </div>
+</section>
+
+<!-- ══════════════ ZAV 2 ══════════════ -->
+<section class="section" id="zav2">
+  <div class="s-eye">04 · Практична робота №25</div>
+  <h2>Завдання 2 · Ручне керування потенціометром (Project 14-2)</h2>
+
+  <div class="note">📌 <strong>Мета:</strong> Обертання ручки потенціометра визначає кут повороту вала сервоприводу в реальному часі. Результати виводяться в Serial Monitor.</div>
+
+  <h3 style="margin:18px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Нам знадобиться:</h3>
+  <div class="cl">
+    <div class="ci"><span style="font-size:18px">🟦</span>Arduino UNO</div>
+    <div class="ci"><span style="font-size:18px">💻</span>ПК + Arduino IDE</div>
+    <div class="ci"><span style="font-size:18px">🔲</span>Макетна плата</div>
+    <div class="ci"><span style="font-size:18px">⚙</span>Сервопривід</div>
+    <div class="ci"><span style="font-size:18px">🎛</span>Потенціометр 10 кОм</div>
+    <div class="ci"><span style="font-size:18px">🔌</span>З'єднувальні дроти</div>
+  </div>
+
+  <div class="steps" style="margin-top:16px">
+    <div class="step"><div class="sn">1</div><div class="sb">
+      <h4>Підключіть потенціометр до A0</h4>
+      <p>Крайні виводи потенціометра → GND та 5V. Середній вивід (мітка/wiper) → A0. Серво підключіть до піна ~11 як у Завданні 1.</p>
+    </div></div>
+    <div class="step"><div class="sn">2</div><div class="sb">
+      <h4>Завантажте Лістинг 14-2 та відкрийте Serial Monitor</h4>
+      <p>Спостерігайте значення <code>analogRead(A0)</code> (0–1023) та поточний кут серво (0–255, потім поділений на 4 → 0–63). Зверніть увагу: <code>analogRead/4</code> дає 0–255, а не 0–180!</p>
+    </div></div>
+    <div class="step"><div class="sn">3</div><div class="sb">
+      <h4>Порівняйте з функцією map()</h4>
+      <p>Змініть рядок <code>servo.write(analogRead(A0)/4)</code> на <code>servo.write(map(analogRead(A0),0,1023,0,180))</code> — тепер кут буде в правильному діапазоні 0–180°.</p>
+    </div></div>
+  </div>
+
+  <h3 style="margin:20px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Лістинг 14-2 · Потенціометр керує серво</h3>
+  <div class="cw">
+    <button class="copy-btn" onclick="cp(this)">copy</button>
+    <div class="cb"><span class="pp">#include</span> <span class="st">&lt;Servo.h&gt;</span>
+
+Servo servo;
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  servo.<span class="fn">attach</span>(<span class="nb">11</span>);
+  <span class="fn">pinMode</span>(A0, INPUT);
+  <span class="fn">Serial</span>.<span class="fn">begin</span>(<span class="nb">9600</span>);
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  servo.<span class="fn">write</span>(<span class="fn">analogRead</span>(A0) / <span class="nb">4</span>);         <span class="cm">// значення 0–255 → серво</span>
+  <span class="fn">Serial</span>.<span class="fn">println</span>(<span class="fn">analogRead</span>(A0));          <span class="cm">// значення потенціометра</span>
+  <span class="fn">Serial</span>.<span class="fn">println</span>(<span class="fn">analogRead</span>(A0) / <span class="nb">4</span>);      <span class="cm">// значення на вхід серво</span>
+  <span class="fn">Serial</span>.<span class="fn">println</span>();                           <span class="cm">// порожній рядок</span>
+  <span class="fn">delay</span>(<span class="nb">1000</span>);
+}
+
+<span class="cm">// Покращена версія з map() — правильний діапазон 0..180°:</span>
+<span class="cm">// servo.write(map(analogRead(A0), 0, 1023, 0, 180));</span></div>
+  </div>
+  <div class="ok">✅ <strong>Порада:</strong> використовуйте <code>map(analogRead(A0), 0, 1023, 0, 180)</code> для точної відповідності кута потенціометру — повний оберт = повний кут серво.</div>
+</section>
+
+<!-- ══════════════ ZAV 3 ══════════════ -->
+<section class="section" id="zav3">
+  <div class="s-eye">04 · Практична робота №25</div>
+  <h2>Завдання 3 · Плавне обертання (Project 14-3)</h2>
+
+  <div class="note">📌 <strong>Мета:</strong> сервопривід рухається плавно від 0° до 90° і назад через покроковий цикл for з затримкою 20 мс між кроками.</div>
+
+  <div class="warn">⚠️ <strong>Помилка в оригінальному лістингу:</strong> <code>servo.attah(11)</code> — відсутня літера <code>c</code>. Правильно: <code>servo.<strong>attach</strong>(11)</code>. Також відсутня закриваюча дужка <code>}</code> в кінці loop().</div>
+
+  <div class="steps" style="margin-top:16px">
+    <div class="step"><div class="sn">1</div><div class="sb">
+      <h4>Схема — як у Завданні 1</h4>
+      <p>Підключення ідентичне Завданню 1. Потенціометр у цьому завданні не потрібен.</p>
+    </div></div>
+    <div class="step"><div class="sn">2</div><div class="sb">
+      <h4>Введіть виправлений Лістинг 14-3</h4>
+      <p>Зверніть увагу на <strong>два окремих цикли for</strong>: перший від 0° до 90°, другий — назад від 90° до 0°. Кожен крок — 1°, затримка — 20 мс → плавне обертання без «ривків».</p>
+    </div></div>
+    <div class="step"><div class="sn">3</div><div class="sb">
+      <h4>Поекспериментуйте з параметрами</h4>
+      <p>Спробуйте <code>delay(5)</code> — що стає швидшим? Змініть 90° на 180° для повного оберту. Поясніть чому <code>delay(20)</code> відповідає частоті 50 Гц.</p>
+    </div></div>
+  </div>
+
+  <h3 style="margin:20px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Лістинг 14-3 · Плавне обертання (виправлено)</h3>
+  <div class="cw">
+    <button class="copy-btn" onclick="cp(this)">copy</button>
+    <div class="cb"><span class="pp">#include</span> <span class="st">&lt;Servo.h&gt;</span>
+
+Servo servo;
+<span class="ty">int</span> angle;  <span class="cm">// змінна для кута повороту</span>
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  servo.<span class="fn">attach</span>(<span class="nb">11</span>);  <span class="cm">// виправлено: attach (не attah!)</span>
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="cm">// цикл оберту від 0° до 90°</span>
+  <span class="kw">for</span> (angle = <span class="nb">0</span>; angle &lt;= <span class="nb">90</span>; angle++) {
+    servo.<span class="fn">write</span>(angle);
+    <span class="fn">delay</span>(<span class="nb">20</span>);   <span class="cm">// 20 мс = 50 Гц частота оновлення</span>
+  }
+  <span class="cm">// цикл оберту від 90° до 0°</span>
+  <span class="kw">for</span> (angle = <span class="nb">90</span>; angle &gt;= <span class="nb">0</span>; angle--) {
+    servo.<span class="fn">write</span>(angle);
+    <span class="fn">delay</span>(<span class="nb">20</span>);
+  }
+}   <span class="cm">// ← закриваюча дужка loop() (відсутня в оригіналі!)</span></div>
+  </div>
+</section>
+
+<!-- ══════════════ ZAV 4 ══════════════ -->
+<section class="section" id="zav4">
+  <div class="s-eye">04 · Практична робота №25</div>
+  <h2>Завдання 4 · RFID-замок на сервоприводі (Project 14-4)</h2>
+
+  <div class="note">📌 <strong>Мета:</strong> прототип системи відкриття дверей RFID-карткою. Серво відкриває «двері» при збігу UID, зелений LED + звуковий сигнал підтверджують доступ.</div>
+
+  <h3 style="margin:18px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Нам знадобиться:</h3>
+  <div class="cl">
+    <div class="ci"><span style="font-size:18px">🟦</span>Arduino UNO</div>
+    <div class="ci"><span style="font-size:18px">💻</span>ПК + Arduino IDE</div>
+    <div class="ci"><span style="font-size:18px">🔲</span>Макетна плата</div>
+    <div class="ci"><span style="font-size:18px">⚙</span>1 сервопривід</div>
+    <div class="ci"><span style="font-size:18px">🔌</span>З'єднувальні дроти</div>
+    <div class="ci"><span style="font-size:18px">🔴🟢</span>2 LED (червоний/зелений)</div>
+    <div class="ci"><span style="font-size:18px">⬛</span>2 резистори 220Ω</div>
+    <div class="ci"><span style="font-size:18px">🔊</span>Зумер</div>
+    <div class="ci"><span style="font-size:18px">📡</span>RFID модуль MFRC522</div>
+    <div class="ci"><span style="font-size:18px">💳</span>RFID картка / брелок</div>
+  </div>
+
+  <div class="steps" style="margin-top:16px">
+    <div class="step"><div class="sn">1</div><div class="sb">
+      <h4>Підключіть RFID MFRC522 через SPI</h4>
+      <p>SS → D10, RST → D9, MOSI → D11, MISO → D12, SCK → D13, VCC → 3.3V (!), GND → GND. Зверніть увагу: MFRC522 живиться від 3.3 В, не 5 В!</p>
+    </div></div>
+    <div class="step"><div class="sn">2</div><div class="sb">
+      <h4>Встановіть бібліотеку MFRC522</h4>
+      <p>Arduino IDE → Manage Libraries → знайдіть «MFRC522» (Miguel Balboa) → Install. Також потрібна стандартна бібліотека SPI.h.</p>
+    </div></div>
+    <div class="step"><div class="sn">3</div><div class="sb">
+      <h4>Визначте UID вашої картки</h4>
+      <p>Завантажте приклад File → Examples → MFRC522 → DumpInfo. Прикладіть картку до зчитувача, скопіюйте UID із Serial Monitor і замініть в лістингу значення <code>49481524</code> на свій UID.</p>
+    </div></div>
+    <div class="step"><div class="sn">4</div><div class="sb">
+      <h4>Доповніть лістинг — замініть ***</h4>
+      <p>Рядки <code>***</code> у лістингу — місця для вашого коду. Підказки: <code>tone(buzzerPin, 1000, 200)</code> для звуку, <code>servo.write(90)</code> для відкриття, <code>delay(3000)</code> пауза, <code>servo.write(0)</code> для закриття.</p>
+    </div></div>
+  </div>
+
+  <h3 style="margin:20px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Лістинг 14-4 · RFID-замок (з підказками)</h3>
+  <div class="cw">
+    <button class="copy-btn" onclick="cp(this)">copy</button>
+    <div class="cb"><span class="pp">#include</span> <span class="st">&lt;Servo.h&gt;</span>
+<span class="pp">#include</span> <span class="st">&lt;SPI.h&gt;</span>
+<span class="pp">#include</span> <span class="st">&lt;MFRC522.h&gt;</span>    <span class="cm">// бібліотека RFID</span>
+
+<span class="pp">#define</span> SS_PIN   <span class="nb">10</span>    <span class="cm">// SS → D10</span>
+<span class="pp">#define</span> RST_PIN  <span class="nb">9</span>     <span class="cm">// RST → D9</span>
+<span class="pp">#define</span> LED_G    <span class="nb">5</span>     <span class="cm">// зелений LED</span>
+<span class="pp">#define</span> LED_R    <span class="nb">6</span>     <span class="cm">// червоний LED</span>
+<span class="pp">#define</span> BUZZER   <span class="nb">4</span>     <span class="cm">// зумер</span>
+
+MFRC522 <span class="fn">mfrc522</span>(SS_PIN, RST_PIN);
+<span class="ty">unsigned long</span> uidDec, uidDecTemp;
+Servo servo;
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  <span class="fn">pinMode</span>(LED_G, OUTPUT);
+  <span class="fn">pinMode</span>(LED_R, OUTPUT);
+  <span class="fn">digitalWrite</span>(LED_R, HIGH);     <span class="cm">// спочатку — червоний</span>
+  <span class="fn">Serial</span>.<span class="fn">begin</span>(<span class="nb">9600</span>);
+  <span class="fn">Serial</span>.<span class="fn">println</span>(<span class="st">"Waiting for card..."</span>);
+  <span class="fn">SPI</span>.<span class="fn">begin</span>();
+  mfrc522.<span class="fn">PCD_Init</span>();
+  servo.<span class="fn">attach</span>(<span class="nb">3</span>);
+  servo.<span class="fn">write</span>(<span class="nb">0</span>);                  <span class="cm">// початковий стан — зачинено</span>
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="kw">if</span> (!mfrc522.<span class="fn">PICC_IsNewCardPresent</span>()) <span class="kw">return</span>;
+  <span class="kw">if</span> (!mfrc522.<span class="fn">PICC_ReadCardSerial</span>())   <span class="kw">return</span>;
+
+  uidDec = <span class="nb">0</span>;
+  <span class="kw">for</span> (<span class="ty">byte</span> i = <span class="nb">0</span>; i &lt; mfrc522.uid.size; i++) {
+    uidDecTemp = mfrc522.uid.uidByte[i];
+    uidDec = uidDec * <span class="nb">256</span> + uidDecTemp;
+  }
+  <span class="fn">Serial</span>.<span class="fn">print</span>(<span class="st">"Card UID: "</span>);
+  <span class="fn">Serial</span>.<span class="fn">println</span>(uidDec);     <span class="cm">// виводимо UID картки</span>
+
+  <span class="kw">if</span> (uidDec == <span class="nb">49481524</span>) {   <span class="cm">// ← замініть на свій UID!</span>
+    <span class="fn">digitalWrite</span>(LED_R, LOW);
+    <span class="fn">tone</span>(BUZZER, <span class="nb">1000</span>, <span class="nb">200</span>);   <span class="cm">// звуковий сигнал — доступ відкрито</span>
+    <span class="fn">digitalWrite</span>(LED_G, HIGH);
+    servo.<span class="fn">write</span>(<span class="nb">90</span>);            <span class="cm">// відкрити двері</span>
+    <span class="fn">delay</span>(<span class="nb">3000</span>);               <span class="cm">// тримати 3 секунди</span>
+    servo.<span class="fn">write</span>(<span class="nb">0</span>);            <span class="cm">// закрити двері</span>
+    <span class="fn">tone</span>(BUZZER, <span class="nb">500</span>, <span class="nb">200</span>);    <span class="cm">// сигнал — закрито</span>
+    mfrc522.<span class="fn">PICC_HaltA</span>();
+    <span class="fn">delay</span>(<span class="nb">5000</span>);               <span class="cm">// пауза між зчитуваннями</span>
+  }
+  <span class="fn">digitalWrite</span>(LED_G, LOW);
+  <span class="fn">digitalWrite</span>(LED_R, HIGH);
+}</div>
+  </div>
+</section>
+
+<!-- ══════════════ ZAV 5 ══════════════ -->
+<section class="section" id="zav5">
+  <div class="s-eye">04 · Практична робота №25</div>
+  <h2>Завдання 5 · Декілька сервоприводів (Project 14-5)</h2>
+
+  <div class="note">📌 <strong>Мета:</strong> безпечне підключення 6 сервоприводів з розумінням обмежень струму. Arduino UNO може видавати до 500 мА — при 6 серво по 100 мА = 600 мА → <strong>потрібне зовнішнє живлення!</strong></div>
+
+  <div class="warn">
+    ⚠️ <strong>Розрахунок струму:</strong> 1 серво SG90 без навантаження ≈ 100–400 мА. При 6 приводах стартовий струм може досягати <strong>2–6 А</strong>. Arduino може видати лише 500 мА. Використовуйте зовнішній блок живлення 5–6 В / 3+ А зі спільною землею.
+  </div>
+
+  <div class="cl" style="margin:16px 0">
+    <div class="ci"><span style="font-size:18px">🟦</span>Arduino UNO</div>
+    <div class="ci"><span style="font-size:18px">💻</span>ПК + Arduino IDE</div>
+    <div class="ci"><span style="font-size:18px">🔲</span>Макетна плата</div>
+    <div class="ci"><span style="font-size:18px">⚙×6</span>6 сервоприводів</div>
+    <div class="ci"><span style="font-size:18px">🔌</span>З'єднувальні дроти</div>
+    <div class="ci"><span style="font-size:18px">🔋</span>Зовнішній БЖ 5В/3А</div>
+  </div>
+
+  <h3 style="margin:16px 0 10px;font-family:var(--disp);font-size:15px;color:var(--text)">Лістинг 14-5 · Шість серво — асинхронне керування</h3>
+  <div class="cw">
+    <button class="copy-btn" onclick="cp(this)">copy</button>
+    <div class="cb"><span class="pp">#include</span> <span class="st">&lt;Servo.h&gt;</span>
+
+Servo s[<span class="nb">6</span>];   <span class="cm">// масив із 6 об'єктів Servo</span>
+<span class="ty">int</span> pins[] = {<span class="nb">3</span>, <span class="nb">5</span>, <span class="nb">6</span>, <span class="nb">9</span>, <span class="nb">10</span>, <span class="nb">11</span>};  <span class="cm">// ШІМ-піни</span>
+<span class="ty">int</span> angles[<span class="nb">6</span>] = {<span class="nb">0</span>,<span class="nb">0</span>,<span class="nb">0</span>,<span class="nb">0</span>,<span class="nb">0</span>,<span class="nb">0</span>};
+<span class="ty">int</span> dirs[<span class="nb">6</span>]   = {<span class="nb">1</span>,<span class="nb">1</span>,<span class="nb">1</span>,<span class="nb">1</span>,<span class="nb">1</span>,<span class="nb">1</span>};
+
+<span class="ty">uint32_t</span> tmr;
+
+<span class="kw">void</span> <span class="fn">setup</span>() {
+  <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nb">0</span>; i &lt; <span class="nb">6</span>; i++)
+    s[i].<span class="fn">attach</span>(pins[i]);
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="cm">// асинхронний таймер — не блокує loop()</span>
+  <span class="kw">if</span> (<span class="fn">millis</span>() - tmr &gt;= <span class="nb">20</span>) {
+    tmr = <span class="fn">millis</span>();
+    <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nb">0</span>; i &lt; <span class="nb">6</span>; i++) {
+      angles[i] += dirs[i];                          <span class="cm">// крок</span>
+      <span class="kw">if</span> (angles[i] &gt;= <span class="nb">180</span> || angles[i] &lt;= <span class="nb">0</span>)
+        dirs[i] = -dirs[i];                          <span class="cm">// реверс</span>
+      s[i].<span class="fn">write</span>(angles[i]);
+    }
+  }
+  <span class="cm">// тут можна виконувати інший код без блокування!</span>
+}</div>
+  </div>
+  <div class="ok">✅ Асинхронний підхід через <code>millis()</code> дозволяє одночасно керувати 6 серво <em>і</em> виконувати інший код — без зупинки програми на <code>delay()</code>.</div>
+</section>
+
+<!-- ══════════════ QUIZ ══════════════ -->
+<section class="section" id="quiz">
+  <div class="s-eye">05 · Контрольні питання</div>
+  <h2>Тест — 10 питань</h2>
+
+  <div class="quiz-list" id="qList">
+
+    <div class="q-card" data-qi="0">
+      <div class="q-text">1. Яка тривалість PDM-імпульсу відповідає положенню 90° сервоприводу SG90?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,0,false)"><span class="ol">A</span>~500 мкс</div>
+        <div class="q-opt" onclick="qa(this,0,true)"><span class="ol">B</span>~1500 мкс</div>
+        <div class="q-opt" onclick="qa(this,0,false)"><span class="ol">C</span>~2500 мкс</div>
+        <div class="q-opt" onclick="qa(this,0,false)"><span class="ol">D</span>~3000 мкс</div>
+      </div>
+      <div class="q-exp">Діапазон: ~500 мкс (0°) → ~1500 мкс (90°) → ~2500 мкс (180°). Бібліотека Servo.h за замовчуванням використовує 544–2400 мкс.</div>
+    </div>
+
+    <div class="q-card" data-qi="1">
+      <div class="q-text">2. Яка рекомендована частота PDM-сигналу для аналогового сервоприводу?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,1,false)"><span class="ol">A</span>10 Гц</div>
+        <div class="q-opt" onclick="qa(this,1,true)"><span class="ol">B</span>~50 Гц</div>
+        <div class="q-opt" onclick="qa(this,1,false)"><span class="ol">C</span>490 Гц</div>
+        <div class="q-opt" onclick="qa(this,1,false)"><span class="ol">D</span>1000 Гц</div>
+      </div>
+      <div class="q-exp">~50 Гц (период 20 мс). При менше 20 Гц — «джиттер». При більше 100 Гц — неадекватна поведінка аналогового серво. Цифрові серво допускають до ~300 Гц.</div>
+    </div>
+
+    <div class="q-card" data-qi="2">
+      <div class="q-text">3. Що означає Duty Cycle = 25% у ШІМ при напрузі 5 В?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,2,false)"><span class="ol">A</span>Середня напруга 0.5 В</div>
+        <div class="q-opt" onclick="qa(this,2,true)"><span class="ol">B</span>Середня напруга 1.25 В</div>
+        <div class="q-opt" onclick="qa(this,2,false)"><span class="ol">C</span>Середня напруга 2.5 В</div>
+        <div class="q-opt" onclick="qa(this,2,false)"><span class="ol">D</span>Напруга завжди 5 В</div>
+      </div>
+      <div class="q-exp">Duty Cycle = 25% → сигнал HIGH 25% часу. Середня напруга = 5В × 0.25 = 1.25 В. Формула: V_avg = V_max × (DC% / 100).</div>
+    </div>
+
+    <div class="q-card" data-qi="3">
+      <div class="q-text">4. Яке значення analogWrite() відповідає Duty Cycle ≈ 50%?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,3,false)"><span class="ol">A</span>50</div>
+        <div class="q-opt" onclick="qa(this,3,false)"><span class="ol">B</span>100</div>
+        <div class="q-opt" onclick="qa(this,3,true)"><span class="ol">C</span>128</div>
+        <div class="q-opt" onclick="qa(this,3,false)"><span class="ol">D</span>512</div>
+      </div>
+      <div class="q-exp"><code>analogWrite(pin, value)</code> приймає 0–255. 128 ÷ 255 ≈ 50.2%. Формула: value = DC% × 255 / 100. Значення 255 → 100%, 0 → 0%.</div>
+    </div>
+
+    <div class="q-card" data-qi="4">
+      <div class="q-text">5. Які піни Arduino Uno НЕ підтримують ШІМ?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,4,false)"><span class="ol">A</span>Піни 3, 5, 6, 9, 10, 11</div>
+        <div class="q-opt" onclick="qa(this,4,true)"><span class="ol">B</span>Піни 0, 1, 2, 4, 7, 8, 12, 13</div>
+        <div class="q-opt" onclick="qa(this,4,false)"><span class="ol">C</span>Усі цифрові піни підтримують ШІМ</div>
+        <div class="q-opt" onclick="qa(this,4,false)"><span class="ol">D</span>Лише аналогові піни A0–A5</div>
+      </div>
+      <div class="q-exp">ШІМ-піни на Uno позначені «~»: 3, 5, 6, 9, 10, 11. Решта цифрових пінів (0,1,2,4,7,8,12,13) та аналогові не підтримують <code>analogWrite()</code>.</div>
+    </div>
+
+    <div class="q-card" data-qi="5">
+      <div class="q-text">6. Яка функція бібліотеки Servo.h повертає вал на заданий кут у градусах?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,5,false)"><span class="ol">A</span><code>servo.rotate(angle)</code></div>
+        <div class="q-opt" onclick="qa(this,5,false)"><span class="ol">B</span><code>servo.setAngle(angle)</code></div>
+        <div class="q-opt" onclick="qa(this,5,true)"><span class="ol">C</span><code>servo.write(angle)</code></div>
+        <div class="q-opt" onclick="qa(this,5,false)"><span class="ol">D</span><code>servo.move(angle)</code></div>
+      </div>
+      <div class="q-exp"><code>servo.write(angle)</code> — основна функція: приймає кут 0–180° і генерує відповідний PDM-імпульс. <code>servo.writeMicroseconds(us)</code> — точніше керування довжиною імпульсу.</div>
+    </div>
+
+    <div class="q-card" data-qi="6">
+      <div class="q-text">7. Чому сервопривід рекомендується живити від зовнішнього джерела?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,6,false)"><span class="ol">A</span>Бібліотека Servo.h вимагає 12 В</div>
+        <div class="q-opt" onclick="qa(this,6,true)"><span class="ol">B</span>Серво споживає до 1 А стартового струму, що може пошкодити Arduino</div>
+        <div class="q-opt" onclick="qa(this,6,false)"><span class="ol">C</span>Серво не може працювати від 5 В</div>
+        <div class="q-opt" onclick="qa(this,6,false)"><span class="ol">D</span>Arduino не підтримує ШІМ для серво</div>
+      </div>
+      <div class="q-exp">Стартовий струм SG90 до 1 А. Arduino може видавати лише ~500 мА. При 2+ приводах може вигоріти захисний діод. При зовнішньому живленні — спільна земля обов'язкова!</div>
+    </div>
+
+    <div class="q-card" data-qi="7">
+      <div class="q-text">8. Яке обмеження бібліотеки Servo.h на Arduino Nano?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,7,false)"><span class="ol">A</span>Максимум 1 серво</div>
+        <div class="q-opt" onclick="qa(this,7,false)"><span class="ol">B</span>Не підтримує write() більше 90°</div>
+        <div class="q-opt" onclick="qa(this,7,true)"><span class="ol">C</span>Займає Timer1 → ШІМ на пінах 9 та 10 недоступний</div>
+        <div class="q-opt" onclick="qa(this,7,false)"><span class="ol">D</span>Вимагає окремого живлення 12 В</div>
+      </div>
+      <div class="q-exp">На Arduino Nano (і Uno) бібліотека Servo.h використовує Timer1, що відключає апаратний ШІМ на пінах 9 та 10. Функція <code>analogWrite(9,...)</code> або <code>analogWrite(10,...)</code> не працюватиме.</div>
+    </div>
+
+    <div class="q-card" data-qi="8">
+      <div class="q-text">9. Як правильно перетворити значення A0 (0–1023) у кут серво (0–180°)?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,8,false)"><span class="ol">A</span><code>analogRead(A0) / 10</code></div>
+        <div class="q-opt" onclick="qa(this,8,false)"><span class="ol">B</span><code>analogRead(A0) / 4</code></div>
+        <div class="q-opt" onclick="qa(this,8,true)"><span class="ol">C</span><code>map(analogRead(A0), 0, 1023, 0, 180)</code></div>
+        <div class="q-opt" onclick="qa(this,8,false)"><span class="ol">D</span><code>analogRead(A0) * 180 / 5</code></div>
+      </div>
+      <div class="q-exp"><code>map(analogRead(A0), 0, 1023, 0, 180)</code> — правильне масштабування. <code>analogRead/4</code> дає 0–255, що виходить за межі 0–180°. Функція <code>map()</code> виконує лінійне перетворення діапазонів.</div>
+    </div>
+
+    <div class="q-card" data-qi="9">
+      <div class="q-text">10. Яка перевага асинхронного керування серво через millis() перед delay()?</div>
+      <div class="q-opts">
+        <div class="q-opt" onclick="qa(this,9,false)"><span class="ol">A</span>Точніший кут повороту</div>
+        <div class="q-opt" onclick="qa(this,9,false)"><span class="ol">B</span>Менше споживання струму</div>
+        <div class="q-opt" onclick="qa(this,9,true)"><span class="ol">C</span>Не блокує loop() — можна одночасно керувати кількома пристроями</div>
+        <div class="q-opt" onclick="qa(this,9,false)"><span class="ol">D</span>Підтримує більший кут повороту</div>
+      </div>
+      <div class="q-exp"><code>millis()</code>-таймер не зупиняє виконання програми, на відміну від <code>delay()</code>. Це дозволяє одночасно: керувати 6 серво, читати датчики, перевіряти кнопки тощо. Ключова техніка для складних проєктів.</div>
+    </div>
+
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px">
+    <button class="btn btn-p" onclick="checkQ()">Перевірити результат</button>
+    <button class="btn btn-o" onclick="resetQ()">↺ Повторити</button>
+  </div>
+  <div class="score-box" id="scoreBox">
+    <div class="score-num" id="scoreNum">—</div>
+    <div class="score-msg" id="scoreMsg"></div>
+  </div>
+</section>
+
+<!-- ══════════════ REFERENCE ══════════════ -->
+<section class="section" id="ref">
+  <div class="s-eye">06 · Довідник</div>
+  <h2>Шпаргалка · Функції та характеристики</h2>
+
+  <div class="card" style="margin-bottom:16px">
+    <h3><span class="d"></span>Методи бібліотеки Servo.h</h3>
+    <div style="overflow-x:auto">
+      <table class="ref-table">
+        <thead><tr><th>Функція</th><th>Опис</th><th>Примітка</th></tr></thead>
+        <tbody>
+          <tr><td><code>servo.attach(pin)</code></td><td>Підключити серво до піна (діапазон 544–2400 мкс)</td><td>Виклик у setup()</td></tr>
+          <tr><td><code>servo.attach(pin, min, max)</code></td><td>З налаштуванням мін/макс тривалості імпульсу (мкс)</td><td>Для точного калібрування</td></tr>
+          <tr><td><code>servo.write(angle)</code></td><td>Повернути на кут 0–180°</td><td>Основна функція</td></tr>
+          <tr><td><code>servo.writeMicroseconds(us)</code></td><td>Тривалість імпульсу у мікросекундах</td><td>Точніше керування</td></tr>
+          <tr><td><code>servo.read()</code></td><td>Прочитати поточний кут</td><td>Повертає 0–180</td></tr>
+          <tr><td><code>servo.attached()</code></td><td>Перевірити чи підключено серво</td><td>Повертає bool</td></tr>
+          <tr><td><code>servo.detach()</code></td><td>Відключити серво від піна</td><td>Звільняє пін</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h3><span class="d"></span>ШІМ — ключові факти</h3>
+    <div style="overflow-x:auto">
+      <table class="ref-table">
+        <thead><tr><th>Параметр</th><th>Arduino Uno</th><th>Деталі</th></tr></thead>
+        <tbody>
+          <tr><td>ШІМ-піни</td><td>3, 5, 6, 9, 10, 11</td><td>Позначені «~» на платі</td></tr>
+          <tr><td>Частота (піни 3,9,10,11)</td><td>~490 Гц</td><td>Timer2 та Timer1</td></tr>
+          <tr><td>Частота (піни 5,6)</td><td>~980 Гц</td><td>Timer0</td></tr>
+          <tr><td>Розрядність</td><td>8 біт</td><td>0–255</td></tr>
+          <tr><td>Функція виводу</td><td><code>analogWrite(pin, 0–255)</code></td><td>0=0%, 128≈50%, 255=100%</td></tr>
+          <tr><td>Duty Cycle → Напруга</td><td>V = 5 × DC/100</td><td>DC — шпаруватість у %</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="d"></span>Характеристики SG90 і підключення</h3>
+    <div style="overflow-x:auto">
+      <table class="ref-table">
+        <thead><tr><th>Параметр</th><th>Значення</th></tr></thead>
+        <tbody>
+          <tr><td>Напруга живлення</td><td>3–7.2 В (рекомендовано 4.8–6 В)</td></tr>
+          <tr><td>Крутний момент</td><td>1.2 кг/см @ 4.8 В · 1.6 кг/см @ 6 В</td></tr>
+          <tr><td>Кут повороту</td><td>160–180° (позиційний)</td></tr>
+          <tr><td>Швидкість</td><td>180° за ~0.3 с (без навантаження)</td></tr>
+          <tr><td>Струм (холостий хід)</td><td>~400 мА</td></tr>
+          <tr><td>Струм (стартовий/навантаження)</td><td>до 1 А</td></tr>
+          <tr><td>Дроти: коричневий</td><td>GND</td></tr>
+          <tr><td>Дроти: червоний</td><td>VCC (5В)</td></tr>
+          <tr><td>Дроти: жовтий/оранжевий</td><td>PWM/PDM-сигнал</td></tr>
+          <tr><td>Max серво на Uno/Nano</td><td>12 (Servo.h)</td></tr>
+          <tr><td>Max серво на Mega</td><td>48 (Servo.h)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</div><!-- /main -->
+
+<footer>STEAM-HUB · ПУЕТ · Тема 25 — Сервоприводи та ШІМ &nbsp;|&nbsp; Інтерактивний посібник · 2025</footer>
+
+<!-- ══════════════ SCRIPTS ══════════════ -->
+<script>
+/* ── ACCORDION ── */
+function tA(h){ const b=h.nextElementSibling,o=h.classList.contains('open');
+  document.querySelectorAll('.acc-h').forEach(x=>{x.classList.remove('open');x.nextElementSibling.classList.remove('open')});
+  if(!o){h.classList.add('open');b.classList.add('open')} }
+
+/* ── COPY ── */
+function cp(btn){ const t=btn.nextElementSibling.innerText;
+  navigator.clipboard.writeText(t).then(()=>{btn.textContent='✓ copied!';setTimeout(()=>btn.textContent='copy',1800)}) }
+
+/* ══════════════════════════════════════
+   PWM VISUALIZER
+══════════════════════════════════════ */
+const freqMap=[10,50,100,490,980];
+const freqLbls=['10 Гц','50 Гц','100 Гц','490 Гц','980 Гц'];
+let pwmAnim=null,pwmPhase=0;
+
+function updatePWM(){
+  const duty=+document.getElementById('dutySlider').value;
+  const fi=+document.getElementById('freqSlider').value-1;
+  const freq=freqMap[fi];
+  document.getElementById('dutyLbl').textContent=duty+'%';
+  document.getElementById('freqLbl').textContent=freqLbls[fi];
+  document.getElementById('mDuty').textContent=duty+'%';
+  document.getElementById('mVolt').textContent=(5*duty/100).toFixed(2)+' В';
+  document.getElementById('mFreq').textContent=freqLbls[fi];
+  const val=Math.round(duty*255/100);
+  document.getElementById('mVal').textContent=val;
+  drawPWM(duty/100,freq);
+}
+
+function drawPWM(dc,freq){
+  const cv=document.getElementById('pwmCanvas');
+  const W=cv.offsetWidth||cv.parentElement.offsetWidth||500;
+  const H=140;
+  cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#0B1924';ctx.fillRect(0,0,W,H);
+  // grid
+  ctx.strokeStyle='#1A3050';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=H*i/4;
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+  }
+  // labels
+  ctx.fillStyle='#486278';ctx.font='10px Share Tech Mono,monospace';
+  ctx.fillText('5В',4,12);ctx.fillText('0В',4,H-2);
+  ctx.fillText('HIGH',4,H/2-4);
+  // waveform
+  const cycles=Math.max(2,Math.min(8,Math.ceil(freq/60)));
+  const cpx=W/cycles;
+  const highW=cpx*dc;
+  const y_low=H*0.82,y_high=H*0.12;
+  ctx.strokeStyle='#FF7722';ctx.lineWidth=2.5;
+  ctx.shadowColor='rgba(255,120,30,.4)';ctx.shadowBlur=6;
+  ctx.beginPath();
+  let x=0;
+  ctx.moveTo(x,y_low);
+  for(let c=0;c<cycles;c++){
+    ctx.lineTo(x,y_high);
+    ctx.lineTo(x+highW,y_high);
+    ctx.lineTo(x+highW,y_low);
+    ctx.lineTo(x+cpx,y_low);
+    x+=cpx;
+  }
+  ctx.stroke();
+  ctx.shadowBlur=0;
+  // duty line
+  if(dc>0&&dc<1){
+    ctx.strokeStyle='rgba(90,200,255,.4)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(0,y_high);ctx.lineTo(W,y_high);ctx.stroke();
+    ctx.setLineDash([]);
+    // avg voltage line
+    const yAvg=H-(dc*(y_low-y_high)+y_high);
+    ctx.strokeStyle='rgba(150,255,100,.5)';ctx.lineWidth=1;ctx.setLineDash([6,3]);
+    ctx.beginPath();ctx.moveTo(0,H-yAvg+y_high*0);
+    // simpler:
+    const yA=y_low-(dc*(y_low-y_high));
+    ctx.beginPath();ctx.moveTo(0,yA);ctx.lineTo(W,yA);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(150,255,100,.7)';ctx.font='9px Share Tech Mono,monospace';
+    ctx.fillText('Uavg='+(5*dc).toFixed(2)+'В',6,yA-3);
+  }
+}
+
+function setPWMPreset(v){
+  document.getElementById('dutySlider').value=v;
+  document.querySelectorAll('.pwm-body .pbt').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  updatePWM();
+}
+
+/* ══════════════════════════════════════
+   SERVO SIMULATOR
+══════════════════════════════════════ */
+let currentAngle=90;
+let sweepTimer=null,potTimer=null;
+let sweepDir=1;
+
+function setAngle(a){
+  currentAngle=Math.max(0,Math.min(180,a));
+  document.getElementById('angleSlider').value=currentAngle;
+  drawServo(currentAngle);
+  updateAngleUI(currentAngle);
+}
+
+function updateAngleUI(a){
+  document.getElementById('angleBig').textContent=a+'°';
+  const labels=['Початкове (0°)','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',
+    '','','','','','','','','','','','','','','Середнє (45°)','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','Середнє (90°)',
+    '','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','Три чверті (135°)','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','Кінцеве (180°)'];
+  const lbl=a===0?'Початкове (0°)':a===45?'45°':a===90?'Середнє (90°)':a===135?'135°':a===180?'Кінцеве (180°)':'Кут '+a+'°';
+  document.getElementById('angleSub').textContent=lbl;
+  // pulse
+  const pulse=Math.round(500+(a/180)*2000);
+  const pct=((pulse-500)/2000)*100;
+  document.getElementById('pulseFill').style.width=pct+'%';
+  document.getElementById('pulseVal').textContent=pulse+' мкс';
+  document.getElementById('codeAngle').textContent=a;
+}
+
+function drawServo(angle){
+  const cv=document.getElementById('servoCanvas');
+  const W=240,H=240,cx=120,cy=150;
+  cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#0B1924';ctx.fillRect(0,0,W,H);
+  // grid dots
+  ctx.fillStyle='rgba(30,70,120,.4)';
+  for(let x=10;x<W;x+=18)for(let y=10;y<H;y+=18){ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill()}
+
+  // Servo body
+  ctx.fillStyle='#2A2A3A';ctx.strokeStyle='#4A5A7A';ctx.lineWidth=2;
+  ctx.beginPath();ctx.roundRect(cx-50,cy-20,100,70,8);ctx.fill();ctx.stroke();
+  // label
+  ctx.fillStyle='#6A9ACA';ctx.font='bold 11px Share Tech Mono,monospace';
+  ctx.textAlign='center';ctx.fillText('SG90',cx,cy+10);
+  ctx.fillStyle='#3A5A7A';ctx.font='9px Share Tech Mono,monospace';
+  ctx.fillText('MICRO SERVO',cx,cy+24);
+
+  // Arc guide (semicircle for servo range)
+  ctx.strokeStyle='rgba(0,153,102,.25)';ctx.lineWidth=2;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.arc(cx,cy,80,Math.PI,0);ctx.stroke();ctx.setLineDash([]);
+
+  // Angle arc fill
+  const startRad=Math.PI;
+  const endRad=Math.PI-(angle/180)*Math.PI;
+  ctx.fillStyle='rgba(0,153,102,.12)';
+  ctx.beginPath();ctx.moveTo(cx,cy);
+  ctx.arc(cx,cy,80,startRad,endRad,true);ctx.closePath();ctx.fill();
+
+  // Servo horn (arm)
+  const armRad=Math.PI-(angle/180)*Math.PI;
+  const armLen=68;
+  const ax=cx+Math.cos(armRad)*armLen;
+  const ay=cy+Math.sin(armRad)*armLen;
+  // shadow
+  ctx.shadowColor='rgba(0,200,100,.4)';ctx.shadowBlur=10;
+  ctx.strokeStyle='#00CC66';ctx.lineWidth=6;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(ax,ay);ctx.stroke();
+  ctx.shadowBlur=0;
+  // arm tip circle
+  ctx.fillStyle='#00FF88';ctx.beginPath();ctx.arc(ax,ay,7,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#003322';ctx.beginPath();ctx.arc(ax,ay,3,0,Math.PI*2);ctx.fill();
+  // center pivot
+  ctx.fillStyle='#666';ctx.strokeStyle='#999';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(cx,cy,10,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#AAA';ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fill();
+
+  // 0° and 180° markers
+  ctx.fillStyle='#486278';ctx.font='10px Share Tech Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('0°',cx-83,cy+5);
+  ctx.textAlign='right';ctx.fillText('180°',cx+83,cy+5);
+  ctx.textAlign='center';ctx.fillText('90°',cx,cy-88);
+
+  // Angle value display
+  ctx.fillStyle='rgba(0,153,102,.15)';ctx.beginPath();ctx.roundRect(cx-36,30,72,32,6);ctx.fill();
+  ctx.strokeStyle='rgba(0,200,100,.3)';ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle='#00EE88';ctx.font='bold 22px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillText(angle+'°',cx,54);
+  // Wires
+  const wireY=cy+55;
+  ctx.lineWidth=3;ctx.lineCap='butt';
+  ctx.strokeStyle='#5A3010';ctx.beginPath();ctx.moveTo(cx-20,wireY);ctx.lineTo(cx-20,H-5);ctx.stroke();
+  ctx.strokeStyle='#CC2020';ctx.beginPath();ctx.moveTo(cx,wireY);ctx.lineTo(cx,H-5);ctx.stroke();
+  ctx.strokeStyle='#CCAA00';ctx.beginPath();ctx.moveTo(cx+20,wireY);ctx.lineTo(cx+20,H-5);ctx.stroke();
+  ctx.fillStyle='#486278';ctx.font='9px Share Tech Mono,monospace';
+  ctx.textAlign='center';
+  ctx.fillText('GND',cx-20,H-1);ctx.fillText('VCC',cx,H-1);ctx.fillText('SIG',cx+20,H-1);
+}
+
+/* ── Sweep animation ── */
+function startStopSweep(){
+  if(sweepTimer){clearInterval(sweepTimer);sweepTimer=null;stopAnimBadge();document.getElementById('sweepBtn').textContent='▶ Sweep 0↔180';return}
+  stopPot();
+  document.getElementById('sweepBtn').textContent='⏹ Зупинити Sweep';
+  showAnimBadge();
+  sweepDir=1;
+  sweepTimer=setInterval(()=>{
+    currentAngle+=sweepDir;
+    if(currentAngle>=180||currentAngle<=0)sweepDir=-sweepDir;
+    setAngle(currentAngle);
+  },30);
+}
+
+/* ── Potentiometer simulation ── */
+let potAngle=0,potDir=3;
+function startStopPot(){
+  if(potTimer){clearInterval(potTimer);potTimer=null;stopAnimBadge();document.getElementById('potBtn').textContent='🎛 Потенціометр';return}
+  stopSweep();
+  document.getElementById('potBtn').textContent='⏹ Зупинити Pot';
+  showAnimBadge();
+  // simulate random-ish potentiometer
+  potTimer=setInterval(()=>{
+    potAngle+=potDir*(0.5+Math.random()*1.5);
+    if(potAngle>=180){potAngle=180;potDir=-Math.abs(potDir)}
+    if(potAngle<=0){potAngle=0;potDir=Math.abs(potDir)}
+    setAngle(Math.round(potAngle));
+  },80);
+}
+
+function stopSweep(){if(sweepTimer){clearInterval(sweepTimer);sweepTimer=null;document.getElementById('sweepBtn').textContent='▶ Sweep 0↔180'}}
+function stopPot(){if(potTimer){clearInterval(potTimer);potTimer=null;document.getElementById('potBtn').textContent='🎛 Потенціометр'}}
+function showAnimBadge(){document.getElementById('animBadge').style.display='inline-flex'}
+function stopAnimBadge(){if(!sweepTimer&&!potTimer)document.getElementById('animBadge').style.display='none'}
+
+/* ── Hero canvas ── */
+(function(){
+  const cv=document.getElementById('heroCanvas');
+  const ctx=cv.getContext('2d');
+  let a=0,d=2;
+  setInterval(()=>{
+    a+=d;if(a>=180||a<=0)d=-d;
+    ctx.fillStyle='#0B1924';ctx.fillRect(0,0,160,160);
+    // arc
+    ctx.strokeStyle='rgba(0,153,102,.2)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.arc(80,110,55,Math.PI,0);ctx.stroke();ctx.setLineDash([]);
+    // arm
+    const r=Math.PI-(a/180)*Math.PI;
+    const ax=80+Math.cos(r)*52,ay=110+Math.sin(r)*52;
+    ctx.shadowColor='rgba(0,200,100,.5)';ctx.shadowBlur=8;
+    ctx.strokeStyle='#00CC66';ctx.lineWidth=5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(80,110);ctx.lineTo(ax,ay);ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#00FF88';ctx.beginPath();ctx.arc(ax,ay,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#888';ctx.beginPath();ctx.arc(80,110,8,0,Math.PI*2);ctx.fill();
+    // body
+    ctx.fillStyle='#2A2A3A';ctx.strokeStyle='#4A5A7A';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(46,108,68,48,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#6A9ACA';ctx.font='bold 9px monospace';ctx.textAlign='center';
+    ctx.fillText('SG90',80,130);
+    ctx.fillStyle='#00EE88';ctx.font='bold 14px monospace';
+    ctx.fillText(a+'°',80,158);
+  },30);
+})();
+
+/* ── QUIZ ── */
+let answered=new Array(10).fill(null);
+function qa(opt,qi,correct){
+  if(answered[qi]!==null)return;
+  answered[qi]=correct;
+  const opts=opt.closest('.q-opts').querySelectorAll('.q-opt');
+  opts.forEach(o=>{o.style.pointerEvents='none';o.style.cursor='default'});
+  opt.classList.add(correct?'correct':'wrong');
+  if(!correct)opts.forEach(o=>{if(o.onclick&&o.onclick.toString().includes(',true)'))o.classList.add('correct')});
+  const exp=opt.closest('.q-card').querySelector('.q-exp');
+  if(exp)exp.style.display='block';
+}
+function checkQ(){
+  const ok=answered.filter(v=>v===true).length;
+  const box=document.getElementById('scoreBox');
+  box.style.display='block';
+  document.getElementById('scoreNum').textContent=ok+'/10';
+  const msgs=[[0,3,'Перечитай теорію — серво чекає!'],[4,5,'Непогано! Ще є прогалини.'],[6,7,'Добре! Більшість засвоєно.'],[8,9,'Відмінно! Майже бездоганно.'],[10,10,'🏆 Майстер сервоприводів!']];
+  const m=msgs.find(([a,b])=>ok>=a&&ok<=b);
+  document.getElementById('scoreMsg').textContent=m?m[2]:'';
+  box.scrollIntoView({behavior:'smooth'});
+}
+function resetQ(){
+  answered=new Array(10).fill(null);
+  document.querySelectorAll('.q-opt').forEach(o=>{o.classList.remove('correct','wrong');o.style.pointerEvents='';o.style.cursor=''});
+  document.querySelectorAll('.q-exp').forEach(e=>e.style.display='none');
+  document.getElementById('scoreBox').style.display='none';
+}
+
+/* ── NAV SPY ── */
+window.addEventListener('scroll',()=>{
+  const secs=document.querySelectorAll('.section[id]');
+  const links=document.querySelectorAll('.nav a');
+  let cur='';
+  secs.forEach(s=>{if(window.scrollY>=s.offsetTop-80)cur=s.id});
+  links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+cur));
+});
+
+/* ── INIT ── */
+updatePWM();
+drawServo(90);
+updateAngleUI(90);
+</script>
+</body>
+</html>
